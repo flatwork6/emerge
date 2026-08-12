@@ -58,7 +58,8 @@ exports.config = {
         'appium:deviceName': 'emulator-5554',
         'appium:appPackage' : 'com.flattrade.emerge',
         'appium:appActivity' : '.MainActivity',
-        'appium:noReset' : true
+        'appium:noReset' : true,
+        'appium:app': "/home/stn020/Downloads/Emerge_100826_v1.1.3+33_2.apk"
     }],
 
     //
