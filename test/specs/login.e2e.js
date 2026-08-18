@@ -17,7 +17,7 @@ describe('Emerge Login', () => {
 
         // await LoginPage.getNotification();
 
-        await LoginPage.clickUseAnotherAccount()
+      //  await LoginPage.clickUseAnotherAccount()
 
         await LoginPage.enterUserName(process.env.USER_ID)
 

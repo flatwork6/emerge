@@ -9,7 +9,11 @@ class LocatorLoader {
     }
 
     loadLocators() {
-        const filePath = path.resolve(process.cwd(), 'locator.csv')
+        let filePath = path.resolve(process.cwd(), 'locators.csv')
+        if (!fs.existsSync(filePath)) {
+            filePath = path.resolve(process.cwd(), 'locators.csv')
+        }
+
         if (fs.existsSync(filePath)) {
             const fileContent = fs.readFileSync(filePath, 'utf-8')
             const records = parse(fileContent, {
@@ -29,7 +33,7 @@ class LocatorLoader {
 
     get(key) {
         if (!this.locators[key]) {
-            throw new Error(`Locator key "${key}" not found in locator.csv`)
+            throw new Error(`Locator key "${key}" not found in locators.csv`)
         }
         return this.locators[key]
     }
