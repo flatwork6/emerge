@@ -1,6 +1,8 @@
+import locators from '../utils/locatorHelper.js'
+
 class SetBiometric {
     get userChoice() {
-        return $('~Cancel')
+        return $(locators.get('biometricUserChoice'))
     }
 
 

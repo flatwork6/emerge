@@ -17,6 +17,7 @@
     "@wdio/mocha-framework": "^9.30.1",
     "@wdio/spec-reporter": "^9.30.1",
     "appium-uiautomator2-driver": "^8.2.2",
+    "csv-parse": "^7.0.2",
     "dotenv": "^17.4.2"
   }
 }

@@ -1,41 +1,43 @@
+import locators from '../utils/locatorHelper.js'
+
 class LoginPage {
 
     get useAnotherAccountBtn(){
-        return $('~Use Another Account')
+        return $(locators.get('useAnotherAccountBtn'))
     }
     get username() {
-        return $('android=new UiSelector().className("android.widget.EditText").instance(0)')
+        return $(locators.get('username'))
     }
     get password() {
-        return $('android=new UiSelector().className("android.widget.EditText").instance(1)')
+        return $(locators.get('password'))
     }
 
     get totpOrOtp() {
-        return $('android=new UiSelector().className("android.widget.EditText").instance(2)')
+        return $(locators.get('totpOrOtp'))
     }
     get loginButton() {
-        return $('~LOGIN')
+        return $(locators.get('loginButton'))
     }
     get getOtp() {
-        return $('~Get OTP')
+        return $(locators.get('getOtp'))
     }
     get forgotPassword() {
-        return $('Forgot Password?')
+        return $(locators.get('forgotPassword'))
     }
     get openAccount() {
-        return $('Open account')
+        return $(locators.get('openAccount'))
     }
 
     async clickUseAnotherAccount(){
         await this.useAnotherAccountBtn.click()
     }
     async securityWarning() {
-        const continueBtn = await $('android=new UiSelector().description("Continue Anyway")');
+        const continueBtn = await $(locators.get('continueBtn'));
         await continueBtn.click();
     }
 
     async getNotification() {
-        const allowButton = await $('android=new UiSelector().text("Allow")');
+        const allowButton = await $(locators.get('allowButton'));
         await allowButton.click();
     }
 
