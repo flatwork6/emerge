@@ -1,3 +1,10 @@
+import 'dotenv/config'
+import path from 'path'
+import dotenv from 'dotenv'
+
+// Load environment variables from creds.env
+dotenv.config({ path: path.resolve(process.cwd(), 'creds.env') })
+
 import LoginPage from '../pageobjects/login.page.js'
 import SetBiometric from '../pageobjects/biometric.js'
 
@@ -12,11 +19,11 @@ describe('Emerge Login', () => {
 
         await LoginPage.clickUseAnotherAccount()
 
-        await LoginPage.enterUserName("FZ51784")
+        await LoginPage.enterUserName(process.env.USER_ID)
 
-        await LoginPage.enterPassword("QQQqqq1!")
+        await LoginPage.enterPassword(process.env.PASSWORD)
 
-        await LoginPage.enterTotp("2003")
+        await LoginPage.enterTotp(process.env.TOTP)
 
         await LoginPage.clickLogin()
         await SetBiometric.userChoice.waitForDisplayed({
