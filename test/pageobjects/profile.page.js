@@ -64,9 +64,12 @@ class ProfilePage {
         for (const el of allElements) {
             const text = ((await el.getText()) || (await el.getAttribute('content-desc')) || '').trim()
 
+            //console.log(text)
             if (['Equity Cash', 'Derivatives', 'Currency', 'Commodity', 'MTF'].includes(text)) {
                 currentPrivilege = text
             }
+
+           // console.log(currentPrivilege)
 
             if (text === 'Active' && currentPrivilege) {
                 if (!activeSegments.includes(currentPrivilege)) {
@@ -78,15 +81,7 @@ class ProfilePage {
                 currentPrivilege = null
             }
         }
-
-        
-       
-
-        console.log("*************************************")
-        console.log("*************************************")
-        console.log('Active Trading Privileges Extracted:', activeSegments)
-        console.log("*************************************")
-        console.log("*************************************")
+        //console.log('Active Trading Privileges Extracted:', activeSegments)
         segmentGuard.setActivePrivileges(activeSegments)
         return activeSegments
     }

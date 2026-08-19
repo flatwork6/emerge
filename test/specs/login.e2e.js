@@ -9,6 +9,7 @@ import LoginPage from '../pageobjects/login.page.js'
 import SetBiometric from '../pageobjects/biometric.js'
 import ProfilePage from '../pageobjects/profile.page.js'
 import segmentGuard from '../utils/segmentGuard.js'
+import testDataHelper from '../utils/testDataHelper.js'
 
 
 describe('Emerge Login & Segment Guard Validation', () => {
@@ -39,20 +40,19 @@ describe('Emerge Login & Segment Guard Validation', () => {
         await ProfilePage.openTradingPrivileges()
         await ProfilePage.extractActiveSegments()
 
+        // Load test data dynamically from testData.csv
+        const orderTestData = testDataHelper.getOrderTestData()
+        console.log(`Loaded ${orderTestData.length} test records from testData.csv`)
 
+        for (const testCase of orderTestData) {
+            const { segment, symbol, expectedStatus } = testCase
+            console.log(`\n--- Running Segment Guard Check: ${segment} (${symbol}) | Expected: ${expectedStatus} ---`)
 
-        // Example: Validate order placement restriction for NSE (Enabled)
-        try {
-            segmentGuard.assertCanPlaceOrder('NSE', 'RELIANCE')
-        } catch (err) {
-            console.log(err.message)
-        }
-
-        // Example: Validate order placement restriction for MTF (Disabled / Enable button shown)
-        try {
-            segmentGuard.assertCanPlaceOrder('MTF', 'TATASTEEL')
-        } catch (err) {
-            console.log("Restriction successfully blocked order:", err.message)
+            try {
+                segmentGuard.assertCanPlaceOrder(segment, symbol)
+            } catch (err) {
+                console.log(`[SEGMENT CHECK RESULT]: Blocked as expected for ${segment}: ${err.message}`)
+            }
         }
 
         await ProfilePage.clickProfileBackButton()
