@@ -10,3 +10,8 @@ openAccount,"Open account"
 continueBtn,"android=new UiSelector().description(""Continue Anyway"")"
 allowButton,"android=new UiSelector().text(""Allow"")"
 biometricUserChoice,"~Cancel"
+profileMenuBtn,"android=new UiSelector().className(""android.view.View"").instance(8)"
+profileRow,"android=new UiSelector().description(""Profile
+Verified account and banking"")"
+tradingPrevilegesHeader,"~Trading Privileges"
+profileBackButton,"~Back"
