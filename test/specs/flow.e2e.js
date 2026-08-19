@@ -42,16 +42,18 @@ describe('Emerge Login & Segment Guard Validation', () => {
 
         // Load test data dynamically from testData.csv
         const orderTestData = testDataHelper.getOrderTestData()
-        console.log(`Loaded ${orderTestData.length} test records from testData.csv`)
+        console.log(`Loaded ${orderTestData.length} scrip records from testData.csv`)
 
         for (const testCase of orderTestData) {
-            const { segment, symbol, expectedStatus } = testCase
-            console.log(`\n--- Running Segment Guard Check: ${segment} (${symbol}) | Expected: ${expectedStatus} ---`)
+            const { segment, symbol } = testCase
+            const isEnabled = segmentGuard.isSegmentEnabled(segment)
+            console.log(`\n--- [DYNAMIC CHECK]: Scrip '${symbol}' on Segment '${segment}' | UI Status: ${isEnabled ? 'ACTIVE/ENABLED' : 'INACTIVE/DISABLED'} ---`)
 
             try {
                 segmentGuard.assertCanPlaceOrder(segment, symbol)
+                console.log(`✅ [ORDER ALLOWED]: Order placement allowed for '${symbol}' on segment '${segment}'.`)
             } catch (err) {
-                console.log(`[SEGMENT CHECK RESULT]: Blocked as expected for ${segment}: ${err.message}`)
+                console.log(`🛑 [ORDER RESTRICTED]: Order placement blocked for '${symbol}' on segment '${segment}' - Account privilege disabled.`)
             }
         }
 

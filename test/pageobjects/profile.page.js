@@ -11,7 +11,7 @@ class ProfilePage {
         return $(locators.get('profileRow'))
     }
 
-    get profileBackButton(){
+    get profileBackButton() {
         return $(locators.get('profileBackButton'))
     }
 
@@ -60,6 +60,11 @@ class ProfilePage {
         // Single scan of visible elements on screen
         const allElements = await $$('//*[@text or @content-desc]')
 
+
+        console.log("*****************************************************************")
+        console.log("Total Elements :" + allElements)
+        console.log("*****************************************************************")
+
         let currentPrivilege = null
         for (const el of allElements) {
             const text = ((await el.getText()) || (await el.getAttribute('content-desc')) || '').trim()
@@ -69,7 +74,7 @@ class ProfilePage {
                 currentPrivilege = text
             }
 
-           // console.log(currentPrivilege)
+            // console.log(currentPrivilege)
 
             if (text === 'Active' && currentPrivilege) {
                 if (!activeSegments.includes(currentPrivilege)) {
@@ -85,10 +90,10 @@ class ProfilePage {
         segmentGuard.setActivePrivileges(activeSegments)
         return activeSegments
     }
-    
-     async clickProfileBackButton(){
-            await this.profileBackButton.click();
-        }
+
+    async clickProfileBackButton() {
+        await this.profileBackButton.click();
+    }
 }
 
 export default new ProfilePage()

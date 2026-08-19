@@ -25,7 +25,18 @@ class TestDataLoader {
             trim: true
         })
 
-        return records
+        // Normalize object keys to handle any casing (e.g. SYMBOL, SCRIP, SEGMENT)
+        return records.map(record => {
+            const normalized = {}
+            for (const key of Object.keys(record)) {
+                normalized[key.trim().toUpperCase()] = record[key]
+                normalized[key.trim().toLowerCase()] = record[key]
+            }
+            return {
+                symbol: normalized.SYMBOL || normalized.symbol || normalized.SCRIP || normalized.scrip,
+                segment: normalized.SEGMENT || normalized.segment
+            }
+        })
     }
 }
 
