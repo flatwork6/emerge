@@ -98,10 +98,10 @@ describe('Emerge Login & Segment Guard Validation', () => {
 
             // Click Plus (+) icon next to first scrip result
             await WatchlistPage.addFirstScripToWatchlist()
-
-
-            await WatchlistPage.closeSearch()
         }
+
+        // Close search overlay ONLY AFTER all valid scrips have been processed
+        await WatchlistPage.closeSearch()
     })
 
 })
