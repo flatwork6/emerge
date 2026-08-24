@@ -81,8 +81,9 @@ describe('Emerge Login & Segment Guard Validation', () => {
             const reqSeg = segment.trim().toUpperCase()
 
             // Check if segment is active in extracted account privileges
-            if (reqSeg === 'MTF' || !ProfilePage.activeTradingSegments.includes(reqSeg)) {
-                console.log(`🛑 [SEGMENT RESTRICTION]: Segment '${reqSeg}' is INACTIVE / DISABLED for this account. Skipping scrip '${symbol}'. Enabled segments: [${ProfilePage.activeTradingSegments.join(', ')}]`)
+            const isEnabled = segmentGuard.isSegmentEnabled(reqSeg)
+            if (reqSeg === 'MTF' || !isEnabled) {
+                console.log(`🛑 [SEGMENT RESTRICTION]: Segment '${reqSeg}' is INACTIVE / DISABLED for this account. Skipping scrip '${symbol}'.`)
                 continue
             }
 
@@ -97,6 +98,9 @@ describe('Emerge Login & Segment Guard Validation', () => {
 
             // Click Plus (+) icon next to first scrip result
             await WatchlistPage.addFirstScripToWatchlist()
+
+
+            await WatchlistPage.closeSearch()
         }
     })
 

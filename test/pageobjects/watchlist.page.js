@@ -116,6 +116,28 @@ class WatchlistPage {
         console.log(`Tapped '+' icon at far-right coordinates (${tapX}, ${tapY})`)
         await driver.pause(1000)
     }
+
+    /**
+     * Close the search overlay after adding all scrips to return to Watchlist
+     */
+    async closeSearch() {
+        try {
+            const closeButton = await $(locators.get('searchCloseButton'))
+            if (await closeButton.isDisplayed().catch(() => false)) {
+                await closeButton.click()
+                await driver.pause(1000)
+                console.log('Clicked close search button')
+                return
+            }
+        } catch (e) {}
+
+        // Fallback to back button press if specific button locator fails
+        try {
+            await driver.back()
+            await driver.pause(1000)
+            console.log('Closed search overlay using driver.back()')
+        } catch (e) {}
+    }
 }
 
 export default new WatchlistPage()
