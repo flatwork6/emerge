@@ -15,6 +15,17 @@ class ProfilePage {
         return $(locators.get('profileBackButton'))
     }
 
+    get accountsAndServicesCrossButton() {
+        return $(locators.get('accountsAndServicesCrossButton'))
+    }
+
+
+    // Footer Navigation
+    get clickWatchlistFooterIcon() {
+        return $(locators.get('watchlistFooterIcon'))
+    }
+
+
     /**
      * Navigate to Profile -> Trading Privileges screen from Dashboard
      */
@@ -94,6 +105,21 @@ class ProfilePage {
     async clickProfileBackButton() {
         await this.profileBackButton.click();
     }
+
+    async clickAccountsAndServicesCrossButton() {
+        await this.accountsAndServicesCrossButton.click();
+    }
+
+
+    /**
+     * Open Watchlist screen by clicking footer icon
+     */
+    async openWatchlist() {
+        //   await this.clickWatchlistFooterIcon.waitForDisplayed({ timeout: 10000 })
+        await this.clickWatchlistFooterIcon.click()
+        await driver.pause(1000)
+    }
+
 }
 
 export default new ProfilePage()

@@ -34,7 +34,8 @@ class TestDataLoader {
             }
             return {
                 symbol: normalized.SYMBOL || normalized.symbol || normalized.SCRIP || normalized.scrip,
-                segment: normalized.SEGMENT || normalized.segment
+                segment: normalized.SEGMENT || normalized.segment,
+                resultIndex: normalized.RESULTINDEX || normalized.resultindex || normalized.INDEX || normalized.index || '0'
             }
         })
     }

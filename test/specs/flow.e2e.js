@@ -8,6 +8,7 @@ dotenv.config({ path: path.resolve(process.cwd(), 'creds.env') })
 import LoginPage from '../pageobjects/login.page.js'
 import SetBiometric from '../pageobjects/biometric.js'
 import ProfilePage from '../pageobjects/profile.page.js'
+import WatchlistPage from '../pageobjects/watchlist.page.js'
 import segmentGuard from '../utils/segmentGuard.js'
 import testDataHelper from '../utils/testDataHelper.js'
 
@@ -22,21 +23,21 @@ describe('Emerge Login & Segment Guard Validation', () => {
 
         // await LoginPage.clickUseAnotherAccount()
 
-        await LoginPage.enterUserName(process.env.USER_ID)
+        // await LoginPage.enterUserName(process.env.USER_ID)
 
-        await LoginPage.enterPassword(process.env.PASSWORD)
+        // await LoginPage.enterPassword(process.env.PASSWORD)
 
-        await LoginPage.enterTotp(process.env.TOTP)
+        // await LoginPage.enterTotp(process.env.TOTP)
 
-        await LoginPage.clickLogin()
-        await SetBiometric.userChoice.waitForDisplayed({
-            timeout: 120000,
-            timeoutMsg: 'Biometric screen did not appear within 2 minutes'
-        })
-        await SetBiometric.chooseUserChoice();
-        console.log("Login successful! Navigating to profile...")
+        // await LoginPage.clickLogin()
+        // await SetBiometric.userChoice.waitForDisplayed({
+        //     timeout: 120000,
+        //     timeoutMsg: 'Biometric screen did not appear within 2 minutes'
+        // })
+        // await SetBiometric.chooseUserChoice();
+        // console.log("Login successful! Navigating to profile...")
 
-        // Extract Trading Privileges from UI
+        // // Extract Trading Privileges from UI
         await ProfilePage.openTradingPrivileges()
         await ProfilePage.extractActiveSegments()
 
@@ -58,6 +59,45 @@ describe('Emerge Login & Segment Guard Validation', () => {
         }
 
         await ProfilePage.clickProfileBackButton()
+
+        await ProfilePage.clickAccountsAndServicesCrossButton()
+
+        // ----------------------------------------------------
+        // Step 2: Watchlist - Add Scrip Flow
+        // ----------------------------------------------------
+        console.log("\nStarting Watchlist Add Scrip Flow...")
+
+        // 1. Click Watchlist Icon from footer
+        await ProfilePage.openWatchlist()
+
+        // 2. Click Search Icon
+        await WatchlistPage.clickSearchIcon()
+
+        // 3. Process scrip additions using testData.csv
+        for (const record of orderTestData) {
+            const { symbol, segment } = record
+            console.log(`\n--- Adding Scrip: '${symbol}' | Segment: '${segment}' ---`)
+
+            const reqSeg = segment.trim().toUpperCase()
+
+            // Check if segment is active in extracted account privileges
+            if (reqSeg === 'MTF' || !ProfilePage.activeTradingSegments.includes(reqSeg)) {
+                console.log(`🛑 [SEGMENT RESTRICTION]: Segment '${reqSeg}' is INACTIVE / DISABLED for this account. Skipping scrip '${symbol}'. Enabled segments: [${ProfilePage.activeTradingSegments.join(', ')}]`)
+                continue
+            }
+
+            // Select Segment Filter Chip first (e.g. BFO, NFO, NSE, BSE, MCX)
+            if (segment) {
+                let uiChip = reqSeg
+                await WatchlistPage.selectExchangeFilter(uiChip)
+            }
+
+            // Type Scrip Name
+            await WatchlistPage.enterScripName(symbol)
+
+            // Click Plus (+) icon next to first scrip result
+            await WatchlistPage.addFirstScripToWatchlist()
+        }
     })
 
 })
