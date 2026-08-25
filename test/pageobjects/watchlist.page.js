@@ -11,10 +11,6 @@ class WatchlistPage {
         return $(locators.get('searchInputField'))
     }
 
-    // Add / Plus icon for the first scrip result
-    get addScripPlusIcon() {
-        return $(locators.get('addScripBookmarkIcon'))
-    }
 
     get watchListDropdown() {
         return $(locators.get('watchListDropdown'))
@@ -23,6 +19,15 @@ class WatchlistPage {
     get selectWatchlist() {
         return $(locators.get('selectWatchlist'))
     }
+
+    get searchResultPlusIcons() {
+        return $$(locators.get('searchResultPlusIcons'))
+    }
+
+    get searchResultTopCard() {
+        return $(locators.get('searchResultTopCard'))
+    }
+
 
 
     /**
@@ -89,7 +94,7 @@ class WatchlistPage {
 
         // 1. Try scanning for any clickable ImageView element rendered on far right (x > 700, y between 300 and 1200)
         try {
-            const icons = await $$('//android.widget.ImageView')
+            const icons = await this.searchResultPlusIcons
             for (const icon of icons) {
                 if (await icon.isDisplayed().catch(() => false)) {
                     const loc = await icon.getLocation()
@@ -109,13 +114,14 @@ class WatchlistPage {
         
         let tapY = Math.floor(windowSize.height * 0.28)
         try {
-            const topCard = await $('android=new UiSelector().className("android.view.View").instance(28)')
+            const topCard = await this.searchResultTopCard
             if (await topCard.isDisplayed().catch(() => false)) {
                 const loc = await topCard.getLocation()
                 const sz = await topCard.getSize()
                 tapY = Math.floor(loc.y + sz.height / 2)
             }
         } catch (e) {}
+
 
         await driver.performActions([{
             type: 'pointer',

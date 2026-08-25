@@ -39,3 +39,5 @@ searchCloseButton,"android=new UiSelector().className(""android.widget.Button"")
 watchListDropdown,"android=new UiSelector().description(""Watchlist 3
 11/50"")"
 selectWatchlist,"~mkk"
+searchResultPlusIcons,"//android.widget.ImageView"
+searchResultTopCard,"android=new UiSelector().className(""android.view.View"").instance(28)"
