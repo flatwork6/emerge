@@ -84,12 +84,13 @@ describe('Emerge Login & Segment Guard Validation', () => {
 
             const reqSeg = segment.trim().toUpperCase()
 
-            // Check if segment is active in extracted account privileges
-            const isEnabled = segmentGuard.isSegmentEnabled(reqSeg)
+            // Check if segment is active in extracted account privileges (ALL is always allowed)
+            const isEnabled = reqSeg === 'ALL' || segmentGuard.isSegmentEnabled(reqSeg)
             if (reqSeg === 'MTF' || !isEnabled) {
                 console.log(`🛑 [SEGMENT RESTRICTION]: Segment '${reqSeg}' is INACTIVE / DISABLED for this account. Skipping scrip '${symbol}'.`)
                 continue
             }
+
 
             // Select Segment Filter Chip first (e.g. BFO, NFO, NSE, BSE, MCX)
             if (segment) {
