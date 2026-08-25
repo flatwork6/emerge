@@ -16,14 +16,34 @@ class WatchlistPage {
         return $(locators.get('addScripBookmarkIcon'))
     }
 
+    get watchListDropdown() {
+        return $(locators.get('watchListDropdown'))
+    }
+
+    get selectWatchlist() {
+        return $(locators.get('selectWatchlist'))
+    }
+
 
     /**
      * Click search icon to open search input field
      */
+
+
+    async openWatchListDropdown() {
+        await this.watchListDropdown.click()
+        //await driver.pause(1000)
+    }
+
+    async clickWatchlist() {
+        await this.selectWatchlist.click()
+        //await driver.pause(1000)
+    }
+
     async clickSearchIcon() {
         await this.searchIcon.waitForDisplayed({ timeout: 10000 })
         await this.searchIcon.click()
-        await driver.pause(1000)
+        //await driver.pause(1000)
     }
 
     /**
@@ -32,11 +52,12 @@ class WatchlistPage {
      */
     async enterScripName(scripSymbol) {
         let inputField = this.searchInputField
-        await inputField.waitForDisplayed({ timeout: 10000 })
+        await inputField.waitForDisplayed({ timeout: 5000 })
         await inputField.click()
-        await inputField.clearValue().catch(() => { })
+        
+        //for clearing value in input field
+        await inputField.clearValue();
         await inputField.setValue(scripSymbol)
-        await driver.pause(1000)
     }
 
     /**
@@ -46,26 +67,19 @@ class WatchlistPage {
     async selectExchangeFilter(segment) {
         const segUpper = segment.trim().toUpperCase()
 
-        // Multi-strategy selector for exchange chips (Accessibility ID, text, content-desc)
-        const chipLocators = [
-            `~${segUpper}`,
-            `//*[@content-desc='${segUpper}' or @text='${segUpper}']`,
-            `android=new UiSelector().description("${segUpper}")`,
-            `android=new UiSelector().text("${segUpper}")`
-        ]
-
-        for (const loc of chipLocators) {
-            const chip = $(loc)
+        // Direct fast UIAutomator / Accessibility ID lookup
+        const chip = $(`~${segUpper}`)
+        try {
             if (await chip.isDisplayed().catch(() => false)) {
                 await chip.click()
-                await driver.pause(1000)
                 console.log(`Successfully selected exchange filter chip: ${segUpper}`)
                 return
             }
-        }
+        } catch (e) {}
 
         console.log(`Exchange filter chip '${segUpper}' not found on UI, proceeding with ALL results...`)
     }
+
 
     /**
      * Click on the plus (+)/add icon next to the first scrip in search results
@@ -134,7 +148,7 @@ class WatchlistPage {
         // Fallback to back button press if specific button locator fails
         try {
             await driver.back()
-            await driver.pause(1000)
+            //await driver.pause(1000)
             console.log('Closed search overlay using driver.back()')
         } catch (e) {}
     }

@@ -23,19 +23,19 @@ describe('Emerge Login & Segment Guard Validation', () => {
 
         // await LoginPage.clickUseAnotherAccount()
 
-        // await LoginPage.enterUserName(process.env.USER_ID)
+        await LoginPage.enterUserName(process.env.USER_ID)
 
-        // await LoginPage.enterPassword(process.env.PASSWORD)
+        await LoginPage.enterPassword(process.env.PASSWORD)
 
-        // await LoginPage.enterTotp(process.env.TOTP)
+        await LoginPage.enterTotp(process.env.TOTP)
 
-        // await LoginPage.clickLogin()
-        // await SetBiometric.userChoice.waitForDisplayed({
-        //     timeout: 120000,
-        //     timeoutMsg: 'Biometric screen did not appear within 2 minutes'
-        // })
-        // await SetBiometric.chooseUserChoice();
-        // console.log("Login successful! Navigating to profile...")
+        await LoginPage.clickLogin()
+        await SetBiometric.userChoice.waitForDisplayed({
+            timeout: 120000,
+            timeoutMsg: 'Biometric screen did not appear within 2 minutes'
+        })
+        await SetBiometric.chooseUserChoice();
+        console.log("Login successful! Navigating to profile...")
 
         // // Extract Trading Privileges from UI
         await ProfilePage.openTradingPrivileges()
@@ -69,6 +69,10 @@ describe('Emerge Login & Segment Guard Validation', () => {
 
         // 1. Click Watchlist Icon from footer
         await ProfilePage.openWatchlist()
+
+        await WatchlistPage.openWatchListDropdown()
+
+        await WatchlistPage.clickWatchlist()
 
         // 2. Click Search Icon
         await WatchlistPage.clickSearchIcon()

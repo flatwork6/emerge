@@ -36,3 +36,6 @@ watchlistTab4,"~one"
 watchlistTab5,"~onehy"
 indexTab,"~Index"
 searchCloseButton,"android=new UiSelector().className(""android.widget.Button"").instance(1)"
+watchListDropdown,"android=new UiSelector().description(""Watchlist 3
+11/50"")"
+selectWatchlist,"~mkk"

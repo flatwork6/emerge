@@ -54,7 +54,7 @@ class ProfilePage {
                 { type: 'pointerUp', button: 0 }
             ]
         }])
-        await driver.pause(1000)
+        //await driver.pause(1000)
     }
 
     /**
@@ -117,7 +117,7 @@ class ProfilePage {
     async openWatchlist() {
         //   await this.clickWatchlistFooterIcon.waitForDisplayed({ timeout: 10000 })
         await this.clickWatchlistFooterIcon.click()
-        await driver.pause(1000)
+        //await driver.pause(1000)
     }
 
 }
