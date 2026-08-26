@@ -74,7 +74,10 @@ describe('Emerge Login & Segment Guard Validation', () => {
 
         await WatchlistPage.clickWatchlist()
 
-        // 2. Click Search Icon
+        // 2. Precondition: Check if any testData scrips already exist in selected Watchlist ('mkk') and remove them
+        await WatchlistPage.cleanExistingScripsIfPresent(orderTestData)
+
+        // 3. Click Search Icon
         await WatchlistPage.clickSearchIcon()
 
         // 3. Process scrip additions using testData.csv
@@ -92,17 +95,16 @@ describe('Emerge Login & Segment Guard Validation', () => {
             }
 
 
-            // Select Segment Filter Chip first (e.g. BFO, NFO, NSE, BSE, MCX)
-            if (segment) {
-                let uiChip = reqSeg
-                await WatchlistPage.selectExchangeFilter(uiChip)
-            }
-
-            // Type Scrip Name
+            // 1. Type Scrip Name first to populate search list
             await WatchlistPage.enterScripName(symbol)
 
-            // Click Plus (+) icon next to first scrip result
-            await WatchlistPage.addFirstScripToWatchlist()
+            // 2. Select Segment Filter Chip (e.g. BFO, NFO, NSE, BSE, MCX)
+            if (segment && reqSeg !== 'ALL') {
+                await WatchlistPage.selectExchangeFilter(reqSeg)
+            }
+
+            // 3. Click Plus (+) icon next to filtered scrip result matching exact symbol
+            await WatchlistPage.addFirstScripToWatchlist(symbol)
         }
 
         // Close search overlay ONLY AFTER all valid scrips have been processed
