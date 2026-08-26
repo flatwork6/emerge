@@ -46,3 +46,7 @@ stockOverviewBackButton,"android=new UiSelector().className(""android.widget.But
 watchlistButton,"android=new UiSelector().descriptionContains(""mkk"")"
 scripBySymbol,"android=new UiSelector().descriptionContains(""{symbol}"")"
 scripBySymbolAndSegment,"android=new UiSelector().descriptionContains(""{symbol}"").descriptionContains(""{segment}"")"
+openHeatMapView,"~Open heatmap view"
+valueToggle,"android=new UiSelector().descriptionContains(""Val"")"
+percentToggle,"android=new UiSelector().descriptionContains(""%"")"
+heatmapBackButton,"android=new UiSelector().className(""android.widget.Button"").instance(0)"

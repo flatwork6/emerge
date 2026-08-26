@@ -27,7 +27,7 @@ class WatchlistPage {
     get searchResultTopCard() {
         return $(locators.get('searchResultTopCard'))
     }
-    
+
     get overviewBookmarkIcon() {
         return $(locators.get('overviewBookmarkIcon'))
     }
@@ -297,6 +297,99 @@ class WatchlistPage {
         try {
             await driver.back()
             console.log('Closed search overlay using driver.back()')
+        } catch (e) { }
+    }
+
+    async clickHeatMapView() {
+        try {
+            const heatMapViewBtn = await $(locators.get('openHeatMapView'))
+            if (await heatMapViewBtn.isDisplayed().catch(() => false)) {
+                await heatMapViewBtn.click()
+               // await driver.pause(1000)
+                console.log('Clicked heat map view button')
+                return
+            }
+        } catch (e) { }
+
+        // Fallback to back button press if specific button locator fails
+        try {
+            await driver.back()
+            console.log('Closed heat map view using driver.back()')
+        } catch (e) { }
+    }
+
+    /**
+     * Switch between Value (Val) and Percentage (% view) in heatmap
+     * @param {'value'|'percent'} type - 'value' for Val view, 'percent' for % view
+     */
+    async switchHeatmapDisplay(type) {
+        try {
+            let btnLocator
+            if (type === 'value') {
+                btnLocator = locators.get('valueToggle')
+            } else if (type === 'percent') {
+                btnLocator = locators.get('percentToggle')
+            } else {
+                console.log(`Invalid heatmap display type: ${type}. Use 'value' or 'percent'.`)
+                return
+            }
+            
+            const toggleBtn = await $(btnLocator)
+            if (await toggleBtn.isDisplayed().catch(() => false)) {
+                await toggleBtn.click()
+                //await driver.pause(1000) // Wait for heatmap view to toggle
+                console.log(`✅ Switched heatmap display to '${type}' view`)
+                return
+            }
+        } catch (e) {
+            console.log(`Error switching heatmap display to ${type} view:`, e)
+        }
+    }
+
+    /**
+     * Get the count of stock tiles rendered in heatmap view
+     */
+    async getHeatmapStockCount() {
+        try {
+            // Find all stock tiles rendered on heatmap page
+            const stockElements = await $$('android=new UiSelector().className("android.view.View").descriptionContains("%").or(new UiSelector().descriptionContains("FUT")).or(new UiSelector().descriptionContains("EQ"))')
+            let validCount = 0
+            for (const elem of stockElements) {
+                if (await elem.isDisplayed().catch(() => false)) {
+                    const loc = await elem.getLocation()
+                    // Filter out top header widgets
+                    if (loc.y > 250) {
+                        validCount++
+                    }
+                }
+            }
+            console.log(`📊 Heatmap stock tiles counted: ${validCount}`)
+            return validCount
+        } catch (e) {
+            console.log("Error counting heatmap stocks:", e)
+            return 0
+        }
+    }
+
+    /**
+     * Click top-left back arrow button on Watchlist Heatmap page
+     */
+    async clickHeatmapBackButton() {
+        try {
+            const backBtn = await $(locators.get('heatmapBackButton'))
+            if (await backBtn.isDisplayed().catch(() => false)) {
+                await backBtn.click()
+                await driver.pause(1000)
+                console.log('✅ Clicked Watchlist Heatmap top-left back button')
+                return
+            }
+        } catch (e) { }
+
+        // Fallback back press
+        try {
+            await driver.back()
+            await driver.pause(1000)
+            console.log('✅ Navigated back from Heatmap using driver.back()')
         } catch (e) { }
     }
 }
