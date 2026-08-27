@@ -5,6 +5,7 @@ import dotenv from 'dotenv'
 // Load environment variables from creds.env
 dotenv.config({ path: path.resolve(process.cwd(), 'creds.env') })
 
+import allure from '@wdio/allure-reporter'
 import LoginPage from '../pageobjects/login.page.js'
 import SetBiometric from '../pageobjects/biometric.js'
 import ProfilePage from '../pageobjects/profile.page.js'
@@ -15,7 +16,7 @@ import testDataHelper from '../utils/testDataHelper.js'
 
 describe('Emerge Login & Segment Guard Validation', () => {
 
-    it('should login successfully and extract trading privileges', async () => {
+    it('should login successfully', async () => {
 
         // await LoginPage.securityWarning();
 
@@ -23,93 +24,117 @@ describe('Emerge Login & Segment Guard Validation', () => {
 
         // await LoginPage.clickUseAnotherAccount()
 
-        // await LoginPage.enterUserName(process.env.USER_ID)
+        await LoginPage.enterUserName(process.env.USER_ID)
 
-        // await LoginPage.enterPassword(process.env.PASSWORD)
+        await LoginPage.enterPassword(process.env.PASSWORD)
 
-        // await LoginPage.enterTotp(process.env.TOTP)
+        await LoginPage.enterTotp(process.env.TOTP)
 
-        // await LoginPage.clickLogin()
-        // await SetBiometric.userChoice.waitForDisplayed({
-        //     timeout: 120000,
-        //     timeoutMsg: 'Biometric screen did not appear within 2 minutes'
-        // })
-        // await SetBiometric.chooseUserChoice();
-        // console.log("Login successful! Navigating to profile...")
-
-        // // // Extract Trading Privileges from UI
-        // await ProfilePage.openTradingPrivileges()
-        // await ProfilePage.extractActiveSegments()
-
-        // // Load test data dynamically from testData.csv
-        // const orderTestData = testDataHelper.getOrderTestData()
-        // console.log(`Loaded ${orderTestData.length} scrip records from testData.csv`)
-
-        // for (const testCase of orderTestData) {
-        //     const { segment, symbol } = testCase
-        //     const isEnabled = segmentGuard.isSegmentEnabled(segment)
-        //     console.log(`\n--- [DYNAMIC CHECK]: Scrip '${symbol}' on Segment '${segment}' | UI Status: ${isEnabled ? 'ACTIVE/ENABLED' : 'INACTIVE/DISABLED'} ---`)
-
-        //     try {
-        //         segmentGuard.assertCanPlaceOrder(segment, symbol)
-        //         console.log(`✅ [ORDER ALLOWED]: Order placement allowed for '${symbol}' on segment '${segment}'.`)
-        //     } catch (err) {
-        //         console.log(`🛑 [ORDER RESTRICTED]: Order placement blocked for '${symbol}' on segment '${segment}' - Account privilege disabled.`)
-        //     }
-        // }
-
-        // await ProfilePage.clickProfileBackButton()
-
-        // await ProfilePage.clickAccountsAndServicesCrossButton()
-
-        // // ----------------------------------------------------
-        // // Step 2: Watchlist - Add Scrip Flow
-        // // ----------------------------------------------------
-        // console.log("\nStarting Watchlist Add Scrip Flow...")
-
-        // // 1. Click Watchlist Icon from footer
-        // await ProfilePage.openWatchlist()
-
-        // await WatchlistPage.openWatchListDropdown()
-
-        // await WatchlistPage.clickWatchlist()
-
-        // // 2. Precondition: Check if any testData scrips already exist in selected Watchlist ('mkk') and remove them
-        // await WatchlistPage.cleanExistingScripsIfPresent(orderTestData)
-
-        // // 3. Click Search Icon
-        // await WatchlistPage.clickSearchIcon()
-
-        // // 3. Process scrip additions using testData.csv
-        // for (const record of orderTestData) {
-        //     const { symbol, segment } = record
-        //     console.log(`\n--- Adding Scrip: '${symbol}' | Segment: '${segment}' ---`)
-
-        //     const reqSeg = segment.trim().toUpperCase()
-
-        //     // Check if segment is active in extracted account privileges (ALL is always allowed)
-        //     const isEnabled = reqSeg === 'ALL' || segmentGuard.isSegmentEnabled(reqSeg)
-        //     if (reqSeg === 'MTF' || !isEnabled) {
-        //         console.log(`🛑 [SEGMENT RESTRICTION]: Segment '${reqSeg}' is INACTIVE / DISABLED for this account. Skipping scrip '${symbol}'.`)
-        //         continue
-        //     }
+        await LoginPage.clickLogin()
+        await SetBiometric.userChoice.waitForDisplayed({
+            timeout: 120000,
+            timeoutMsg: 'Biometric screen did not appear within 2 minutes'
+        })
+        await SetBiometric.chooseUserChoice();
+        console.log("Login successful! Navigating to profile...")
 
 
-        //     // 1. Type Scrip Name first to populate search list
-        //     await WatchlistPage.enterScripName(symbol)
+    })
 
-        //     // 2. Select Segment Filter Chip (e.g. BFO, NFO, NSE, BSE, MCX)
-        //     if (segment && reqSeg !== 'ALL') {
-        //         await WatchlistPage.selectExchangeFilter(reqSeg)
-        //     }
+})
 
-        //     // 3. Click Plus (+) icon next to filtered scrip result matching exact symbol
-        //     await WatchlistPage.addFirstScripToWatchlist(symbol)
-        // }
+describe('Trading previliges validation', () => {
+    it('should extract trading previliges successfully', async () => {
+        // Extract Trading Privileges from UI
+        await ProfilePage.openTradingPrivileges()
+        await ProfilePage.extractActiveSegments()
 
-        // // Close search overlay ONLY AFTER all valid scrips have been processed
-        // await WatchlistPage.closeSearch()
+        // Load test data dynamically from testData.csv
+        const orderTestData = testDataHelper.getOrderTestData()
+        console.log(`Loaded ${orderTestData.length} scrip records from testData.csv`)
 
+        for (const testCase of orderTestData) {
+            const { segment, symbol } = testCase
+            const isEnabled = segmentGuard.isSegmentEnabled(segment)
+            const logMsg = `[DYNAMIC CHECK]: Scrip '${symbol}' on Segment '${segment}' | UI Status: ${isEnabled ? 'ACTIVE/ENABLED' : 'INACTIVE/DISABLED'}`
+            console.log(`\n--- ${logMsg} ---`)
+
+            try {
+                segmentGuard.assertCanPlaceOrder(segment, symbol)
+                const allowedMsg = `✅ [ORDER ALLOWED]: Order placement allowed for '${symbol}' on segment '${segment}'.`
+                console.log(allowedMsg)
+                allure.addStep(allowedMsg)
+            } catch (err) {
+                const restrictedMsg = `🛑 [ORDER RESTRICTED]: Order placement blocked for '${symbol}' on segment '${segment}' - Account privilege disabled.`
+                console.log(restrictedMsg)
+                allure.addStep(restrictedMsg)
+            }
+        }
+
+        await ProfilePage.clickProfileBackButton()
+
+        await ProfilePage.clickAccountsAndServicesCrossButton()
+
+    })
+})
+
+describe('Should open watchlist, search and add scrips and remove if it is already present', () => {
+    it('should search, add, remove stocks successfully', async () => {
+        // Step 2: Watchlist - Add Scrip Flow
+        const orderTestData = testDataHelper.getOrderTestData()
+
+        console.log("\nStarting Watchlist Add Scrip Flow...")
+
+        // 1. Click Watchlist Icon from footer
+        await ProfilePage.openWatchlist()
+
+        await WatchlistPage.openWatchListDropdown()
+
+        await WatchlistPage.clickWatchlist()
+
+        // 2. Precondition: Check if any testData scrips already exist in selected Watchlist ('mkk') and remove them
+        await WatchlistPage.cleanExistingScripsIfPresent(orderTestData)
+
+        // 3. Click Search Icon
+        await WatchlistPage.clickSearchIcon()
+
+        // 3. Process scrip additions using testData.csv
+        for (const record of orderTestData) {
+            const { symbol, segment } = record
+            console.log(`\n--- Adding Scrip: '${symbol}' | Segment: '${segment}' ---`)
+
+            const reqSeg = segment.trim().toUpperCase()
+
+            // Check if segment is active in extracted account privileges (ALL is always allowed)
+            const isEnabled = reqSeg === 'ALL' || segmentGuard.isSegmentEnabled(reqSeg)
+            if (reqSeg === 'MTF' || !isEnabled) {
+                const skipMsg = `🛑 [SEGMENT RESTRICTION]: Segment '${reqSeg}' is INACTIVE / DISABLED for this account. Skipping scrip '${symbol}'.`
+                console.log(skipMsg)
+                allure.addStep(skipMsg)
+                continue
+            }
+
+
+            // 1. Type Scrip Name first to populate search list
+            await WatchlistPage.enterScripName(symbol)
+
+            // 2. Select Segment Filter Chip (e.g. BFO, NFO, NSE, BSE, MCX)
+            if (segment && reqSeg !== 'ALL') {
+                await WatchlistPage.selectExchangeFilter(reqSeg)
+            }
+
+            // 3. Click Plus (+) icon next to filtered scrip result matching exact symbol
+            await WatchlistPage.addFirstScripToWatchlist(symbol)
+        }
+
+        // Close search overlay ONLY AFTER all valid scrips have been processed
+        await WatchlistPage.closeSearch()
+
+    })
+})
+
+describe('Should select heatmap and toggle between percentage and values and compare the count between advance+decline with list view count', () => {
+    it('should verify the counts successfully', async () => {
 
         // 1. Get stock count from Watchlist List View
         const listViewStockCount = await WatchlistPage.getWatchlistStockCount()
@@ -129,14 +154,22 @@ describe('Emerge Login & Segment Guard Validation', () => {
         const finalCountPercent = await WatchlistPage.getHeatmapStockCount()
 
         // Verify stock count consistency across List View, Heatmap %, and Heatmap Val views
-        if (listViewStockCount === initialCountPercent && initialCountPercent === valCount && valCount === finalCountPercent) {
-            console.log(`✅ [HEATMAP VERIFICATION PASSED]: Stock count consistent across List View (${listViewStockCount}) and Heatmap views (${valCount} stocks displayed).`)
+        const isMatch = (listViewStockCount === initialCountPercent && initialCountPercent === valCount && valCount === finalCountPercent)
+        const summaryMsg = `Watchlist List View Count: ${listViewStockCount} | Heatmap Count (%): ${initialCountPercent} | Heatmap Count (Val): ${valCount}`
+        
+        allure.addStep(summaryMsg)
+
+        if (isMatch) {
+            const passMsg = `✅ [HEATMAP VERIFICATION PASSED]: Stock count matches across List View (${listViewStockCount}) and Heatmap views (${valCount} stocks displayed).`
+            console.log(passMsg)
+            allure.addStep(passMsg)
         } else {
-            console.log(`⚠️ [HEATMAP VERIFICATION MISMATCH]: List View (${listViewStockCount}), Initial % (${initialCountPercent}), Val (${valCount}), Final % (${finalCountPercent}).`)
+            const failMsg = `⚠️ [HEATMAP VERIFICATION MISMATCH]: List View (${listViewStockCount}), Initial % (${initialCountPercent}), Val (${valCount}), Final % (${finalCountPercent}).`
+            console.log(failMsg)
+            allure.addStep(failMsg)
         }
 
         // 6. Click top-left back arrow button to return to Watchlist
         await WatchlistPage.clickHeatmapBackButton()
     })
-
 })

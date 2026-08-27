@@ -33,17 +33,19 @@ class SegmentGuard {
 
     /**
      * Check if a specific segment is active/enabled for the user
-     * @param {string} segment Segment code (e.g. 'NSE', 'BSE', 'NFO', 'BFO', 'MTF', 'CDS', 'BCD', 'MCX')
+     * @param {string} segment Segment code (e.g. 'ALL', 'NSE', 'BSE', 'NFO', 'BFO', 'MTF', 'CDS', 'BCD', 'MCX')
      * @returns {boolean}
      */
     isSegmentEnabled(segment) {
-        return this.enabledSegments.has(segment.trim().toUpperCase())
+        const segUpper = segment.trim().toUpperCase()
+        if (segUpper === 'ALL') return true
+        return this.enabledSegments.has(segUpper)
     }
 
     /**
      * Assert that the user is allowed to trade on a given segment before placing an order.
      * Throws an error if the segment is disabled.
-     * @param {string} segment Segment code (e.g. 'NSE', 'NFO', 'MTF')
+     * @param {string} segment Segment code (e.g. 'ALL', 'NSE', 'NFO', 'MTF')
      * @param {string} symbol Symbol name for logging (e.g. 'RELIANCE')
      */
     assertCanPlaceOrder(segment, symbol = '') {
