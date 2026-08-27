@@ -347,28 +347,169 @@ class WatchlistPage {
     }
 
     /**
-     * Get the count of stock tiles rendered in heatmap view
+     * Get stock count from Watchlist List view
      */
-    async getHeatmapStockCount() {
+    async getWatchlistStockCount() {
         try {
-            // Find all stock tiles rendered on heatmap page
-            const stockElements = await $$('android=new UiSelector().className("android.view.View").descriptionContains("%").or(new UiSelector().descriptionContains("FUT")).or(new UiSelector().descriptionContains("EQ"))')
-            let validCount = 0
-            for (const elem of stockElements) {
+            // Find all stock cards rendered in watchlist list view
+            const listElements = await $$('//*[@content-desc != ""]')
+            const countedStocks = new Set()
+            for (const elem of listElements) {
                 if (await elem.isDisplayed().catch(() => false)) {
                     const loc = await elem.getLocation()
-                    // Filter out top header widgets
-                    if (loc.y > 250) {
-                        validCount++
+                    const desc = await elem.getAttribute("content-desc").catch(() => "")
+                    // Stock rows are located below top header (y > 300) and contain stock descriptions/exchanges
+                    if (loc.y > 300 && desc && (desc.includes('NSE') || desc.includes('BSE') || desc.includes('CDS') || desc.includes('MCX') || desc.includes('NFO') || desc.includes('BFO') || desc.includes('EQ') || desc.includes('FUT'))) {
+                        const stockName = desc.split(/\n|,/)[0].trim()
+                        if (stockName && stockName.length > 1 && !stockName.includes("Watchlist")) {
+                            countedStocks.add(stockName)
+                        }
                     }
                 }
             }
-            console.log(`📊 Heatmap stock tiles counted: ${validCount}`)
-            return validCount
+            const count = countedStocks.size
+            console.log(`📋 Watchlist list view stocks counted: ${count} (${Array.from(countedStocks).join(', ')})`)
+            return count
         } catch (e) {
-            console.log("Error counting heatmap stocks:", e)
+            console.log("Error counting watchlist stocks:", e)
             return 0
         }
+    }
+
+    /**
+     * Get stock details and tile counts from Heatmap grid view by scrolling through the view.
+     * Categorizes stocks based on Up arrow (↑ - Advance) vs Down arrow (↓ - Decline).
+     */
+    async getHeatmapGridStockCount() {
+        try {
+            const advanceStocks = new Set()
+            const declineStocks = new Set()
+            const allGridStocks = new Set()
+
+            // Helper to scan visible grid stock tiles on screen
+            const scanVisibleTiles = async () => {
+                const views = await $$('//*[@content-desc != ""]')
+                for (const view of views) {
+                    if (await view.isDisplayed().catch(() => false)) {
+                        const loc = await view.getLocation()
+                        const desc = await view.getAttribute("content-desc").catch(() => "")
+                        
+                        // Filter out headers/controls (y > 320)
+                        if (loc.y > 320 && desc && 
+                            !desc.startsWith("Watchlist") && 
+                            !desc.startsWith("Advance") && 
+                            !desc.startsWith("Decline") && 
+                            desc !== "Val" && desc !== "%") {
+                            
+                            // Split by newline or comma
+                            const parts = desc.split(/\n|,/)
+                            const stockName = parts[0].trim()
+                            
+                            if (stockName && stockName.length > 1) {
+                                // Check if description contains Up Arrow (↑), Down Arrow (↓), 'up', or 'down'
+                                const isUp = desc.includes('↑') || desc.toLowerCase().includes(' up ') || desc.includes('+')
+                                const isDown = desc.includes('↓') || desc.toLowerCase().includes(' down ')
+                                
+                                if (isUp || isDown) {
+                                    allGridStocks.add(stockName)
+                                    if (isUp) {
+                                        advanceStocks.add(stockName)
+                                    } else if (isDown) {
+                                        declineStocks.add(stockName)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 1. Scan initial top grid tiles
+            await scanVisibleTiles()
+
+            // 2. Perform scroll down gesture to bring lower grid tiles into view
+            await driver.action('pointer')
+                .move({ duration: 0, x: 500, y: 1300 })
+                .down({ button: 0 })
+                .move({ duration: 600, x: 500, y: 500 })
+                .up({ button: 0 })
+                .perform()
+            await driver.pause(600)
+
+            // 3. Scan newly revealed grid tiles after scroll
+            await scanVisibleTiles()
+
+            const gridAdvanceCount = advanceStocks.size
+            const gridDeclineCount = declineStocks.size
+            const totalGridCount = allGridStocks.size
+
+            console.log(`📈 Grid Up Arrow (Advance) Stocks: ${gridAdvanceCount} (${Array.from(advanceStocks).join(', ')})`)
+            console.log(`📉 Grid Down Arrow (Decline) Stocks: ${gridDeclineCount} (${Array.from(declineStocks).join(', ')})`)
+            console.log(`📊 Total Grid Stock Tiles Counted: ${totalGridCount}`)
+
+            return { gridAdvanceCount, gridDeclineCount, totalGridCount }
+        } catch (e) {
+            console.log("Error counting heatmap grid stock tiles:", e)
+            return { gridAdvanceCount: 0, gridDeclineCount: 0, totalGridCount: 0 }
+        }
+    }
+
+    /**
+     * Extract Advance and Decline badge values from Heatmap UI
+     */
+    async getHeatmapAdvanceDeclineTotal() {
+        try {
+            let advanceCount = 0
+            let declineCount = 0
+
+            const advElem = await $('//*[contains(@content-desc, "Advance")]')
+            if (await advElem.isDisplayed().catch(() => false)) {
+                const advText = await advElem.getAttribute("content-desc")
+                const match = advText.match(/\d+/)
+                if (match) advanceCount = parseInt(match[0], 10)
+            }
+
+            const decElem = await $('//*[contains(@content-desc, "Decline")]')
+            if (await decElem.isDisplayed().catch(() => false)) {
+                const decText = await decElem.getAttribute("content-desc")
+                const match = decText.match(/\d+/)
+                if (match) declineCount = parseInt(match[0], 10)
+            }
+
+            const badgeTotal = advanceCount + declineCount
+            console.log(`🏷️ Heatmap badges total: Advance (${advanceCount}) + Decline (${declineCount}) = ${badgeTotal}`)
+            return { advanceCount, declineCount, badgeTotal }
+        } catch (e) {
+            console.log("Error reading Advance/Decline badges:", e)
+            return { advanceCount: 0, declineCount: 0, badgeTotal: 0 }
+        }
+    }
+
+    /**
+     * Full Heatmap Stock Count evaluation:
+     * 1. Counts grid stock tiles by scrolling and categorizing by up/down arrow
+     * 2. Compares Grid Advance vs Advance Badge
+     * 3. Compares Grid Decline vs Decline Badge
+     * 4. Returns total grid count for comparison with List View
+     */
+    async getHeatmapStockCount() {
+        const { gridAdvanceCount, gridDeclineCount, totalGridCount } = await this.getHeatmapGridStockCount()
+        const { advanceCount, declineCount, badgeTotal } = await this.getHeatmapAdvanceDeclineTotal()
+
+        if (gridAdvanceCount === advanceCount) {
+            console.log(`✅ [ADVANCE MATCH]: Grid Up Arrow count (${gridAdvanceCount}) matches Advance badge (${advanceCount}).`)
+        } else {
+            console.log(`⚠️ [ADVANCE MISMATCH]: Grid Up Arrow count (${gridAdvanceCount}) vs Advance badge (${advanceCount}).`)
+        }
+
+        if (gridDeclineCount === declineCount) {
+            console.log(`✅ [DECLINE MATCH]: Grid Down Arrow count (${gridDeclineCount}) matches Decline badge (${declineCount}).`)
+        } else {
+            console.log(`⚠️ [DECLINE MISMATCH]: Grid Down Arrow count (${gridDeclineCount}) vs Decline badge (${declineCount}).`)
+        }
+
+        // Return total grid count to compare with List View
+        return totalGridCount
     }
 
     /**

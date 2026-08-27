@@ -111,28 +111,31 @@ describe('Emerge Login & Segment Guard Validation', () => {
         // await WatchlistPage.closeSearch()
 
 
-        // Open Heatmap View
+        // 1. Get stock count from Watchlist List View
+        const listViewStockCount = await WatchlistPage.getWatchlistStockCount()
+
+        // 2. Open Heatmap View
         await WatchlistPage.clickHeatMapView()
 
-        // 1. Initial count on default '%' view
+        // 3. Initial count on default '%' view
         const initialCountPercent = await WatchlistPage.getHeatmapStockCount()
 
-        // 2. Toggle to 'Val' (Value) view
+        // 4. Toggle to 'Val' (Value) view
         await WatchlistPage.switchHeatmapDisplay('value')
         const valCount = await WatchlistPage.getHeatmapStockCount()
 
-        // 3. Toggle back to 'percent' (%) view
+        // 5. Toggle back to 'percent' (%) view
         await WatchlistPage.switchHeatmapDisplay('percent')
         const finalCountPercent = await WatchlistPage.getHeatmapStockCount()
 
-        // Verify stock count consistency across views
-        if (initialCountPercent === valCount && valCount === finalCountPercent) {
-            console.log(`✅ [HEATMAP VERIFICATION PASSED]: Stock count consistent across views (${valCount} stocks displayed).`)
+        // Verify stock count consistency across List View, Heatmap %, and Heatmap Val views
+        if (listViewStockCount === initialCountPercent && initialCountPercent === valCount && valCount === finalCountPercent) {
+            console.log(`✅ [HEATMAP VERIFICATION PASSED]: Stock count consistent across List View (${listViewStockCount}) and Heatmap views (${valCount} stocks displayed).`)
         } else {
-            console.log(`⚠️ [HEATMAP VERIFICATION MISMATCH]: Initial % (${initialCountPercent}), Val (${valCount}), Final % (${finalCountPercent}).`)
+            console.log(`⚠️ [HEATMAP VERIFICATION MISMATCH]: List View (${listViewStockCount}), Initial % (${initialCountPercent}), Val (${valCount}), Final % (${finalCountPercent}).`)
         }
 
-        // 4. Click top-left back arrow button to return to Watchlist
+        // 6. Click top-left back arrow button to return to Watchlist
         await WatchlistPage.clickHeatmapBackButton()
     })
 
