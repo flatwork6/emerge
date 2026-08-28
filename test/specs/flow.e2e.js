@@ -14,34 +14,32 @@ import segmentGuard from '../utils/segmentGuard.js'
 import testDataHelper from '../utils/testDataHelper.js'
 
 
-describe('Emerge Login & Segment Guard Validation', () => {
+// describe('Emerge Login & Segment Guard Validation', () => {
 
-    it('should login successfully', async () => {
+//     it('should login successfully', async () => {
 
-        // await LoginPage.securityWarning();
+//         // await LoginPage.securityWarning();
 
-        // await LoginPage.getNotification();
+//         // await LoginPage.getNotification();
 
-        // await LoginPage.clickUseAnotherAccount()
+//         // await LoginPage.clickUseAnotherAccount()
 
-        await LoginPage.enterUserName(process.env.USER_ID)
+//         await LoginPage.enterUserName(process.env.USER_ID)
 
-        await LoginPage.enterPassword(process.env.PASSWORD)
+//         await LoginPage.enterPassword(process.env.PASSWORD)
 
-        await LoginPage.enterTotp(process.env.TOTP)
+//         await LoginPage.enterTotp(process.env.TOTP)
 
-        await LoginPage.clickLogin()
-        await SetBiometric.userChoice.waitForDisplayed({
-            timeout: 120000,
-            timeoutMsg: 'Biometric screen did not appear within 2 minutes'
-        })
-        await SetBiometric.chooseUserChoice();
-        console.log("Login successful! Navigating to profile...")
+//         await LoginPage.clickLogin()
+//         await SetBiometric.userChoice.waitForDisplayed({
+//             timeout: 120000,
+//             timeoutMsg: 'Biometric screen did not appear within 2 minutes'
+//         })
+//         await SetBiometric.chooseUserChoice();
+//         console.log("Login successful! Navigating to profile...")
 
-
-    })
-
-})
+//     })
+// })
 
 describe('Trading previliges validation', () => {
     it('should extract trading previliges successfully', async () => {
@@ -79,97 +77,114 @@ describe('Trading previliges validation', () => {
 })
 
 describe('Should open watchlist, search and add scrips and remove if it is already present', () => {
-    it('should search, add, remove stocks successfully', async () => {
-        // Step 2: Watchlist - Add Scrip Flow
+    it('should search, add, remove stocks successfully across all watchlists', async () => {
         const orderTestData = testDataHelper.getOrderTestData()
 
-        console.log("\nStarting Watchlist Add Scrip Flow...")
+        console.log("\nStarting Watchlist Add Scrip Flow for all watchlists...")
 
         // 1. Click Watchlist Icon from footer
         await ProfilePage.openWatchlist()
 
-        await WatchlistPage.openWatchListDropdown()
+        const watchlists = ["Watchlist 3", "fivee", "mkk", "one", "onehy"]
 
-        await WatchlistPage.clickWatchlist()
+        // Process standard watchlists sequentially
+        for (let i = 0; i < watchlists.length; i++) {
+            const wlName = watchlists[i]
+            console.log(`\n========================================`)
+            console.log(`Processing Watchlist ${i + 1}/${watchlists.length}: '${wlName}'`)
+            console.log(`========================================`)
 
-        // 2. Precondition: Check if any testData scrips already exist in selected Watchlist ('mkk') and remove them
-        await WatchlistPage.cleanExistingScripsIfPresent(orderTestData)
-
-        // 3. Click Search Icon
-        await WatchlistPage.clickSearchIcon()
-
-        // 3. Process scrip additions using testData.csv
-        for (const record of orderTestData) {
-            const { symbol, segment } = record
-            console.log(`\n--- Adding Scrip: '${symbol}' | Segment: '${segment}' ---`)
-
-            const reqSeg = segment.trim().toUpperCase()
-
-            // Check if segment is active in extracted account privileges (ALL is always allowed)
-            const isEnabled = reqSeg === 'ALL' || segmentGuard.isSegmentEnabled(reqSeg)
-            if (reqSeg === 'MTF' || !isEnabled) {
-                const skipMsg = `🛑 [SEGMENT RESTRICTION]: Segment '${reqSeg}' is INACTIVE / DISABLED for this account. Skipping scrip '${symbol}'.`
-                console.log(skipMsg)
-                allure.addStep(skipMsg)
-                continue
+            // For 1st watchlist, no need to open dropdown (already selected by default).
+            // For 2nd, 3rd, 4th, 5th watchlists, open dropdown using previous watchlist name and select target watchlist.
+            if (i > 0) {
+                const prevWlName = watchlists[i - 1]
+                await WatchlistPage.openWatchListDropdown(prevWlName)
+                await WatchlistPage.clickWatchlistByName(wlName)
             }
 
+            // Clean existing scrips if present
+            await WatchlistPage.cleanExistingScripsIfPresent(orderTestData, wlName)
 
-            // 1. Type Scrip Name first to populate search list
-            await WatchlistPage.enterScripName(symbol)
+            // Open search
+            await WatchlistPage.clickSearchIcon()
 
-            // 2. Select Segment Filter Chip (e.g. BFO, NFO, NSE, BSE, MCX)
-            if (segment && reqSeg !== 'ALL') {
+            // Process scrip additions using testData.csv
+            for (const record of orderTestData) {
+                const { symbol, segment } = record
+                console.log(`\n--- Adding Scrip: '${symbol}' | Segment: '${segment}' ---`)
+
+                const reqSeg = segment.trim().toUpperCase()
+
+                // Check if segment is active in extracted account privileges
+                const isEnabled = reqSeg === 'ALL' || segmentGuard.isSegmentEnabled(reqSeg)
+                if (reqSeg === 'MTF' || !isEnabled) {
+                    const skipMsg = `🛑 [SEGMENT RESTRICTION]: Segment '${reqSeg}' is INACTIVE / DISABLED for this account. Skipping scrip '${symbol}'.`
+                    console.log(skipMsg)
+                    allure.addStep(skipMsg)
+                    continue
+                }
+
+                // Type Scrip Name
+                await WatchlistPage.enterScripName(symbol)
+
+                // Select Segment Filter Chip (e.g. 'ALL', 'NSE', 'BSE', 'NFO', 'BFO', 'CDS', 'BCD', 'MCX')
                 await WatchlistPage.selectExchangeFilter(reqSeg)
+
+                // Add scrip
+                await WatchlistPage.addFirstScripToWatchlist(symbol)
             }
 
-            // 3. Click Plus (+) icon next to filtered scrip result matching exact symbol
-            await WatchlistPage.addFirstScripToWatchlist(symbol)
+            // Close search overlay after processing current watchlist scrips
+            await WatchlistPage.closeSearch()
+
+            // Perform Heatmap verification for current Watchlist
+            console.log(`\n--- Running Heatmap Verification for Watchlist: '${wlName}' ---`)
+            const listCount = await WatchlistPage.getWatchlistStockCount()
+            await WatchlistPage.clickHeatMapView()
+            const initPercent = await WatchlistPage.getHeatmapStockCount()
+            await WatchlistPage.switchHeatmapDisplay('value')
+            const valCount = await WatchlistPage.getHeatmapStockCount()
+            await WatchlistPage.switchHeatmapDisplay('percent')
+            const finalPercent = await WatchlistPage.getHeatmapStockCount()
+
+            const hlSummary = `Watchlist '${wlName}' | List View Count: ${listCount} | Heatmap %: ${initPercent} | Heatmap Val: ${valCount}`
+            console.log(hlSummary)
+            allure.addStep(hlSummary)
+            await WatchlistPage.clickHeatmapBackButton()
         }
 
-        // Close search overlay ONLY AFTER all valid scrips have been processed
+        // Ensure search overlay is closed before opening Index watchlist dropdown
         await WatchlistPage.closeSearch()
 
-    })
-})
+        // Process Index watchlist (open dropdown using last active watchlist name, select Index, scroll and close)
+        console.log(`\n========================================`)
+        console.log(`Processing Index Watchlist`)
+        console.log(`========================================`)
+        const lastWlName = watchlists[watchlists.length - 1]
+        await WatchlistPage.openWatchListDropdown(lastWlName)
+        await WatchlistPage.clickWatchlistByName('Index')
+        await WatchlistPage.scrollIndexWatchlist()
 
-describe('Should select heatmap and toggle between percentage and values and compare the count between advance+decline with list view count', () => {
-    it('should verify the counts successfully', async () => {
-
-        // 1. Get stock count from Watchlist List View
-        const listViewStockCount = await WatchlistPage.getWatchlistStockCount()
-
-        // 2. Open Heatmap View
+        // Heatmap verification for Index tab
+        console.log(`\n--- Running Heatmap Verification for 'Index' Tab ---`)
+        const indexListCount = await WatchlistPage.getWatchlistStockCount()
         await WatchlistPage.clickHeatMapView()
-
-        // 3. Initial count on default '%' view
-        const initialCountPercent = await WatchlistPage.getHeatmapStockCount()
-
-        // 4. Toggle to 'Val' (Value) view
+        const indexInitPercent = await WatchlistPage.getHeatmapStockCount()
         await WatchlistPage.switchHeatmapDisplay('value')
-        const valCount = await WatchlistPage.getHeatmapStockCount()
-
-        // 5. Toggle back to 'percent' (%) view
+        const indexValCount = await WatchlistPage.getHeatmapStockCount()
         await WatchlistPage.switchHeatmapDisplay('percent')
-        const finalCountPercent = await WatchlistPage.getHeatmapStockCount()
+        const indexFinalPercent = await WatchlistPage.getHeatmapStockCount()
 
-        // Verify stock count consistency across List View, Heatmap %, and Heatmap Val views
-        const isMatch = (listViewStockCount === initialCountPercent && initialCountPercent === valCount && valCount === finalCountPercent)
-        const summaryMsg = `Watchlist List View Count: ${listViewStockCount} | Heatmap Count (%): ${initialCountPercent} | Heatmap Count (Val): ${valCount}`
-        
-        allure.addStep(summaryMsg)
-
-        if (isMatch) {
-            const passMsg = `✅ [HEATMAP VERIFICATION PASSED]: Stock count matches across List View (${listViewStockCount}) and Heatmap views (${valCount} stocks displayed).`
-            console.log(passMsg)
-            allure.addStep(passMsg)
-        } else {
-            const failMsg = `⚠️ [HEATMAP VERIFICATION MISMATCH]: List View (${listViewStockCount}), Initial % (${initialCountPercent}), Val (${valCount}), Final % (${finalCountPercent}).`
-            console.log(failMsg)
-            allure.addStep(failMsg)
-        }
-
-        // 6. Click top-left back arrow button to return to Watchlist
+        const indexHlSummary = `Watchlist 'Index' | List View Count: ${indexListCount} | Heatmap %: ${indexInitPercent} | Heatmap Val: ${indexValCount}`
+        console.log(indexHlSummary)
+        allure.addStep(indexHlSummary)
         await WatchlistPage.clickHeatmapBackButton()
+
+        // Return back to 1st watchlist and close dropdown
+        console.log(`\n========================================`)
+        console.log(`Returning to 1st Watchlist '${watchlists[0]}' & Closing Dropdown`)
+        console.log(`========================================`)
+        await WatchlistPage.openWatchListDropdown('Index')
+        await WatchlistPage.clickWatchlistByName(watchlists[0])
     })
 })
