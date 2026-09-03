@@ -12,6 +12,10 @@ class WatchlistPage {
         return $(locators.get('searchInputField'))
     }
 
+    get searchInputFields() {
+        return $$(locators.get('searchInputField'))
+    }
+
 
     get watchListDropdown() {
         return $(locators.get('watchListDropdown'))
@@ -41,6 +45,18 @@ class WatchlistPage {
         return $(locators.get('stockOverviewBackButton'))
     }
 
+    get indexSubDropdown() {
+        return $(locators.get('indexSubDropdown'))
+    }
+
+    get advanceBadge() {
+        return $(locators.get('advanceBadge'))
+    }
+
+    get declineBadge() {
+        return $(locators.get('declineBadge'))
+    }
+
 
     /**
      * Click search icon to open search input field
@@ -48,10 +64,10 @@ class WatchlistPage {
 
 
     async openWatchListDropdown(currentWatchlistName) {
-        // If search overlay is still open, close it first
+        // If search overlay is open, close it first
         try {
-            const searchField = this.searchInputField
-            if (await searchField.isDisplayed().catch(() => false)) {
+            const searchFields = await this.searchInputFields
+            if (searchFields.length > 0 && await searchFields[0].isDisplayed().catch(() => false)) {
                 console.log("Search overlay is visible when opening dropdown. Closing search...")
                 await this.closeSearch()
                 await driver.pause(1000)
@@ -60,8 +76,9 @@ class WatchlistPage {
 
         if (currentWatchlistName) {
             try {
-                // Look for dropdown element displaying currentWatchlistName (e.g. descriptionStartsWith("fivee") or "Watchlist 3")
-                const dynamicDropdown = $(`android=new UiSelector().descriptionStartsWith("${currentWatchlistName}")`)
+                // Look for dropdown element displaying currentWatchlistName using locators.csv template
+                const selector = locators.get('watchlistDropdownByName').replace('{name}', currentWatchlistName)
+                const dynamicDropdown = $(selector)
                 if (await dynamicDropdown.isDisplayed().catch(() => false)) {
                     await dynamicDropdown.click()
                     await driver.pause(1000)
@@ -78,7 +95,7 @@ class WatchlistPage {
                     const loc = await v.getLocation()
                     if (loc.y > 180 && loc.y < 320 && loc.x < 600) {
                         const desc = await v.getAttribute("content-desc").catch(() => "")
-                        if (desc && (desc.includes('/') || desc.includes('Watchlist') || currentWatchlistName && desc.includes(currentWatchlistName))) {
+                        if (desc && (desc.includes('/') || desc.includes('Watchlist') || desc.includes('Index') || currentWatchlistName && desc.includes(currentWatchlistName))) {
                             await v.click()
                             await driver.pause(1000)
                             console.log(`Clicked dropdown element '${desc}' at (${loc.x}, ${loc.y})`)
@@ -95,9 +112,43 @@ class WatchlistPage {
     }
 
     async clickWatchlistByName(name) {
-        const item = $(`~${name}`)
-        await item.waitForDisplayed({ timeout: 5000 })
-        await item.click()
+        try {
+            const item = $(`~${name}`)
+            if (await item.isDisplayed().catch(() => false)) {
+                await item.click()
+                await driver.pause(1000)
+                return
+            }
+        } catch (e) { }
+
+        try {
+            const selector = locators.get('watchlistRowByName').replace('{name}', name)
+            const itemUi = $(selector)
+            if (await itemUi.isDisplayed().catch(() => false)) {
+                await itemUi.click()
+                await driver.pause(1000)
+                return
+            }
+        } catch (e) { }
+
+        // Coordinate fallback if click command hangs on animated dropdown list item
+        const itemFallback = $(`~${name}`)
+        await itemFallback.waitForDisplayed({ timeout: 5000 })
+        const loc = await itemFallback.getLocation()
+        const sz = await itemFallback.getSize()
+        const tapX = Math.floor(loc.x + sz.width / 2)
+        const tapY = Math.floor(loc.y + sz.height / 2)
+
+        await driver.performActions([{
+            type: 'pointer',
+            id: 'finger1',
+            parameters: { pointerType: 'touch' },
+            actions: [
+                { type: 'pointerMove', duration: 0, x: tapX, y: tapY },
+                { type: 'pointerDown', button: 0 },
+                { type: 'pointerUp', button: 0 }
+            ]
+        }])
         await driver.pause(1000)
     }
 
@@ -106,82 +157,161 @@ class WatchlistPage {
         //await driver.pause(1000)
     }
 
-    async scrollIndexWatchlist() {
-        console.log("\n========================================")
-        console.log("Processing Index Watchlist: NIFTY 50 & SENSEX")
-        console.log("========================================")
-
-        // 1. Process NIFTY 50
+    async switchHeatmapIndexDropdown(indexName) {
         try {
-            const niftyTab = $(`~NIFTY 50`)
-            if (await niftyTab.isDisplayed().catch(() => false)) {
-                await niftyTab.click()
-                await driver.pause(1000)
-            }
-        } catch (e) { }
+            console.log(`Opening Heatmap index dropdown to select '${indexName}'...`)
+            // Perform explicit tap on top-left dropdown region (x: 120, y: 155)
+            await driver.performActions([{
+                type: 'pointer',
+                id: 'finger1',
+                parameters: { pointerType: 'touch' },
+                actions: [
+                    { type: 'pointerMove', duration: 0, x: 120, y: 155 },
+                    { type: 'pointerDown', button: 0 },
+                    { type: 'pointerUp', button: 0 }
+                ]
+            }])
+            await driver.pause(1000)
 
-        console.log("Scrolling and counting NIFTY 50 stocks...")
-        const niftyStocks = new Set()
-        for (let scroll = 0; scroll < 6; scroll++) {
+            // Look for elements in top left overlay area (y between 150 and 300, x < 300) matching indexName
             const views = await $$('//*[@content-desc != ""]')
             for (const v of views) {
                 if (await v.isDisplayed().catch(() => false)) {
-                    const desc = await v.getAttribute("content-desc").catch(() => "")
                     const loc = await v.getLocation()
-                    if (loc.y > 350 && desc && (desc.includes('NSE') || desc.includes('BSE') || desc.includes('EQ'))) {
-                        const stockName = desc.split(/\n|,/)[0].trim()
-                        if (stockName && stockName.length > 1) niftyStocks.add(stockName)
+                    const desc = await v.getAttribute("content-desc").catch(() => "")
+                    if (loc.y > 150 && loc.y < 300 && loc.x < 300 && desc && desc.toLowerCase().includes(indexName.toLowerCase())) {
+                        await v.click()
+                        await driver.pause(1500)
+                        console.log(`✅ Clicked '${desc}' inside Heatmap index dropdown overlay at (${loc.x}, ${loc.y})`)
+                        return
                     }
                 }
             }
-            // Scroll down gesture
-            await driver.action('pointer')
-                .move({ duration: 0, x: 500, y: 1500 })
-                .down({ button: 0 })
-                .move({ duration: 600, x: 500, y: 500 })
-                .up({ button: 0 })
-                .perform()
-            await driver.pause(600)
+
+            // Coordinate fallback for Nifty 50 option inside overlay
+            await driver.performActions([{
+                type: 'pointer',
+                id: 'finger1',
+                parameters: { pointerType: 'touch' },
+                actions: [
+                    { type: 'pointerMove', duration: 0, x: 100, y: 205 },
+                    { type: 'pointerDown', button: 0 },
+                    { type: 'pointerUp', button: 0 }
+                ]
+            }])
+            await driver.pause(1500)
+            console.log(`✅ Tapped Nifty 50 fallback coordinate inside Heatmap dropdown`)
+        } catch (e) {
+            console.log(`Error switching Heatmap index dropdown to '${indexName}':`, e)
         }
-        const niftyMsg = `📊 [INDEX CHECK]: NIFTY 50 Total Stocks Counted: ${niftyStocks.size} (Expected: 50)`
+    }
+
+    async selectIndexTabDropdownOption(indexName) {
+        try {
+            // Try clicking Tab directly if available (e.g. ~SENSEX or ~NIFTY 50)
+            const tabBtn = $(`~${indexName}`)
+            if (await tabBtn.isDisplayed().catch(() => false)) {
+                await tabBtn.click()
+                await driver.pause(1000)
+                console.log(`Clicked Index Tab directly: ${indexName}`)
+                return
+            }
+        } catch (e) { }
+
+        try {
+            // Otherwise click top sub-dropdown for Index page
+            const indexSubDropdown = this.indexSubDropdown
+            if (await indexSubDropdown.isDisplayed().catch(() => false)) {
+                await indexSubDropdown.click()
+                await driver.pause(1000)
+                const opt = $(`~${indexName}`)
+                if (await opt.isDisplayed().catch(() => false)) {
+                    await opt.click()
+                    await driver.pause(1000)
+                    console.log(`Selected Index sub-dropdown option: ${indexName}`)
+                }
+            }
+        } catch (e) { }
+    }
+
+    async scrollIndexWatchlist() {
+        console.log("\n========================================")
+        console.log("Processing Index Watchlist: SENSEX & NIFTY 50 Accordions")
+        console.log("========================================")
+
+        // Helper to find and click an accordion in the list view (y > 350)
+        const clickListAccordion = async (indexName) => {
+            const views = await $$('//*[@content-desc != ""]')
+            for (const v of views) {
+                if (await v.isDisplayed().catch(() => false)) {
+                    const loc = await v.getLocation()
+                    const desc = await v.getAttribute("content-desc").catch(() => "")
+                    // Only target list view rows below top header (y > 350) matching indexName
+                    if (loc.y > 350 && desc && desc.toLowerCase().includes(indexName.toLowerCase())) {
+                        await v.click()
+                        await driver.pause(1200)
+                        console.log(`Clicked '${indexName}' accordion row at (${loc.x}, ${loc.y})`)
+                        return true
+                    }
+                }
+            }
+            return false
+        }
+
+        // 1. Click SENSEX Accordion row (brown rectangle in list view, y > 350)
+        console.log("Expanding SENSEX accordion in list view...")
+        await clickListAccordion('SENSEX')
+
+        console.log("Scrolling and counting SENSEX stocks under SENSEX accordion (Expected ~30)...")
+        const sensexListCount = await this.getWatchlistStockCount()
+        const sensexMsg = `📊 [INDEX LIST CHECK]: SENSEX Total Stocks Counted: ${sensexListCount} (Expected: 30)`
+        console.log(sensexMsg)
+        allure.addStep(sensexMsg)
+
+        // 2. Collapse SENSEX & Click Nifty 50 Accordion row (pink rectangle in list view)
+        console.log("Collapsing SENSEX & Expanding Nifty 50 accordion in list view...")
+        await clickListAccordion('SENSEX')
+        await driver.pause(500)
+        await clickListAccordion('Nifty 50')
+
+        console.log("Scrolling and counting NIFTY 50 stocks under Nifty 50 accordion (Expected ~50)...")
+        const niftyListCount = await this.getWatchlistStockCount()
+        const niftyMsg = `📊 [INDEX LIST CHECK]: NIFTY 50 Total Stocks Counted: ${niftyListCount} (Expected: 50)`
         console.log(niftyMsg)
         allure.addStep(niftyMsg)
 
-        // 2. Process SENSEX
-        try {
-            const sensexTab = $(`~SENSEX`)
-            if (await sensexTab.isDisplayed().catch(() => false)) {
-                await sensexTab.click()
-                await driver.pause(1000)
-            }
-        } catch (e) { }
+        // 3. Open Heatmap View from Index tab
+        await this.clickHeatMapView()
+        await driver.pause(1500)
 
-        console.log("Scrolling and counting SENSEX stocks...")
-        const sensexStocks = new Set()
-        for (let scroll = 0; scroll < 4; scroll++) {
-            const views = await $$('//*[@content-desc != ""]')
-            for (const v of views) {
-                if (await v.isDisplayed().catch(() => false)) {
-                    const desc = await v.getAttribute("content-desc").catch(() => "")
-                    const loc = await v.getLocation()
-                    if (loc.y > 350 && desc && (desc.includes('NSE') || desc.includes('BSE') || desc.includes('EQ'))) {
-                        const stockName = desc.split(/\n|,/)[0].trim()
-                        if (stockName && stockName.length > 1) sensexStocks.add(stockName)
-                    }
-                }
-            }
-            // Scroll down gesture
-            await driver.action('pointer')
-                .move({ duration: 0, x: 500, y: 1500 })
-                .down({ button: 0 })
-                .move({ duration: 600, x: 500, y: 500 })
-                .up({ button: 0 })
-                .perform()
-            await driver.pause(600)
-        }
-        const sensexMsg = `📊 [INDEX CHECK]: SENSEX Total Stocks Counted: ${sensexStocks.size} (Expected: 30)`
-        console.log(sensexMsg)
-        allure.addStep(sensexMsg)
+        // --- HEATMAP FOR SENSEX (Default selected in Heatmap dropdown) ---
+        console.log(`\n--- Running Heatmap Verification for SENSEX ---`)
+        const sensexInitPercent = await this.getHeatmapStockCount(sensexListCount)
+        await this.switchHeatmapDisplay('value')
+        const sensexValCount = await this.getHeatmapStockCount(sensexListCount)
+        await this.switchHeatmapDisplay('percent')
+
+        const sensexHlSummary = `Index 'SENSEX' | List View Count: ${sensexListCount} | Heatmap %: ${sensexInitPercent} | Heatmap Val: ${sensexValCount}`
+        console.log(sensexHlSummary)
+        allure.addStep(sensexHlSummary)
+
+        // --- SWITCH HEATMAP DROPDOWN TO NIFTY 50 ---
+        console.log(`\n--- Switching Heatmap Dropdown to Nifty 50 ---`)
+        await this.switchHeatmapIndexDropdown('Nifty 50')
+
+        // --- HEATMAP FOR NIFTY 50 ---
+        console.log(`\n--- Running Heatmap Verification for NIFTY 50 ---`)
+        const niftyInitPercent = await this.getHeatmapStockCount(niftyListCount)
+        await this.switchHeatmapDisplay('value')
+        const niftyValCount = await this.getHeatmapStockCount(niftyListCount)
+        await this.switchHeatmapDisplay('percent')
+
+        const niftyHlSummary = `Index 'NIFTY 50' | List View Count: ${niftyListCount} | Heatmap %: ${niftyInitPercent} | Heatmap Val: ${niftyValCount}`
+        console.log(niftyHlSummary)
+        allure.addStep(niftyHlSummary)
+
+        // Close Heatmap view
+        await this.clickHeatmapBackButton()
     }
 
     async clickSearchIcon() {
@@ -300,7 +430,7 @@ class WatchlistPage {
             const segUpper = segment ? segment.trim().toUpperCase() : ''
 
             // Check if scrip (e.g. INFY, TCS, yesbank, IDEA, SILVER, USD) exists in current watchlist
-            const scripSelector = `android=new UiSelector().descriptionContains("${symbol}")`
+            const scripSelector = locators.get('scripBySymbol').replace('{symbol}', symbol)
             const scripElement = $(scripSelector)
 
             let exists = false
@@ -396,7 +526,8 @@ class WatchlistPage {
                     // Method B: UiSelector descriptionContains
                     if (!minusClicked) {
                         try {
-                            const targetRowUi = $(`android=new UiSelector().descriptionContains("${candidate}")`)
+                            const selector = locators.get('watchlistRowByName').replace('{name}', candidate)
+                            const targetRowUi = $(selector)
                             if (await targetRowUi.isDisplayed().catch(() => false)) {
                                 const loc = await targetRowUi.getLocation()
                                 const sz = await targetRowUi.getSize()
@@ -510,7 +641,7 @@ class WatchlistPage {
             const heatMapViewBtn = await $(locators.get('openHeatMapView'))
             if (await heatMapViewBtn.isDisplayed().catch(() => false)) {
                 await heatMapViewBtn.click()
-               // await driver.pause(1000)
+                // await driver.pause(1000)
                 console.log('Clicked heat map view button')
                 return
             }
@@ -538,7 +669,7 @@ class WatchlistPage {
                 console.log(`Invalid heatmap display type: ${type}. Use 'value' or 'percent'.`)
                 return
             }
-            
+
             const toggleBtn = await $(btnLocator)
             if (await toggleBtn.isDisplayed().catch(() => false)) {
                 await toggleBtn.click()
@@ -552,28 +683,78 @@ class WatchlistPage {
     }
 
     /**
-     * Get stock count from Watchlist List view
+     * Get stock count from Watchlist List view (scrolls till the end of the page to count all stocks)
      */
     async getWatchlistStockCount() {
         try {
-            // Find all stock cards rendered in watchlist list view
-            const listElements = await $$('//*[@content-desc != ""]')
             const countedStocks = new Set()
-            for (const elem of listElements) {
-                if (await elem.isDisplayed().catch(() => false)) {
-                    const loc = await elem.getLocation()
-                    const desc = await elem.getAttribute("content-desc").catch(() => "")
-                    // Stock rows are located below top header (y > 300) and contain stock descriptions/exchanges
-                    if (loc.y > 300 && desc && (desc.includes('NSE') || desc.includes('BSE') || desc.includes('CDS') || desc.includes('MCX') || desc.includes('NFO') || desc.includes('BFO') || desc.includes('EQ') || desc.includes('FUT'))) {
-                        const stockName = desc.split(/\n|,/)[0].trim()
-                        if (stockName && stockName.length > 1 && !stockName.includes("Watchlist")) {
-                            countedStocks.add(stockName)
+            let previousSize = -1
+            let noNewCount = 0
+
+            while (noNewCount < 2) {
+                // Use specific UiSelector for content descriptions to optimize UI tree scanning speed during peak morning market hours
+                const listElements = await $$(locators.get('watchlistStockRows'))
+                for (const elem of listElements) {
+                    if (await elem.isDisplayed().catch(() => false)) {
+                        const loc = await elem.getLocation().catch(() => ({ y: 0 }))
+                        const desc = await elem.getAttribute("content-desc").catch(() => "")
+                        if (loc.y > 300 && desc) {
+                            const stockName = desc.split(/\n|,/)[0].trim()
+                            if (stockName && stockName.length > 1 && !stockName.includes("Watchlist")) {
+                                countedStocks.add(stockName)
+                            }
                         }
                     }
                 }
+
+                if (countedStocks.size === previousSize) {
+                    noNewCount++
+                } else {
+                    noNewCount = 0
+                    previousSize = countedStocks.size
+                }
+
+                if (noNewCount >= 2) break
+
+                // Scroll down gesture to load lower stock rows in list view
+                try {
+                    await driver.performActions([{
+                        type: 'pointer',
+                        id: 'finger1',
+                        parameters: { pointerType: 'touch' },
+                        actions: [
+                            { type: 'pointerMove', duration: 0, x: 500, y: 1400 },
+                            { type: 'pointerDown', button: 0 },
+                            { type: 'pointerMove', duration: 500, x: 500, y: 500 },
+                            { type: 'pointerUp', button: 0 }
+                        ]
+                    }])
+                } catch (e) { }
+                await driver.pause(600)
             }
+
+            // Scroll back up to restore view position after counting
+            if (countedStocks.size > 0) {
+                for (let i = 0; i < 2; i++) {
+                    try {
+                        await driver.performActions([{
+                            type: 'pointer',
+                            id: 'finger1',
+                            parameters: { pointerType: 'touch' },
+                            actions: [
+                                { type: 'pointerMove', duration: 0, x: 500, y: 500 },
+                                { type: 'pointerDown', button: 0 },
+                                { type: 'pointerMove', duration: 500, x: 500, y: 1400 },
+                                { type: 'pointerUp', button: 0 }
+                            ]
+                        }])
+                    } catch (e) { }
+                    await driver.pause(300)
+                }
+            }
+
             const count = countedStocks.size
-            console.log(`📋 Watchlist list view stocks counted: ${count} (${Array.from(countedStocks).join(', ')})`)
+            console.log(`📋 Watchlist list view total stocks counted: ${count} (${Array.from(countedStocks).join(', ')})`)
             return count
         } catch (e) {
             console.log("Error counting watchlist stocks:", e)
@@ -581,42 +762,57 @@ class WatchlistPage {
         }
     }
 
-    /**
-     * Get stock details and tile counts from Heatmap grid view by scrolling through the view.
-     * Categorizes stocks based on Up arrow (↑ - Advance) vs Down arrow (↓ - Decline).
-     */
-    async getHeatmapGridStockCount() {
+
+    async getHeatmapGridStockCount(scrollDirection = 'contentUp') {
         try {
             const advanceStocks = new Set()
             const declineStocks = new Set()
             const allGridStocks = new Set()
 
-            // Helper to scan visible grid stock tiles on screen
+            // Scan currently visible heatmap stock tiles
             const scanVisibleTiles = async () => {
-                const views = await $$('//*[@content-desc != ""]')
+                const views = await $$(locators.get('heatmapGridStockTiles'))
+
                 for (const view of views) {
                     if (await view.isDisplayed().catch(() => false)) {
+
                         const loc = await view.getLocation()
-                        const desc = await view.getAttribute("content-desc").catch(() => "")
-                        
-                        // Filter out headers/controls (y > 320)
-                        if (loc.y > 320 && desc && 
-                            !desc.startsWith("Watchlist") && 
-                            !desc.startsWith("Advance") && 
-                            !desc.startsWith("Decline") && 
-                            desc !== "Val" && desc !== "%") {
-                            
-                            // Split by newline or comma
+                            .catch(() => ({ y: 0 }))
+
+                        const desc = await view.getAttribute("content-desc")
+                            .catch(() => "")
+
+                        // Ignore headers and controls
+                        if (
+                            loc.y > 320 &&
+                            desc &&
+                            !desc.startsWith("Watchlist") &&
+                            !desc.startsWith("Advance") &&
+                            !desc.startsWith("Decline") &&
+                            desc !== "Val" &&
+                            desc !== "%"
+                        ) {
+
+                            // Stock name is the first part of content-desc
                             const parts = desc.split(/\n|,/)
                             const stockName = parts[0].trim()
-                            
+
                             if (stockName && stockName.length > 1) {
-                                // Check if description contains Up Arrow (↑), Down Arrow (↓), 'up', or 'down'
-                                const isUp = desc.includes('↑') || desc.toLowerCase().includes(' up ') || desc.includes('+')
-                                const isDown = desc.includes('↓') || desc.toLowerCase().includes(' down ')
-                                
+
+                                // Check advance / decline
+                                const isUp =
+                                    desc.includes('↑') ||
+                                    desc.toLowerCase().includes(' up ') ||
+                                    desc.includes('+')
+
+                                const isDown =
+                                    desc.includes('↓') ||
+                                    desc.toLowerCase().includes(' down ')
+
                                 if (isUp || isDown) {
+
                                     allGridStocks.add(stockName)
+
                                     if (isUp) {
                                         advanceStocks.add(stockName)
                                     } else if (isDown) {
@@ -629,33 +825,148 @@ class WatchlistPage {
                 }
             }
 
-            // 1. Scan initial top grid tiles
-            await scanVisibleTiles()
+            let previousSize = -1
+            let noNewCount = 0
 
-            // 2. Perform scroll down gesture to bring lower grid tiles into view
-            await driver.action('pointer')
-                .move({ duration: 0, x: 500, y: 1300 })
-                .down({ button: 0 })
-                .move({ duration: 600, x: 500, y: 500 })
-                .up({ button: 0 })
-                .perform()
-            await driver.pause(600)
+            // =====================================================
+            // KEEP SCROLLING UNTIL NO NEW STOCKS ARE FOUND
+            // =====================================================
 
-            // 3. Scan newly revealed grid tiles after scroll
-            await scanVisibleTiles()
+            while (noNewCount < 2) {
+
+                // Scan currently visible stocks
+                await scanVisibleTiles()
+
+                // Check whether new stocks were found
+                if (allGridStocks.size === previousSize) {
+                    noNewCount++
+                } else {
+                    noNewCount = 0
+                    previousSize = allGridStocks.size
+                }
+
+                // Stop when no new stocks are found twice
+                if (noNewCount >= 2) {
+                    break
+                }
+
+                // =================================================
+                // DETERMINE SCROLL DIRECTION
+                // =================================================
+
+                let startY
+                let endY
+
+                if (scrollDirection === 'contentUp') {
+
+                    // Finger moves UP
+                    // Content moves UP
+                    startY = 1400
+                    endY = 400
+
+                    console.log("⬆️ Heatmap: Scrolling content UP")
+
+                } else if (scrollDirection === 'contentDown') {
+
+                    // Finger moves DOWN
+                    // Content moves DOWN
+                    startY = 400
+                    endY = 1400
+
+                    console.log("⬇️ Heatmap: Scrolling content DOWN")
+
+                } else {
+
+                    console.log(
+                        `⚠️ Invalid scroll direction: ${scrollDirection}`
+                    )
+
+                    break
+                }
+
+                // =================================================
+                // PERFORM SWIPE
+                // =================================================
+
+                try {
+                    await driver.performActions([{
+                        type: 'pointer',
+                        id: 'finger1',
+                        parameters: {
+                            pointerType: 'touch'
+                        },
+                        actions: [
+                            {
+                                type: 'pointerMove',
+                                duration: 0,
+                                x: 500,
+                                y: startY
+                            },
+                            {
+                                type: 'pointerDown',
+                                button: 0
+                            },
+                            {
+                                type: 'pointerMove',
+                                duration: 600,
+                                x: 500,
+                                y: endY
+                            },
+                            {
+                                type: 'pointerUp',
+                                button: 0
+                            }
+                        ]
+                    }])
+                } catch (e) {
+                    console.log(
+                        "Heatmap scroll error:",
+                        e.message
+                    )
+                }
+
+                // Give UI time to settle
+                await driver.pause(700)
+            }
+
+            // =====================================================
+            // FINAL COUNTS
+            // =====================================================
 
             const gridAdvanceCount = advanceStocks.size
             const gridDeclineCount = declineStocks.size
             const totalGridCount = allGridStocks.size
 
-            console.log(`📈 Grid Up Arrow (Advance) Stocks: ${gridAdvanceCount} (${Array.from(advanceStocks).join(', ')})`)
-            console.log(`📉 Grid Down Arrow (Decline) Stocks: ${gridDeclineCount} (${Array.from(declineStocks).join(', ')})`)
-            console.log(`📊 Total Grid Stock Tiles Counted: ${totalGridCount}`)
+            console.log(
+                `📈 Grid Up Arrow (Advance) Stocks: ${gridAdvanceCount} (${Array.from(advanceStocks).join(', ')})`
+            )
 
-            return { gridAdvanceCount, gridDeclineCount, totalGridCount }
+            console.log(
+                `📉 Grid Down Arrow (Decline) Stocks: ${gridDeclineCount} (${Array.from(declineStocks).join(', ')})`
+            )
+
+            console.log(
+                `📊 Total Grid Stock Tiles Counted (${scrollDirection}): ${totalGridCount}`
+            )
+
+            return {
+                gridAdvanceCount,
+                gridDeclineCount,
+                totalGridCount
+            }
+
         } catch (e) {
-            console.log("Error counting heatmap grid stock tiles:", e)
-            return { gridAdvanceCount: 0, gridDeclineCount: 0, totalGridCount: 0 }
+
+            console.log(
+                "Error counting heatmap grid stock tiles:",
+                e
+            )
+
+            return {
+                gridAdvanceCount: 0,
+                gridDeclineCount: 0,
+                totalGridCount: 0
+            }
         }
     }
 
@@ -667,18 +978,46 @@ class WatchlistPage {
             let advanceCount = 0
             let declineCount = 0
 
-            const advElem = await $('//*[contains(@content-desc, "Advance")]')
-            if (await advElem.isDisplayed().catch(() => false)) {
-                const advText = await advElem.getAttribute("content-desc")
-                const match = advText.match(/\d+/)
-                if (match) advanceCount = parseInt(match[0], 10)
-            }
+            // Try standard locator for Advance badge
+            try {
+                const advElem = await this.advanceBadge
+                if (await advElem.isDisplayed().catch(() => false)) {
+                    const advText = await advElem.getAttribute("content-desc").catch(() => "")
+                    const match = advText.match(/\d+/)
+                    if (match) advanceCount = parseInt(match[0], 10)
+                }
+            } catch (e) { }
 
-            const decElem = await $('//*[contains(@content-desc, "Decline")]')
-            if (await decElem.isDisplayed().catch(() => false)) {
-                const decText = await decElem.getAttribute("content-desc")
-                const match = decText.match(/\d+/)
-                if (match) declineCount = parseInt(match[0], 10)
+            // Try standard locator for Decline badge
+            try {
+                const decElem = await this.declineBadge
+                if (await decElem.isDisplayed().catch(() => false)) {
+                    const decText = await decElem.getAttribute("content-desc").catch(() => "")
+                    const match = decText.match(/\d+/)
+                    if (match) declineCount = parseInt(match[0], 10)
+                }
+            } catch (e) { }
+
+            // Fallback scan: inspect all displayed elements with non-empty content-desc if either is 0
+            if (advanceCount === 0 || declineCount === 0) {
+                try {
+                    const views = await $$('//*[@content-desc != ""]')
+                    for (const v of views) {
+                        if (await v.isDisplayed().catch(() => false)) {
+                            const desc = await v.getAttribute("content-desc").catch(() => "")
+                            if (desc) {
+                                if (advanceCount === 0 && desc.toLowerCase().includes("advance")) {
+                                    const match = desc.match(/\d+/)
+                                    if (match) advanceCount = parseInt(match[0], 10)
+                                }
+                                if (declineCount === 0 && desc.toLowerCase().includes("decline")) {
+                                    const match = desc.match(/\d+/)
+                                    if (match) declineCount = parseInt(match[0], 10)
+                                }
+                            }
+                        }
+                    }
+                } catch (e) { }
             }
 
             const badgeTotal = advanceCount + declineCount
@@ -691,30 +1030,23 @@ class WatchlistPage {
     }
 
     /**
-     * Full Heatmap Stock Count evaluation:
-     * 1. Counts grid stock tiles by scrolling and categorizing by up/down arrow
-     * 2. Compares Grid Advance vs Advance Badge
-     * 3. Compares Grid Decline vs Decline Badge
-     * 4. Returns total grid count for comparison with List View
+     * Heatmap Stock Count evaluation:
+     * Reads Advance and Decline badges directly from Heatmap UI and calculates total badge count.
+     * Optionally verifies against List View count.
+     * @param {number} [expectedListCount] - Optional list view count to verify against
      */
-    async getHeatmapStockCount() {
-        const { gridAdvanceCount, gridDeclineCount, totalGridCount } = await this.getHeatmapGridStockCount()
+    async getHeatmapStockCount(expectedListCount = null) {
         const { advanceCount, declineCount, badgeTotal } = await this.getHeatmapAdvanceDeclineTotal()
 
-        if (gridAdvanceCount === advanceCount) {
-            console.log(`✅ [ADVANCE MATCH]: Grid Up Arrow count (${gridAdvanceCount}) matches Advance badge (${advanceCount}).`)
-        } else {
-            console.log(`⚠️ [ADVANCE MISMATCH]: Grid Up Arrow count (${gridAdvanceCount}) vs Advance badge (${advanceCount}).`)
+        if (expectedListCount !== null) {
+            if (badgeTotal === expectedListCount) {
+                console.log(`✅ [HEATMAP COUNT MATCH]: Heatmap badge total (${badgeTotal}) matches List View count (${expectedListCount}).`)
+            } else {
+                console.log(`⚠️ [HEATMAP COUNT MISMATCH]: Heatmap badge total (${badgeTotal}) vs List View count (${expectedListCount}).`)
+            }
         }
 
-        if (gridDeclineCount === declineCount) {
-            console.log(`✅ [DECLINE MATCH]: Grid Down Arrow count (${gridDeclineCount}) matches Decline badge (${declineCount}).`)
-        } else {
-            console.log(`⚠️ [DECLINE MISMATCH]: Grid Down Arrow count (${gridDeclineCount}) vs Decline badge (${declineCount}).`)
-        }
-
-        // Return total grid count to compare with List View
-        return totalGridCount
+        return badgeTotal
     }
 
     /**

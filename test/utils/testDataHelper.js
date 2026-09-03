@@ -39,6 +39,40 @@ class TestDataLoader {
             }
         })
     }
+
+    /**
+     * Load target watchlists to process from CSV or return defaults
+     * @returns {Array<string>}
+     */
+    getWatchlists() {
+        if (!fs.existsSync(this.testDataPath)) {
+            return ["Watchlist 3", "fivee", "mkk", "one", "onehy"]
+        }
+
+        try {
+            const fileContent = fs.readFileSync(this.testDataPath, 'utf8')
+            const records = parse(fileContent, {
+                columns: true,
+                skip_empty_lines: true,
+                comment: '#',
+                trim: true
+            })
+
+            const watchlists = []
+            for (const record of records) {
+                const wl = record.WATCHLIST || record.watchlist || record.WATCHLIST_NAME || record.watchlist_name
+                if (wl && wl.trim()) {
+                    watchlists.push(wl.trim())
+                }
+            }
+
+            if (watchlists.length > 0) {
+                return [...new Set(watchlists)]
+            }
+        } catch (e) { }
+
+        return ["Watchlist 3", "fivee", "mkk", "one", "onehy"]
+    }
 }
 
 export default new TestDataLoader()
