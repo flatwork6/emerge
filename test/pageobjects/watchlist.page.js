@@ -137,7 +137,9 @@ class WatchlistPage {
             if (await item.isDisplayed().catch(() => false)) {
                 await item.click()
                 await driver.pause(1000)
-                await this.pullDownToRefresh()
+                if (name !== 'Index') {
+                    await this.pullDownToRefresh()
+                }
                 return
             }
         } catch (e) { }
@@ -148,7 +150,9 @@ class WatchlistPage {
             if (await itemUi.isDisplayed().catch(() => false)) {
                 await itemUi.click()
                 await driver.pause(1000)
-                await this.pullDownToRefresh()
+                if (name !== 'Index') {
+                    await this.pullDownToRefresh()
+                }
                 return
             }
         } catch (e) { }
@@ -172,7 +176,9 @@ class WatchlistPage {
             ]
         }])
      //   await driver.pause(1000)
-        await this.pullDownToRefresh()
+        if (name !== 'Index') {
+            await this.pullDownToRefresh()
+        }
     }
 
     async clickWatchlist() {
@@ -319,44 +325,129 @@ class WatchlistPage {
 
         // Helper to find and click an accordion in the list view (y > 350)
         const clickListAccordion = async (indexName) => {
-            const views = await $$('//*[@content-desc != ""]')
-            for (const v of views) {
-                if (await v.isDisplayed().catch(() => false)) {
-                    const loc = await v.getLocation()
-                    const desc = await v.getAttribute("content-desc").catch(() => "")
-                    // Only target list view rows below top header (y > 350) matching indexName
-                    if (loc.y > 350 && desc && desc.toLowerCase().includes(indexName.toLowerCase())) {
-                        await v.click()
-                        await driver.pause(1200)
-                        console.log(`Clicked '${indexName}' accordion row at (${loc.x}, ${loc.y})`)
-                        return true
+            console.log(`Attempting to click accordion for '${indexName}'...`)
+
+            // 1. Try explicit UiSelector description search for SENSEX or Nifty 50
+            try {
+                const targetElems = await $$(`android=new UiSelector().descriptionContains("${indexName}")`)
+                for (const targetElem of targetElems) {
+                    if (await targetElem.isDisplayed().catch(() => false)) {
+                        const loc = await targetElem.getLocation()
+                        // Ensure we are clicking the list view item (y > 320), NOT the top static ticker
+                        if (loc.y > 320) {
+                            const sz = await targetElem.getSize()
+                            const tapX = Math.floor(loc.x + sz.width / 2)
+                            const tapY = Math.floor(loc.y + sz.height / 2)
+                            console.log(`Found '${indexName}' accordion via UiSelector at bounds (${tapX}, ${tapY})`)
+
+                            // Always tap exact midpoint of accordion box
+                            await driver.performActions([{
+                                type: 'pointer',
+                                id: 'finger1',
+                                parameters: { pointerType: 'touch' },
+                                actions: [
+                                    { type: 'pointerMove', duration: 0, x: tapX, y: tapY },
+                                    { type: 'pointerDown', button: 0 },
+                                    { type: 'pointerUp', button: 0 }
+                                ]
+                            }])
+                            await driver.pause(1500)
+                            console.log(`✅ Tapped '${indexName}' accordion at (${tapX}, ${tapY})`)
+                            return true
+                        }
                     }
                 }
+            } catch (e) { }
+
+            // 2. Fallback scan visible views
+            for (let retry = 0; retry < 3; retry++) {
+                const views = await $$('//*[@content-desc != ""]')
+                for (const v of views) {
+                    if (await v.isDisplayed().catch(() => false)) {
+                        const loc = await v.getLocation()
+                        const sz = await v.getSize()
+                        const desc = await v.getAttribute("content-desc").catch(() => "")
+                        if (loc.y > 320 && desc && desc.toLowerCase().includes(indexName.toLowerCase())) {
+                            const tapX = Math.floor(loc.x + sz.width / 2)
+                            const tapY = Math.floor(loc.y + sz.height / 2)
+                            await driver.performActions([{
+                                type: 'pointer',
+                                id: 'finger1',
+                                parameters: { pointerType: 'touch' },
+                                actions: [
+                                    { type: 'pointerMove', duration: 0, x: tapX, y: tapY },
+                                    { type: 'pointerDown', button: 0 },
+                                    { type: 'pointerUp', button: 0 }
+                                ]
+                            }])
+                            await driver.pause(1500)
+                            console.log(`✅ Scanned & Tapped '${indexName}' accordion row at (${tapX}, ${tapY})`)
+                            return true
+                        }
+                    }
+                }
+                // Scroll down slightly if accordion not immediately visible
+                try {
+                    await driver.performActions([{
+                        type: 'pointer',
+                        id: 'finger1',
+                        parameters: { pointerType: 'touch' },
+                        actions: [
+                            { type: 'pointerMove', duration: 0, x: 500, y: 1000 },
+                            { type: 'pointerDown', button: 0 },
+                            { type: 'pointerMove', duration: 400, x: 500, y: 700 },
+                            { type: 'pointerUp', button: 0 }
+                        ]
+                    }])
+                } catch (e) { }
+                await driver.pause(500)
             }
             return false
         }
 
-        // 1. Click SENSEX Accordion row (brown rectangle in list view, y > 350)
-        console.log("Expanding SENSEX accordion in list view...")
-        await clickListAccordion('SENSEX')
-
-        console.log("Scrolling and counting SENSEX stocks under SENSEX accordion (Expected ~30)...")
-        const sensexListCount = await this.getWatchlistStockCount()
-        const sensexMsg = `📊 [INDEX LIST CHECK]: SENSEX Total Stocks Counted: ${sensexListCount} (Expected: 30)`
-        console.log(sensexMsg)
-        allure.addStep(sensexMsg)
-
-        // 2. Collapse SENSEX & Click Nifty 50 Accordion row (pink rectangle in list view)
-        console.log("Collapsing SENSEX & Expanding Nifty 50 accordion in list view...")
-        await clickListAccordion('SENSEX')
-        await driver.pause(500)
+        // 1. Click Nifty 50 Accordion row (brown rectangle in list view)
+        console.log("Expanding Nifty 50 accordion in list view...")
         await clickListAccordion('Nifty 50')
+        await driver.pause(1000)
 
         console.log("Scrolling and counting NIFTY 50 stocks under Nifty 50 accordion (Expected ~50)...")
-        const niftyListCount = await this.getWatchlistStockCount()
+        const niftyListCount = await this.getWatchlistStockCount(50)
         const niftyMsg = `📊 [INDEX LIST CHECK]: NIFTY 50 Total Stocks Counted: ${niftyListCount} (Expected: 50)`
         console.log(niftyMsg)
         allure.addStep(niftyMsg)
+
+        // 2. Scroll back to top to bring SENSEX accordion back into view, collapse Nifty 50, and expand SENSEX
+        console.log("Scrolling back to top of Index list...")
+        for (let i = 0; i < 5; i++) {
+            try {
+                await driver.performActions([{
+                    type: 'pointer',
+                    id: 'finger1',
+                    parameters: { pointerType: 'touch' },
+                    actions: [
+                        { type: 'pointerMove', duration: 0, x: 500, y: 400 },
+                        { type: 'pointerDown', button: 0 },
+                        { type: 'pointerMove', duration: 400, x: 500, y: 1600 },
+                        { type: 'pointerUp', button: 0 }
+                    ]
+                }])
+            } catch (e) { }
+            await driver.pause(300)
+        }
+
+        console.log("Collapsing Nifty 50 accordion in list view...")
+        await clickListAccordion('Nifty 50')
+        await driver.pause(1000)
+
+        console.log("Expanding SENSEX accordion in list view...")
+        await clickListAccordion('SENSEX')
+        await driver.pause(1000)
+
+        console.log("Scrolling and counting SENSEX stocks under SENSEX accordion (Expected ~30)...")
+        const sensexListCount = await this.getWatchlistStockCount(30)
+        const sensexMsg = `📊 [INDEX LIST CHECK]: SENSEX Total Stocks Counted: ${sensexListCount} (Expected: 30)`
+        console.log(sensexMsg)
+        allure.addStep(sensexMsg)
 
         // 3. Open Heatmap View from Index tab
         await this.clickHeatMapView()
@@ -763,7 +854,7 @@ class WatchlistPage {
     /**
      * Get stock count from Watchlist List view (scrolls till the end of the page to count all stocks)
      */
-    async getWatchlistStockCount() {
+    async getWatchlistStockCount(expectedMax = null) {
         try {
             const countedStocks = new Set()
             let previousSize = -1
@@ -772,17 +863,39 @@ class WatchlistPage {
             while (noNewCount < 2) {
                 // Use specific UiSelector for content descriptions to optimize UI tree scanning speed during peak morning market hours
                 const listElements = await $$(locators.get('watchlistStockRows'))
+
                 for (const elem of listElements) {
                     if (await elem.isDisplayed().catch(() => false)) {
                         const loc = await elem.getLocation().catch(() => ({ y: 0 }))
                         const desc = await elem.getAttribute("content-desc").catch(() => "")
                         if (loc.y > 300 && desc) {
                             const stockName = desc.split(/\n|,/)[0].trim()
-                            if (stockName && stockName.length > 1 && !stockName.includes("Watchlist")) {
+                            const lowerName = stockName.toLowerCase()
+
+                            // Filter out accordion header rows, exchange labels, and controls
+                            const isHeaderOrControl =
+                                stockName.includes("Watchlist") ||
+                                lowerName.startsWith("nifty") ||
+                                lowerName.startsWith("sensex") ||
+                                lowerName.startsWith("index") ||
+                                lowerName === "bse" ||
+                                lowerName === "nse" ||
+                                lowerName.includes("archive") ||
+                                lowerName.includes("advance") ||
+                                lowerName.includes("decline")
+
+                            if (stockName && stockName.length > 1 && !isHeaderOrControl) {
                                 countedStocks.add(stockName)
+                                if (expectedMax && countedStocks.size >= expectedMax) {
+                                    break
+                                }
                             }
                         }
                     }
+                }
+
+                if (expectedMax && countedStocks.size >= expectedMax) {
+                    break
                 }
 
                 if (countedStocks.size === previousSize) {
