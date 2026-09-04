@@ -111,12 +111,33 @@ class WatchlistPage {
         await driver.pause(1000)
     }
 
+    async pullDownToRefresh() {
+        try {
+            console.log("Performing pull-to-refresh gesture on watchlist...")
+            await driver.performActions([{
+                type: 'pointer',
+                id: 'finger1',
+                parameters: { pointerType: 'touch' },
+                actions: [
+                    { type: 'pointerMove', duration: 0, x: 500, y: 750 },
+                    { type: 'pointerDown', button: 0 },
+                    { type: 'pointerMove', duration: 400, x: 500, y: 1550 },
+                    { type: 'pointerUp', button: 0 }
+                ]
+            }])
+            await driver.pause(1500)
+        } catch (e) {
+            console.log("Error performing pull-to-refresh:", e.message)
+        }
+    }
+
     async clickWatchlistByName(name) {
         try {
             const item = $(`~${name}`)
             if (await item.isDisplayed().catch(() => false)) {
                 await item.click()
                 await driver.pause(1000)
+                await this.pullDownToRefresh()
                 return
             }
         } catch (e) { }
@@ -127,6 +148,7 @@ class WatchlistPage {
             if (await itemUi.isDisplayed().catch(() => false)) {
                 await itemUi.click()
                 await driver.pause(1000)
+                await this.pullDownToRefresh()
                 return
             }
         } catch (e) { }
@@ -149,12 +171,13 @@ class WatchlistPage {
                 { type: 'pointerUp', button: 0 }
             ]
         }])
-        await driver.pause(1000)
+     //   await driver.pause(1000)
+        await this.pullDownToRefresh()
     }
 
     async clickWatchlist() {
         await this.selectWatchlist.click()
-        //await driver.pause(1000)
+        await driver.pause(1000)
     }
 
     async switchHeatmapIndexDropdown(indexName) {

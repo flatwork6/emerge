@@ -136,6 +136,7 @@ describe('Should open watchlist, search and add scrips and remove if it is alrea
 
             // Close search overlay after processing current watchlist scrips
             await WatchlistPage.closeSearch()
+            await driver.pause(1000)
 
             // Perform Heatmap verification for current Watchlist
             console.log(`\n--- Running Heatmap Verification for Watchlist: '${wlName}' ---`)
