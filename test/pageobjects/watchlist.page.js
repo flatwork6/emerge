@@ -160,26 +160,79 @@ class WatchlistPage {
     async switchHeatmapIndexDropdown(indexName) {
         try {
             console.log(`Opening Heatmap index dropdown to select '${indexName}'...`)
-            // Perform explicit tap on top-left dropdown region (x: 120, y: 155)
-            await driver.performActions([{
-                type: 'pointer',
-                id: 'finger1',
-                parameters: { pointerType: 'touch' },
-                actions: [
-                    { type: 'pointerMove', duration: 0, x: 120, y: 155 },
-                    { type: 'pointerDown', button: 0 },
-                    { type: 'pointerUp', button: 0 }
-                ]
-            }])
+
+            let dropdownOpened = false
+
+            // Step 1: Open Dropdown Box (Pink Box in UI Image)
+            // Try explicit UiSelector for "Index\nNifty 50" or "Index\nSENSEX" or "Index"
+            try {
+                const dropBtn = $(`android=new UiSelector().descriptionStartsWith("Index")`)
+                if (await dropBtn.isDisplayed().catch(() => false)) {
+                    await dropBtn.click()
+                    dropdownOpened = true
+                    console.log(`Clicked Heatmap Index dropdown button via UiSelector descriptionStartsWith("Index")`)
+                }
+            } catch (e) { }
+
+            if (!dropdownOpened) {
+                try {
+                    const dropBtn = $(`android=new UiSelector().descriptionContains("Nifty 50")`)
+                    if (await dropBtn.isDisplayed().catch(() => false)) {
+                        await dropBtn.click()
+                        dropdownOpened = true
+                        console.log(`Clicked Heatmap Index dropdown button via UiSelector descriptionContains("Nifty 50")`)
+                    }
+                } catch (e) { }
+            }
+
+            if (!dropdownOpened) {
+                // Fallback tap top-left dropdown region (x: 120, y: 155)
+                await driver.performActions([{
+                    type: 'pointer',
+                    id: 'finger1',
+                    parameters: { pointerType: 'touch' },
+                    actions: [
+                        { type: 'pointerMove', duration: 0, x: 120, y: 155 },
+                        { type: 'pointerDown', button: 0 },
+                        { type: 'pointerUp', button: 0 }
+                    ]
+                }])
+                console.log("Tapped top-left Heatmap dropdown box coordinate (120, 155)")
+            }
             await driver.pause(1000)
 
-            // Look for elements in top left overlay area (y between 150 and 300, x < 300) matching indexName
+            // Step 2: Click target item in overlay menu (Blue Box in UI Image: SENSEX or Nifty 50)
+            const isSensex = indexName.toLowerCase().includes('sensex')
+            const targetLabel = isSensex ? 'SENSEX' : 'Nifty 50'
+
+            // Direct UiSelector search for exact content-desc "SENSEX" or "Nifty 50"
+            try {
+                const itemElem = $(`android=new UiSelector().description("${targetLabel}")`)
+                if (await itemElem.isDisplayed().catch(() => false)) {
+                    await itemElem.click()
+                    await driver.pause(1500)
+                    console.log(`✅ Clicked '${targetLabel}' inside Heatmap dropdown menu via UiSelector`)
+                    return
+                }
+            } catch (e) { }
+
+            try {
+                const itemElem = $(`android=new UiSelector().descriptionContains("${targetLabel}")`)
+                if (await itemElem.isDisplayed().catch(() => false)) {
+                    await itemElem.click()
+                    await driver.pause(1500)
+                    console.log(`✅ Clicked descriptionContains '${targetLabel}' inside Heatmap dropdown menu`)
+                    return
+                }
+            } catch (e) { }
+
+            // Scan visible views in overlay menu area (y between 120 and 320, x < 300)
             const views = await $$('//*[@content-desc != ""]')
             for (const v of views) {
                 if (await v.isDisplayed().catch(() => false)) {
                     const loc = await v.getLocation()
                     const desc = await v.getAttribute("content-desc").catch(() => "")
-                    if (loc.y > 150 && loc.y < 300 && loc.x < 300 && desc && desc.toLowerCase().includes(indexName.toLowerCase())) {
+                    if (loc.y > 120 && loc.y < 320 && loc.x < 300 && desc && desc.toLowerCase().includes(indexName.toLowerCase())) {
                         await v.click()
                         await driver.pause(1500)
                         console.log(`✅ Clicked '${desc}' inside Heatmap index dropdown overlay at (${loc.x}, ${loc.y})`)
@@ -188,19 +241,21 @@ class WatchlistPage {
                 }
             }
 
-            // Coordinate fallback for Nifty 50 option inside overlay
+            // Coordinate fallbacks for dropdown item:
+            // Top option (Nifty 50) y ~160; Second option (SENSEX) y ~210
+            const tapY = isSensex ? 210 : 160
             await driver.performActions([{
                 type: 'pointer',
                 id: 'finger1',
                 parameters: { pointerType: 'touch' },
                 actions: [
-                    { type: 'pointerMove', duration: 0, x: 100, y: 205 },
+                    { type: 'pointerMove', duration: 0, x: 100, y: tapY },
                     { type: 'pointerDown', button: 0 },
                     { type: 'pointerUp', button: 0 }
                 ]
             }])
             await driver.pause(1500)
-            console.log(`✅ Tapped Nifty 50 fallback coordinate inside Heatmap dropdown`)
+            console.log(`✅ Tapped fallback coordinate (100, ${tapY}) for '${targetLabel}' inside Heatmap dropdown`)
         } catch (e) {
             console.log(`Error switching Heatmap index dropdown to '${indexName}':`, e)
         }
@@ -284,22 +339,7 @@ class WatchlistPage {
         await this.clickHeatMapView()
         await driver.pause(1500)
 
-        // --- HEATMAP FOR SENSEX (Default selected in Heatmap dropdown) ---
-        console.log(`\n--- Running Heatmap Verification for SENSEX ---`)
-        const sensexInitPercent = await this.getHeatmapStockCount(sensexListCount)
-        await this.switchHeatmapDisplay('value')
-        const sensexValCount = await this.getHeatmapStockCount(sensexListCount)
-        await this.switchHeatmapDisplay('percent')
-
-        const sensexHlSummary = `Index 'SENSEX' | List View Count: ${sensexListCount} | Heatmap %: ${sensexInitPercent} | Heatmap Val: ${sensexValCount}`
-        console.log(sensexHlSummary)
-        allure.addStep(sensexHlSummary)
-
-        // --- SWITCH HEATMAP DROPDOWN TO NIFTY 50 ---
-        console.log(`\n--- Switching Heatmap Dropdown to Nifty 50 ---`)
-        await this.switchHeatmapIndexDropdown('Nifty 50')
-
-        // --- HEATMAP FOR NIFTY 50 ---
+        // --- HEATMAP FOR NIFTY 50 (Default selected in Heatmap dropdown) ---
         console.log(`\n--- Running Heatmap Verification for NIFTY 50 ---`)
         const niftyInitPercent = await this.getHeatmapStockCount(niftyListCount)
         await this.switchHeatmapDisplay('value')
@@ -309,6 +349,21 @@ class WatchlistPage {
         const niftyHlSummary = `Index 'NIFTY 50' | List View Count: ${niftyListCount} | Heatmap %: ${niftyInitPercent} | Heatmap Val: ${niftyValCount}`
         console.log(niftyHlSummary)
         allure.addStep(niftyHlSummary)
+
+        // --- SWITCH HEATMAP DROPDOWN TO SENSEX ---
+        console.log(`\n--- Switching Heatmap Dropdown to SENSEX ---`)
+        await this.switchHeatmapIndexDropdown('SENSEX')
+
+        // --- HEATMAP FOR SENSEX ---
+        console.log(`\n--- Running Heatmap Verification for SENSEX ---`)
+        const sensexInitPercent = await this.getHeatmapStockCount(sensexListCount)
+        await this.switchHeatmapDisplay('value')
+        const sensexValCount = await this.getHeatmapStockCount(sensexListCount)
+        await this.switchHeatmapDisplay('percent')
+
+        const sensexHlSummary = `Index 'SENSEX' | List View Count: ${sensexListCount} | Heatmap %: ${sensexInitPercent} | Heatmap Val: ${sensexValCount}`
+        console.log(sensexHlSummary)
+        allure.addStep(sensexHlSummary)
 
         // Close Heatmap view
         await this.clickHeatmapBackButton()

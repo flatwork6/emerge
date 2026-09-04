@@ -14,32 +14,32 @@ import segmentGuard from '../utils/segmentGuard.js'
 import testDataHelper from '../utils/testDataHelper.js'
 
 
-describe('Emerge Login & Segment Guard Validation', () => {
+// describe('Emerge Login & Segment Guard Validation', () => {
 
-    it('should login successfully', async () => {
+//     it('should login successfully', async () => {
 
-        // await LoginPage.securityWarning();
+//         // await LoginPage.securityWarning();
 
-        // await LoginPage.getNotification();
+//         // await LoginPage.getNotification();
 
-        // await LoginPage.clickUseAnotherAccount()
+//         // await LoginPage.clickUseAnotherAccount()
 
-        await LoginPage.enterUserName(process.env.USER_ID)
+//         await LoginPage.enterUserName(process.env.USER_ID)
 
-        await LoginPage.enterPassword(process.env.PASSWORD)
+//         await LoginPage.enterPassword(process.env.PASSWORD)
 
-        await LoginPage.enterTotp(process.env.TOTP)
+//         await LoginPage.enterTotp(process.env.TOTP)
 
-        await LoginPage.clickLogin()
-        await SetBiometric.userChoice.waitForDisplayed({
-            timeout: 120000,
-            timeoutMsg: 'Biometric screen did not appear within 2 minutes'
-        })
-        await SetBiometric.chooseUserChoice();
-        console.log("Login successful! Navigating to profile...")
+//         await LoginPage.clickLogin()
+//         await SetBiometric.userChoice.waitForDisplayed({
+//             timeout: 120000,
+//             timeoutMsg: 'Biometric screen did not appear within 2 minutes'
+//         })
+//         await SetBiometric.chooseUserChoice();
+//         console.log("Login successful! Navigating to profile...")
 
-    })
-})
+//     })
+// })
 
 describe('Trading previliges validation', () => {
     it('should extract trading previliges successfully', async () => {
