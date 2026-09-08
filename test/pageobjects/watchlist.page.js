@@ -111,6 +111,56 @@ class WatchlistPage {
         await driver.pause(1000)
     }
 
+    async getAllWatchlistNames() {
+        console.log("Dynamically extracting watchlist names from UI...");
+
+        // Open the dropdown to see the list of watchlists
+        await this.watchListDropdown.click();
+        await driver.pause(1500);
+
+        const watchlists = new Set();
+
+        try {
+            // Find all views with content-desc
+            const views = await $$('//*[@content-desc != ""]');
+            for (const v of views) {
+                if (await v.isDisplayed().catch(() => false)) {
+                    const desc = await v.getAttribute("content-desc").catch(() => "");
+                    const loc = await v.getLocation();
+
+                    // Dropdown items are typically vertically laid out below the header (e.g., y > 150)
+                    if (loc.y > 150 && loc.y < 1200 && desc) {
+                        const name = desc.split('\n')[0].trim();
+                        // Ignore common UI elements that are not user watchlists
+                        const ignoredKeywords = ["index", "manage", "create", "search", "profile", "add", "settings", "nifty", "sensex"];
+                        const isIgnored = ignoredKeywords.some(kw => name.toLowerCase().includes(kw) || name.toLowerCase() === kw);
+
+                        if (name && !isIgnored && name.length > 0 && name.length < 40) {
+                            watchlists.add(name);
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            console.log("Error extracting watchlist names:", e);
+        }
+
+        let extracted = Array.from(watchlists);
+        console.log("Extracted watchlists dynamically:", extracted);
+
+        // Fallback if extraction fails
+        if (extracted.length === 0) {
+            console.log("Failed to extract dynamic watchlists. Defaulting to standard test data names if available.");
+            extracted = ["Watchlist 1"]; // Generic fallback
+        }
+
+        // Select the first watchlist to close the dropdown and set initial state
+        await this.clickWatchlistByName(extracted[0]);
+        await driver.pause(1000);
+
+        return extracted;
+    }
+
     async pullDownToRefresh() {
         try {
             console.log("Performing pull-to-refresh gesture on watchlist...")
@@ -119,9 +169,9 @@ class WatchlistPage {
                 id: 'finger1',
                 parameters: { pointerType: 'touch' },
                 actions: [
-                    { type: 'pointerMove', duration: 0, x: 500, y: 750 },
+                    { type: 'pointerMove', duration: 0, x: 500, y: 1150 },
                     { type: 'pointerDown', button: 0 },
-                    { type: 'pointerMove', duration: 400, x: 500, y: 1550 },
+                    { type: 'pointerMove', duration: 200, x: 500, y: 4000 },
                     { type: 'pointerUp', button: 0 }
                 ]
             }])
@@ -175,7 +225,7 @@ class WatchlistPage {
                 { type: 'pointerUp', button: 0 }
             ]
         }])
-     //   await driver.pause(1000)
+        await driver.pause(1000)
         if (name !== 'Index') {
             await this.pullDownToRefresh()
         }
@@ -859,8 +909,9 @@ class WatchlistPage {
             const countedStocks = new Set()
             let previousSize = -1
             let noNewCount = 0
+            let scrollsPerformed = 0
 
-            while (noNewCount < 2) {
+            while (noNewCount < 6) {
                 // Use specific UiSelector for content descriptions to optimize UI tree scanning speed during peak morning market hours
                 const listElements = await $$(locators.get('watchlistStockRows'))
 
@@ -875,9 +926,6 @@ class WatchlistPage {
                             // Filter out accordion header rows, exchange labels, and controls
                             const isHeaderOrControl =
                                 stockName.includes("Watchlist") ||
-                                lowerName.startsWith("nifty") ||
-                                lowerName.startsWith("sensex") ||
-                                lowerName.startsWith("index") ||
                                 lowerName === "bse" ||
                                 lowerName === "nse" ||
                                 lowerName.includes("archive") ||
@@ -905,7 +953,7 @@ class WatchlistPage {
                     previousSize = countedStocks.size
                 }
 
-                if (noNewCount >= 2) break
+                if (noNewCount >= 6) break
 
                 // Scroll down gesture to load lower stock rows in list view
                 try {
@@ -914,19 +962,20 @@ class WatchlistPage {
                         id: 'finger1',
                         parameters: { pointerType: 'touch' },
                         actions: [
-                            { type: 'pointerMove', duration: 0, x: 500, y: 1400 },
+                            { type: 'pointerMove', duration: 0, x: 500, y: 1600 },
                             { type: 'pointerDown', button: 0 },
-                            { type: 'pointerMove', duration: 500, x: 500, y: 500 },
+                            { type: 'pointerMove', duration: 800, x: 500, y: 400 },
                             { type: 'pointerUp', button: 0 }
                         ]
                     }])
+                    scrollsPerformed++
                 } catch (e) { }
                 await driver.pause(600)
             }
 
             // Scroll back up to restore view position after counting
-            if (countedStocks.size > 0) {
-                for (let i = 0; i < 2; i++) {
+            if (countedStocks.size > 0 && scrollsPerformed > 0) {
+                for (let i = 0; i < scrollsPerformed + 1; i++) {
                     try {
                         await driver.performActions([{
                             type: 'pointer',

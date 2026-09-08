@@ -85,7 +85,13 @@ describe('Should open watchlist, search and add scrips and remove if it is alrea
         // 1. Click Watchlist Icon from footer
         await ProfilePage.openWatchlist()
 
-        const watchlists = testDataHelper.getWatchlists()
+        // Dynamically fetch watchlists based on the logged-in user's account
+        let watchlists = await WatchlistPage.getAllWatchlistNames();
+
+        if (!watchlists || watchlists.length === 0) {
+             // Fallback to testDataHelper if dynamic extraction fails completely
+             watchlists = testDataHelper.getWatchlists();
+        }
 
         // Process standard watchlists sequentially
         for (let i = 0; i < watchlists.length; i++) {
@@ -117,7 +123,7 @@ describe('Should open watchlist, search and add scrips and remove if it is alrea
 
                 // Check if segment is active in extracted account privileges
                 const isEnabled = reqSeg === 'ALL' || segmentGuard.isSegmentEnabled(reqSeg)
-                if (reqSeg === 'MTF' || !isEnabled) {
+                if (!isEnabled) {
                     const skipMsg = `🛑 [SEGMENT RESTRICTION]: Segment '${reqSeg}' is INACTIVE / DISABLED for this account. Skipping scrip '${symbol}'.`
                     console.log(skipMsg)
                     allure.addStep(skipMsg)
