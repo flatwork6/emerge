@@ -28,6 +28,9 @@ class LoginPage {
         return $(locators.get('openAccount'))
     }
   
+    get acceptRiskDisclosureBtn() {
+        return $(locators.get('acceptRiskDisclosureBtn'))
+    }
 
     async clickUseAnotherAccount(){
         await this.useAnotherAccountBtn.click()

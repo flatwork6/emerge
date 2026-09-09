@@ -58,3 +58,16 @@ heatmapGridStockTiles,"android=new UiSelector().descriptionMatches("".*(↑|↓|
 advanceBadge,"android=new UiSelector().descriptionContains(""Advance"")"
 declineBadge,"android=new UiSelector().descriptionContains(""Decline"")"
 acceptRiskDisclosureBtn,"~Accept"
+<<<<<<< HEAD
+=======
+marketWatchSettingsGear,"android=new UiSelector().className(""android.view.View"").instance(14)"
+marketWatchSettingsCloseBtn,"~CLOSE"
+alphabeticalSorting,"~A-Z"
+percentSorting,"~%"
+ltpSorting,"~LTP"
+exchangeSorting,"~EXH"
+fundsTabIcon,"android=new UiSelector().className(""android.view.View"").instance(6)"
+equityOrFno,"~Equity / FNO"
+commodity,"~Commodity"
+mtf,"~MTF"
+>>>>>>> c43cb10 (handled risk disclosure popup)

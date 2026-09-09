@@ -3,10 +3,22 @@ import locators from '../utils/locatorHelper.js'
 
 class WatchlistPage {
 
-    // Search Icon & Input
     get searchIcon() {
         return $(locators.get('searchIcon'))
     }
+    
+    get marketWatchSettingsGear() {
+        return $(locators.get('marketWatchSettingsGear'))
+    }
+
+    get marketWatchSettingsCloseBtn() {
+        return $(locators.get('marketWatchSettingsCloseBtn'))
+    }
+    
+    get alphabeticalSorting() { return $(locators.get('alphabeticalSorting')) }
+    get percentSorting() { return $(locators.get('percentSorting')) }
+    get ltpSorting() { return $(locators.get('ltpSorting')) }
+    get exchangeSorting() { return $(locators.get('exchangeSorting')) }
 
     get searchInputField() {
         return $(locators.get('searchInputField'))
@@ -229,11 +241,6 @@ class WatchlistPage {
         if (name !== 'Index') {
             await this.pullDownToRefresh()
         }
-    }
-
-    async clickWatchlist() {
-        await this.selectWatchlist.click()
-        await driver.pause(1000)
     }
 
     async switchHeatmapIndexDropdown(indexName) {
@@ -531,6 +538,174 @@ class WatchlistPage {
 
         // Close Heatmap view
         await this.clickHeatmapBackButton()
+    }
+
+    
+
+    async openMarketWatchSettings() {
+        await this.marketWatchSettingsGear.waitForDisplayed({ timeout: 10000 })
+        await this.marketWatchSettingsGear.click()
+        await driver.pause(1000) // Wait for bottom sheet to animate up
+    }
+
+    async closeMarketWatchSettings() {
+        await this.marketWatchSettingsCloseBtn.waitForDisplayed({ timeout: 10000 })
+        await this.marketWatchSettingsCloseBtn.click()
+        await driver.pause(1000) // Wait for bottom sheet to animate down
+    }
+
+    async getWatchlistStockDetails() {
+        const extractedStocks = [];
+        const seenStocks = new Set();
+        let scrollsPerformed = 0;
+        let noNewCount = 0;
+
+        while (noNewCount < 6) {
+            const listElements = await $$(locators.get('watchlistStockRows'));
+            let newStocksFound = false;
+
+            for (const elem of listElements) {
+                if (await elem.isDisplayed().catch(() => false)) {
+                    const loc = await elem.getLocation().catch(() => ({ y: 0 }));
+                    const desc = await elem.getAttribute("content-desc").catch(() => "");
+                    if (loc.y > 300 && desc) {
+                        const parts = desc.split(/\n|,/).map(s => s.trim()).filter(s => s !== "");
+                        if (parts.length >= 3) {
+                            const name = parts[0];
+                            const lowerName = name.toLowerCase();
+                            
+                            const isHeaderOrControl =
+                                name.includes("Watchlist") ||
+                                lowerName === "bse" ||
+                                lowerName === "nse" ||
+                                lowerName.includes("archive") ||
+                                lowerName.includes("advance") ||
+                                lowerName.includes("decline");
+
+                            if (!isHeaderOrControl && !seenStocks.has(name)) {
+                                seenStocks.add(name);
+                                newStocksFound = true;
+
+                                // Parse Exchange, LTP, Percent
+                                // E.g.: "YESBANK", "BSE", "22.45", "↑ 1.08%"
+                                const exchange = parts[1] || "";
+                                // The LTP is typically a number
+                                const ltpRaw = parts.find(p => !isNaN(parseFloat(p.replace(/,/g, ''))) && !p.includes('%')) || "0";
+                                const ltp = parseFloat(ltpRaw.replace(/,/g, ''));
+                                
+                                // Percent typically contains '%'
+                                const pctRaw = parts.find(p => p.includes('%')) || "0%";
+                                const percentMatch = pctRaw.match(/[-+]?[0-9]*\.?[0-9]+/);
+                                const percent = percentMatch ? parseFloat(percentMatch[0]) : 0;
+
+                                extractedStocks.push({ name, exchange, ltp, percent, desc });
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (!newStocksFound) {
+                noNewCount++;
+            } else {
+                noNewCount = 0;
+            }
+
+            if (noNewCount < 6) {
+                try {
+                    await driver.performActions([{
+                        type: 'pointer',
+                        id: 'finger1',
+                        parameters: { pointerType: 'touch' },
+                        actions: [
+                            { type: 'pointerMove', duration: 0, x: 500, y: 1500 },
+                            { type: 'pointerDown', button: 0 },
+                            { type: 'pointerMove', duration: 400, x: 500, y: 500 },
+                            { type: 'pointerUp', button: 0 }
+                        ]
+                    }]);
+                    scrollsPerformed++;
+                } catch (e) {
+                    console.log("Scroll failed:", e.message);
+                }
+                await driver.pause(500);
+            }
+        }
+
+        // Scroll back to top
+        if (extractedStocks.length > 0 && scrollsPerformed > 0) {
+            for (let i = 0; i < scrollsPerformed + 1; i++) {
+                try {
+                    await driver.performActions([{
+                        type: 'pointer',
+                        id: 'finger1',
+                        parameters: { pointerType: 'touch' },
+                        actions: [
+                            { type: 'pointerMove', duration: 0, x: 500, y: 500 },
+                            { type: 'pointerDown', button: 0 },
+                            { type: 'pointerMove', duration: 400, x: 500, y: 1500 },
+                            { type: 'pointerUp', button: 0 }
+                        ]
+                    }]);
+                } catch (e) {}
+                await driver.pause(300);
+            }
+        }
+
+        return extractedStocks;
+    }
+
+    verifySortedOrder(stocks, sortType, isAscending) {
+        if (stocks.length < 2) return;
+        
+        let isSorted = true;
+        let prev = stocks[0];
+        for (let i = 1; i < stocks.length; i++) {
+            const curr = stocks[i];
+            let compareRes = 0;
+            
+            if (sortType === 'A-Z') {
+                compareRes = prev.name.localeCompare(curr.name);
+            } else if (sortType === '%') {
+                compareRes = prev.percent - curr.percent;
+            } else if (sortType === 'LTP') {
+                compareRes = prev.ltp - curr.ltp;
+            } else if (sortType === 'EXH') {
+                compareRes = prev.exchange.localeCompare(curr.exchange);
+            }
+            
+            // if compareRes > 0, prev > curr (descending)
+            // if compareRes < 0, prev < curr (ascending)
+            if (isAscending && compareRes > 0) isSorted = false;
+            if (!isAscending && compareRes < 0) isSorted = false;
+            
+            if (!isSorted) {
+                console.error(`Sort Verification Failed for '${sortType}' (Ascending: ${isAscending}). Issue between '${prev.name}' and '${curr.name}'.`);
+                console.log(`Prev: ${JSON.stringify(prev)}`);
+                console.log(`Curr: ${JSON.stringify(curr)}`);
+                throw new Error(`Watchlist not sorted correctly by ${sortType}`);
+            }
+            prev = curr;
+        }
+        
+        console.log(`✅ [SORT VERIFIED]: Watchlist successfully sorted by '${sortType}' in ${isAscending ? 'Ascending' : 'Descending'} order.`);
+        allure.addStep(`✅ [SORT VERIFIED]: Watchlist successfully sorted by '${sortType}' in ${isAscending ? 'Ascending' : 'Descending'} order.`);
+    }
+
+    async performAndVerifySort(sortLocatorKey, sortType, isAscending) {
+        console.log(`Applying Sort: ${sortType} (Expected Ascending: ${isAscending})`);
+        await this.openMarketWatchSettings();
+        
+        const sortElement = await this[sortLocatorKey];
+        await sortElement.waitForDisplayed({ timeout: 5000 });
+        await sortElement.click();
+        await driver.pause(500);
+        
+        await this.closeMarketWatchSettings();
+        
+        const stocks = await this.getWatchlistStockDetails();
+        console.log(`Extracted ${stocks.length} stocks for sort verification.`);
+        this.verifySortedOrder(stocks, sortType, isAscending);
     }
 
     async clickSearchIcon() {
