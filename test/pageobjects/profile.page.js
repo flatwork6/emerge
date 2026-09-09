@@ -80,12 +80,18 @@ class ProfilePage {
         for (const el of allElements) {
             const text = ((await el.getText()) || (await el.getAttribute('content-desc')) || '').trim()
 
-            //console.log(text)
-            if (['Equity Cash', 'Derivatives', 'Currency', 'Commodity', 'MTF'].includes(text)) {
-                currentPrivilege = text
+            const lowerText = text.toLowerCase()
+            if (lowerText.includes('equity cash')) {
+                currentPrivilege = 'Equity Cash'
+            } else if (lowerText.includes('derivatives')) {
+                currentPrivilege = 'Derivatives'
+            } else if (lowerText.includes('currency')) {
+                currentPrivilege = 'Currency'
+            } else if (lowerText.includes('commodity')) {
+                currentPrivilege = 'Commodity'
+            } else if (text === 'MTF' || text.includes('MTF\n') || text.includes('MTF ')) {
+                currentPrivilege = 'MTF'
             }
-
-            // console.log(currentPrivilege)
 
             if (text === 'Active' && currentPrivilege) {
                 if (!activeSegments.includes(currentPrivilege)) {

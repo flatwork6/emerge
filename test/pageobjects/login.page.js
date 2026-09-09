@@ -27,6 +27,7 @@ class LoginPage {
     get openAccount() {
         return $(locators.get('openAccount'))
     }
+  
 
     async clickUseAnotherAccount(){
         await this.useAnotherAccountBtn.click()
@@ -61,6 +62,7 @@ class LoginPage {
         await this.loginButton.click()
     }
 
+  
 
 }
 

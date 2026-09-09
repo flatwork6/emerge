@@ -57,3 +57,4 @@ watchlistStockRows,"android=new UiSelector().descriptionMatches("".*(NSE|BSE|CDS
 heatmapGridStockTiles,"android=new UiSelector().descriptionMatches("".*(↑|↓|\+|up|down).*"")"
 advanceBadge,"android=new UiSelector().descriptionContains(""Advance"")"
 declineBadge,"android=new UiSelector().descriptionContains(""Decline"")"
+acceptRiskDisclosureBtn,"~Accept"

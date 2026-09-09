@@ -10,6 +10,7 @@ import LoginPage from '../pageobjects/login.page.js'
 import SetBiometric from '../pageobjects/biometric.js'
 import ProfilePage from '../pageobjects/profile.page.js'
 import WatchlistPage from '../pageobjects/watchlist.page.js'
+import RiskDisclosure from '../pageobjects/riskDisclosure.js'
 import segmentGuard from '../utils/segmentGuard.js'
 import testDataHelper from '../utils/testDataHelper.js'
 
@@ -31,11 +32,34 @@ describe('Emerge Login & Segment Guard Validation', () => {
         await LoginPage.enterTotp(process.env.TOTP)
 
         await LoginPage.clickLogin()
-        await SetBiometric.userChoice.waitForDisplayed({
+
+        // Wait dynamically for either Biometric Screen OR Risk Disclosure popup
+        const detected = await driver.waitUntil(async () => {
+            const hasBiometric = await SetBiometric.userChoice.isExisting() && await SetBiometric.userChoice.isDisplayed();
+            if (hasBiometric) return 'biometric';
+            
+            const hasRisk = await RiskDisclosure.acceptRiskDisclosureBtn.isExisting() && await RiskDisclosure.acceptRiskDisclosureBtn.isDisplayed();
+            if (hasRisk) return 'risk';
+            
+            return false;
+        }, {
             timeout: 120000,
-            timeoutMsg: 'Biometric screen did not appear within 2 minutes'
-        })
+            timeoutMsg: 'Neither Biometric screen nor Risk Disclosure appeared within 2 minutes'
+        });
+
+        if (detected === 'risk') {
+            await RiskDisclosure.acceptRiskDisclosureBtn.click();
+            console.log("Risk Disclosure accepted.");
+            
+            // Now wait for Biometric screen to appear after accepting risk
+            await SetBiometric.userChoice.waitForDisplayed({
+                timeout: 120000,
+                timeoutMsg: 'Biometric screen did not appear after Risk Disclosure within 2 minutes'
+            });
+        }
+
         await SetBiometric.chooseUserChoice();
+
         console.log("Login successful! Navigating to profile...")
 
     })
@@ -89,8 +113,8 @@ describe('Should open watchlist, search and add scrips and remove if it is alrea
         let watchlists = await WatchlistPage.getAllWatchlistNames();
 
         if (!watchlists || watchlists.length === 0) {
-             // Fallback to testDataHelper if dynamic extraction fails completely
-             watchlists = testDataHelper.getWatchlists();
+            // Fallback to testDataHelper if dynamic extraction fails completely
+            watchlists = testDataHelper.getWatchlists();
         }
 
         // Process standard watchlists sequentially
