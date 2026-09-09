@@ -75,3 +75,8 @@ nseBseComTab,"~NSE/BSE <=> COM"
 mtfNseBseTab,"~MTF <=> NSE/BSE"
 moveFundHeader,"~Move Fund"
 withdrawHeader,"~Withdraw"
+openPriceRadioBtn,~Open price
+closePriceRadioBtn,~Close price
+percentageFormatRadioBtn,~Percentage
+absoluteFormatRadioBtn,~Absolute
+absoluteAndPercentageFormatRadioBtn,~Absolute & percentage

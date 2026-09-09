@@ -19,6 +19,13 @@ class WatchlistPage {
     get percentSorting() { return $(locators.get('percentSorting')) }
     get ltpSorting() { return $(locators.get('ltpSorting')) }
     get exchangeSorting() { return $(locators.get('exchangeSorting')) }
+    
+    get openPriceRadioBtn() { return $(locators.get('openPriceRadioBtn')) }
+    get closePriceRadioBtn() { return $(locators.get('closePriceRadioBtn')) }
+    
+    get percentageFormatRadioBtn() { return $(locators.get('percentageFormatRadioBtn')) }
+    get absoluteFormatRadioBtn() { return $(locators.get('absoluteFormatRadioBtn')) }
+    get absoluteAndPercentageFormatRadioBtn() { return $(locators.get('absoluteAndPercentageFormatRadioBtn')) }
 
     get searchInputField() {
         return $(locators.get('searchInputField'))
@@ -732,6 +739,166 @@ class WatchlistPage {
         const stocks = await this.getWatchlistStockDetails();
         console.log(`Extracted ${stocks.length} stocks for sort verification.`);
         return this.verifySortedOrder(stocks, sortType, expectedAscending);
+    }
+
+    async verifyOpenClosePriceChange() {
+        console.log("Setting baseline to Close Price...");
+        await this.openMarketWatchSettings();
+        await this.closePriceRadioBtn.waitForDisplayed({ timeout: 5000 });
+        await this.closePriceRadioBtn.click();
+        await driver.pause(1000);
+        await this.closeMarketWatchSettings();
+
+        console.log("Extracting baseline stock details (Close Price)...");
+        await this.pullDownToRefresh(); // Start fresh
+        const closePriceStocks1 = await this.getWatchlistStockDetails();
+        
+        if (closePriceStocks1.length === 0) throw new Error("No stocks found to compare.");
+
+        console.log("Switching to Open Price...");
+        await this.openMarketWatchSettings();
+        await this.openPriceRadioBtn.waitForDisplayed({ timeout: 5000 });
+        await this.openPriceRadioBtn.click();
+        await driver.pause(1000);
+        await this.closeMarketWatchSettings();
+
+        console.log("Extracting updated stock details (Open Price)...");
+        await this.pullDownToRefresh();
+        const openPriceStocks1 = await this.getWatchlistStockDetails();
+
+        // Compare to ensure they are DIFFERENT
+        let changeDetected = false;
+        for (const baseline of closePriceStocks1) {
+            const updated = openPriceStocks1.find(s => s.name === baseline.name);
+            if (updated) {
+                if (baseline.percent !== updated.percent || baseline.desc !== updated.desc) {
+                    changeDetected = true;
+                    console.log(`Detected change for ${baseline.name}: Close% = ${baseline.percent}, Open% = ${updated.percent}`);
+                    break;
+                }
+            }
+        }
+
+        if (!changeDetected) {
+            throw new Error("Failed to detect any change in values when switching to Open Price.");
+        }
+
+        // Switch back to Close Price
+        console.log("Reverting to Close Price...");
+        await this.openMarketWatchSettings();
+        await this.closePriceRadioBtn.waitForDisplayed({ timeout: 5000 });
+        await this.closePriceRadioBtn.click();
+        await driver.pause(1000);
+        await this.closeMarketWatchSettings();
+
+        console.log("Extracting restored stock details (Close Price)...");
+        await this.pullDownToRefresh();
+        const closePriceStocks2 = await this.getWatchlistStockDetails();
+        
+        // Verify close price matches original close price
+        for (const baseline of closePriceStocks1) {
+            const reverted = closePriceStocks2.find(s => s.name === baseline.name);
+            if (reverted) {
+                if (baseline.percent !== reverted.percent || baseline.desc !== reverted.desc) {
+                    throw new Error(`Failed to revert values. Expected Close% ${baseline.percent}, got ${reverted.percent}`);
+                }
+            }
+        }
+
+        // Switch back to Open Price
+        console.log("Switching to Open Price again...");
+        await this.openMarketWatchSettings();
+        await this.openPriceRadioBtn.waitForDisplayed({ timeout: 5000 });
+        await this.openPriceRadioBtn.click();
+        await driver.pause(1000);
+        await this.closeMarketWatchSettings();
+
+        console.log("Extracting updated stock details (Open Price)...");
+        await this.pullDownToRefresh();
+        const openPriceStocks2 = await this.getWatchlistStockDetails();
+
+        // Verify open price matches original open price
+        for (const baseline of openPriceStocks1) {
+            const updated = openPriceStocks2.find(s => s.name === baseline.name);
+            if (updated) {
+                if (baseline.percent !== updated.percent || baseline.desc !== updated.desc) {
+                    throw new Error(`Failed to restore Open Price values. Expected Open% ${baseline.percent}, got ${updated.percent}`);
+                }
+            }
+        }
+        
+        console.log(`✅ [TC VERIFIED]: Open/Close price toggling works perfectly.`);
+        allure.addStep(`✅ [TC VERIFIED]: Open/Close price toggling works perfectly.`);
+    }
+
+    async verifyChangeFormatOptions() {
+      
+        
+        console.log("Switching to 'Percentage' format...");
+        await this.openMarketWatchSettings();
+        await this.percentageFormatRadioBtn.waitForDisplayed({ timeout: 5000 });
+        await this.percentageFormatRadioBtn.click();
+        await driver.pause(1000);
+        await this.closeMarketWatchSettings();
+
+        console.log("Verifying 'Percentage' format...");
+        await this.pullDownToRefresh();
+        const pctStocks = await this.getWatchlistStockDetails();
+        
+        for (const stock of pctStocks) {
+            const parts = stock.desc.split(/\n|,/).map(s => s.trim()).filter(s => s !== "");
+            if (parts.length >= 4) {
+                const changeStr = parts[parts.length - 1]; // e.g. "3.12%"
+                if (!changeStr.includes('%')) {
+                     throw new Error(`Format 'Percentage' failed for ${stock.name}. Found: ${changeStr}`);
+                }
+                const nums = changeStr.match(/[-+]?[0-9]*\.?[0-9]+/g);
+                if (nums && nums.length > 1) {
+                     throw new Error(`Format 'Percentage' failed for ${stock.name}. It seems to contain absolute value too. Found: ${changeStr}`);
+                }
+            }
+        }
+
+        console.log("Switching to 'Absolute' format...");
+        await this.openMarketWatchSettings();
+        await this.absoluteFormatRadioBtn.waitForDisplayed({ timeout: 5000 });
+        await this.absoluteFormatRadioBtn.click();
+        await driver.pause(1000);
+        await this.closeMarketWatchSettings();
+
+        console.log("Verifying 'Absolute' format...");
+        await this.pullDownToRefresh();
+        const absStocks = await this.getWatchlistStockDetails();
+        
+        for (const stock of absStocks) {
+            const parts = stock.desc.split(/\n|,/).map(s => s.trim()).filter(s => s !== "");
+            if (parts.length >= 4) {
+                const changeStr = parts[parts.length - 1]; // e.g. "6.50"
+                if (changeStr.includes('%')) {
+                     throw new Error(`Format 'Absolute' failed for ${stock.name}. Found percentage in: ${changeStr}`);
+                }
+            }
+        }
+          console.log("Setting baseline to Absolute & percentage...");
+        await this.openMarketWatchSettings();
+        await this.absoluteAndPercentageFormatRadioBtn.waitForDisplayed({ timeout: 5000 });
+        await this.absoluteAndPercentageFormatRadioBtn.click();
+        await driver.pause(1000);
+        await this.closeMarketWatchSettings();
+
+        console.log("Verifying 'Absolute & percentage' format...");
+        await this.pullDownToRefresh();
+        const absPctStocks = await this.getWatchlistStockDetails();
+        
+        for (const stock of absPctStocks) {
+            const parts = stock.desc.split(/\n|,/).map(s => s.trim()).filter(s => s !== "");
+            if (parts.length >= 4) {
+                const changeStr = parts[parts.length - 1]; // e.g. "6.50  (3.12%)"
+                if (!/\d+/.test(changeStr) || !/%/.test(changeStr)) {
+                    throw new Error(`Format 'Absolute & percentage' failed for ${stock.name}. Found: ${changeStr}`);
+                }
+            }
+        }
     }
 
     async clickSearchIcon() {

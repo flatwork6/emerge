@@ -234,6 +234,16 @@ describe('Market Watch Settings Validation', () => {
             // Second click - must be the REVERSE of the first click
             await WatchlistPage.performAndVerifySort(sortOption.key, sortOption.type, !detectedFirstDir);
         }
+
+        console.log(`\n========================================`)
+        console.log(`Validating Open/Close Price Toggle`)
+        console.log(`========================================`)
+        await WatchlistPage.verifyOpenClosePriceChange();
+
+        console.log(`\n========================================`)
+        console.log(`Validating Change Format Options`)
+        console.log(`========================================`)
+        await WatchlistPage.verifyChangeFormatOptions();
     })
 })
 
