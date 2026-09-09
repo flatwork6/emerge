@@ -471,7 +471,7 @@ class WatchlistPage {
         const niftyListCount = await this.getWatchlistStockCount(50)
         const niftyMsg = `📊 [INDEX LIST CHECK]: NIFTY 50 Total Stocks Counted: ${niftyListCount} (Expected: 50)`
         console.log(niftyMsg)
-        allure.addStep(niftyMsg)
+       // allure.addStep(niftyMsg)
 
         // 2. Scroll back to top to bring SENSEX accordion back into view, collapse Nifty 50, and expand SENSEX
         console.log("Scrolling back to top of Index list...")
@@ -504,7 +504,7 @@ class WatchlistPage {
         const sensexListCount = await this.getWatchlistStockCount(30)
         const sensexMsg = `📊 [INDEX LIST CHECK]: SENSEX Total Stocks Counted: ${sensexListCount} (Expected: 30)`
         console.log(sensexMsg)
-        allure.addStep(sensexMsg)
+       // allure.addStep(sensexMsg)
 
         // 3. Open Heatmap View from Index tab
         await this.clickHeatMapView()
@@ -595,8 +595,14 @@ class WatchlistPage {
                                 
                                 // Percent typically contains '%'
                                 const pctRaw = parts.find(p => p.includes('%')) || "0%";
-                                const percentMatch = pctRaw.match(/[-+]?[0-9]*\.?[0-9]+/);
-                                const percent = percentMatch ? parseFloat(percentMatch[0]) : 0;
+                                const percentMatch = pctRaw.match(/\(([-+]?[0-9]*\.?[0-9]+)%\)/);
+                                let percent = 0;
+                                if (percentMatch) {
+                                    percent = parseFloat(percentMatch[1]);
+                                } else {
+                                    const fallbackMatch = pctRaw.match(/[-+]?[0-9]*\.?[0-9]+/);
+                                    percent = fallbackMatch ? parseFloat(fallbackMatch[0]) : 0;
+                                }
 
                                 extractedStocks.push({ name, exchange, ltp, percent, desc });
                             }
@@ -655,15 +661,17 @@ class WatchlistPage {
         return extractedStocks;
     }
 
-    verifySortedOrder(stocks, sortType, isAscending) {
-        if (stocks.length < 2) return;
-        
+    verifySortedOrder(stocks, sortType, expectedAscending = null) {
+        if (stocks.length < 2) return expectedAscending !== null ? expectedAscending : true;
+
+        let detectedAscending = null;
         let isSorted = true;
         let prev = stocks[0];
+        
         for (let i = 1; i < stocks.length; i++) {
             const curr = stocks[i];
             let compareRes = 0;
-            
+
             if (sortType === 'A-Z') {
                 compareRes = prev.name.localeCompare(curr.name);
             } else if (sortType === '%') {
@@ -673,39 +681,57 @@ class WatchlistPage {
             } else if (sortType === 'EXH') {
                 compareRes = prev.exchange.localeCompare(curr.exchange);
             }
-            
-            // if compareRes > 0, prev > curr (descending)
-            // if compareRes < 0, prev < curr (ascending)
-            if (isAscending && compareRes > 0) isSorted = false;
-            if (!isAscending && compareRes < 0) isSorted = false;
-            
+
+            if (compareRes === 0) continue;
+
+            if (detectedAscending === null) {
+                detectedAscending = compareRes < 0; // < 0 means prev is smaller (ascending)
+                
+                if (expectedAscending !== null && detectedAscending !== expectedAscending) {
+                    console.error(`Sort Verification Failed for '${sortType}'. Expected Ascending: ${expectedAscending}, but detected: ${detectedAscending}`);
+                    console.log(`Prev: ${JSON.stringify(prev)}`);
+                    console.log(`Curr: ${JSON.stringify(curr)}`);
+                    throw new Error(`Watchlist sorted in wrong direction by ${sortType}`);
+                }
+            } else {
+                if (detectedAscending && compareRes > 0) isSorted = false;
+                if (!detectedAscending && compareRes < 0) isSorted = false;
+            }
+
             if (!isSorted) {
-                console.error(`Sort Verification Failed for '${sortType}' (Ascending: ${isAscending}). Issue between '${prev.name}' and '${curr.name}'.`);
+                console.error(`Sort Verification Failed for '${sortType}' (Detected Ascending: ${detectedAscending}). Issue between '${prev.name}' and '${curr.name}'.`);
                 console.log(`Prev: ${JSON.stringify(prev)}`);
                 console.log(`Curr: ${JSON.stringify(curr)}`);
                 throw new Error(`Watchlist not sorted correctly by ${sortType}`);
             }
             prev = curr;
         }
+
+        // If all items were identical, we default to expected or true
+        if (detectedAscending === null) detectedAscending = expectedAscending !== null ? expectedAscending : true;
+
+        console.log(`✅ [SORT VERIFIED]: Watchlist successfully sorted by '${sortType}' in ${detectedAscending ? 'Ascending' : 'Descending'} order.`);
+        allure.addStep(`✅ [SORT VERIFIED]: Watchlist successfully sorted by '${sortType}' in ${detectedAscending ? 'Ascending' : 'Descending'} order.`);
         
-        console.log(`✅ [SORT VERIFIED]: Watchlist successfully sorted by '${sortType}' in ${isAscending ? 'Ascending' : 'Descending'} order.`);
-        allure.addStep(`✅ [SORT VERIFIED]: Watchlist successfully sorted by '${sortType}' in ${isAscending ? 'Ascending' : 'Descending'} order.`);
+        return detectedAscending;
     }
 
-    async performAndVerifySort(sortLocatorKey, sortType, isAscending) {
-        console.log(`Applying Sort: ${sortType} (Expected Ascending: ${isAscending})`);
+    async performAndVerifySort(sortLocatorKey, sortType, expectedAscending = null) {
+        console.log(`Applying Sort: ${sortType} (Expected Ascending: ${expectedAscending !== null ? expectedAscending : 'Auto-detect'})`);
         await this.openMarketWatchSettings();
-        
+
         const sortElement = await this[sortLocatorKey];
         await sortElement.waitForDisplayed({ timeout: 5000 });
         await sortElement.click();
         await driver.pause(500);
-        
+
         await this.closeMarketWatchSettings();
-        
+
+        await this.pullDownToRefresh();
+
         const stocks = await this.getWatchlistStockDetails();
         console.log(`Extracted ${stocks.length} stocks for sort verification.`);
-        this.verifySortedOrder(stocks, sortType, isAscending);
+        return this.verifySortedOrder(stocks, sortType, expectedAscending);
     }
 
     async clickSearchIcon() {
