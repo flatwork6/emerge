@@ -58,8 +58,6 @@ heatmapGridStockTiles,"android=new UiSelector().descriptionMatches("".*(↑|↓|
 advanceBadge,"android=new UiSelector().descriptionContains(""Advance"")"
 declineBadge,"android=new UiSelector().descriptionContains(""Decline"")"
 acceptRiskDisclosureBtn,"~Accept"
-<<<<<<< HEAD
-=======
 marketWatchSettingsGear,"android=new UiSelector().className(""android.view.View"").instance(14)"
 marketWatchSettingsCloseBtn,"~CLOSE"
 alphabeticalSorting,"~A-Z"
@@ -70,14 +68,3 @@ fundsTabIcon,"android=new UiSelector().className(""android.view.View"").instance
 equityOrFno,"~Equity / FNO"
 commodity,"~Commodity"
 mtf,"~MTF"
-<<<<<<< HEAD
->>>>>>> c43cb10 (handled risk disclosure popup)
-=======
-withdrawBtn,"~Withdraw"
-moveFundBtn,"~Move Fund"
-addFundsBtn,"~Add Funds"
-nseBseComTab,"~NSE/BSE <=> COM"
-mtfNseBseTab,"~MTF <=> NSE/BSE"
-moveFundHeader,"~Move Fund"
-withdrawHeader,"~Withdraw"
->>>>>>> b448e85 (funds and margins 10 scenerios)
