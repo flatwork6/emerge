@@ -291,6 +291,26 @@ describe('Funds and Margins Validation', () => {
         console.log(`\n--- Validating TC-05: Sub-values match Breakdown ---`)
         await FundsPage.verifySubValuesMatchBreakdown()
     })
+    it('TC-06: Peak Margin card shows the correct value', async () => {
+        console.log(`\n--- Validating TC-06: Peak Margin ---`)
+        await FundsPage.verifyPeakMarginSum()
+    })
+
+    it('TC-07: Expiry Margin card shows the correct value', async () => {
+        console.log(`\n--- Validating TC-07: Expiry Margin ---`)
+        await FundsPage.verifyExpiryMarginSum()
+    })
+
+    it('TC-08: Withdraw navigates to a separate screen', async () => {
+        console.log(`\n--- Validating TC-08: Withdraw Navigation ---`)
+        await FundsPage.clickWithdrawAndVerify()
+    })
+
+    it('TC-09 to TC-11: Move Fund navigates to a separate screen or bottom sheet', async () => {
+        console.log(`\n--- Validating TC-09 to TC-11: Move Fund Navigation ---`)
+        await FundsPage.clickMoveFundAndVerify()
+    })
+
 })
 
 describe('Trading previliges validation', () => {
