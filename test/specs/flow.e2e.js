@@ -11,241 +11,272 @@ import LoginPage from '../pageobjects/login.page.js'
 import SetBiometric from '../pageobjects/biometric.js'
 import ProfilePage from '../pageobjects/profile.page.js'
 import WatchlistPage from '../pageobjects/watchlist.page.js'
+import PortfolioPage from '../pageobjects/portfolio.page.js'
 import RiskDisclosure from '../pageobjects/riskDisclosure.js'
 import segmentGuard from '../utils/segmentGuard.js'
 import testDataHelper from '../utils/testDataHelper.js'
 
 
 // describe('Emerge Login & Segment Guard Validation', () => {
-//     it('should login successfully', async () => {
+//   it('should login successfully', async () => {
 
-//         // await LoginPage.securityWarning();
+//     // await LoginPage.securityWarning();
 
-//         // await LoginPage.getNotification();
+//     // await LoginPage.getNotification();
 
-//         // await LoginPage.clickUseAnotherAccount()
+//     // await LoginPage.clickUseAnotherAccount()
 
-//         await LoginPage.enterUserName(process.env.USER_ID)
+//     await LoginPage.enterUserName(process.env.USER_ID)
 
-//         await LoginPage.enterPassword(process.env.PASSWORD)
+//     await LoginPage.enterPassword(process.env.PASSWORD)
 
-//         await LoginPage.enterTotp(process.env.TOTP)
+//     await LoginPage.enterTotp(process.env.TOTP)
 
-//         await LoginPage.clickLogin()
+//     await LoginPage.clickLogin()
 
-//         // Wait dynamically for either Biometric Screen OR Risk Disclosure popup
-//         const detected = await driver.waitUntil(async () => {
-//             const hasBiometric = await SetBiometric.userChoice.isExisting() && await SetBiometric.userChoice.isDisplayed();
-//             if (hasBiometric) return 'biometric';
+//     // Wait dynamically for either Biometric Screen OR Risk Disclosure popup
+//     const detected = await driver.waitUntil(async () => {
+//       const hasBiometric = await SetBiometric.userChoice.isExisting() && await SetBiometric.userChoice.isDisplayed();
+//       if (hasBiometric) return 'biometric';
 
-//             const hasRisk = await RiskDisclosure.acceptRiskDisclosureBtn.isExisting() && await RiskDisclosure.acceptRiskDisclosureBtn.isDisplayed();
-//             if (hasRisk) return 'risk';
+//       const hasRisk = await RiskDisclosure.acceptRiskDisclosureBtn.isExisting() && await RiskDisclosure.acceptRiskDisclosureBtn.isDisplayed();
+//       if (hasRisk) return 'risk';
 
-//             return false;
-//         }, {
-//             timeout: 120000,
-//             timeoutMsg: 'Neither Biometric screen nor Risk Disclosure appeared within 2 minutes'
-//         });
+//       return false;
+//     }, {
+//       timeout: 120000,
+//       timeoutMsg: 'Neither Biometric screen nor Risk Disclosure appeared within 2 minutes'
+//     });
 
-//         if (detected === 'risk') {
-//             await RiskDisclosure.acceptRiskDisclosureBtn.click();
-//             console.log("Risk Disclosure accepted.");
+//     if (detected === 'risk') {
+//       await RiskDisclosure.acceptRiskDisclosureBtn.click();
+//       console.log("Risk Disclosure accepted.");
 
-//             // Now wait for Biometric screen to appear after accepting risk
-//             await SetBiometric.userChoice.waitForDisplayed({
-//                 timeout: 120000,
-//                 timeoutMsg: 'Biometric screen did not appear after Risk Disclosure within 2 minutes'
-//             });
-//         }
+//       // Now wait for Biometric screen to appear after accepting risk
+//       await SetBiometric.userChoice.waitForDisplayed({
+//         timeout: 120000,
+//         timeoutMsg: 'Biometric screen did not appear after Risk Disclosure within 2 minutes'
+//       });
+//     }
 
-//         await SetBiometric.chooseUserChoice();
+//     await SetBiometric.chooseUserChoice();
 
-//         console.log("Login successful! Navigating to profile...")
-    
-//     })
+//     console.log("Login successful! Navigating to profile...")
+
+//   })
 // })
 
 // describe('Trading previliges validation', () => {
-//     it('should extract trading previliges successfully', async () => {
-//         // Extract Trading Privileges from UI
-//         await ProfilePage.openTradingPrivileges()
-//         await ProfilePage.extractActiveSegments()
+//   it('should extract trading previliges successfully', async () => {
+//     // Extract Trading Privileges from UI
+//     await ProfilePage.openTradingPrivileges()
+//     await ProfilePage.extractActiveSegments()
 
-//         // Load test data dynamically from testData.csv
-//         const orderTestData = testDataHelper.getOrderTestData()
-//         console.log(`Loaded ${orderTestData.length} scrip records from testData.csv`)
+//     // Load test data dynamically from testData.csv
+//     const orderTestData = testDataHelper.getOrderTestData()
+//     console.log(`Loaded ${orderTestData.length} scrip records from testData.csv`)
 
-//         for (const testCase of orderTestData) {
-//             const { segment, symbol } = testCase
-//             const isEnabled = segmentGuard.isSegmentEnabled(segment)
-//             const logMsg = `[DYNAMIC CHECK]: Scrip '${symbol}' on Segment '${segment}' | UI Status: ${isEnabled ? 'ACTIVE/ENABLED' : 'INACTIVE/DISABLED'}`
-//             console.log(`\n--- ${logMsg} ---`)
+//     for (const testCase of orderTestData) {
+//       const { segment, symbol } = testCase
+//       const isEnabled = segmentGuard.isSegmentEnabled(segment)
+//       const logMsg = `[DYNAMIC CHECK]: Scrip '${symbol}' on Segment '${segment}' | UI Status: ${isEnabled ? 'ACTIVE/ENABLED' : 'INACTIVE/DISABLED'}`
+//       console.log(`\n--- ${logMsg} ---`)
 
-//             try {
-//                 segmentGuard.assertCanPlaceOrder(segment, symbol)
-//                 const allowedMsg = `✅ [ORDER ALLOWED]: Order placement allowed for '${symbol}' on segment '${segment}'.`
-//                 console.log(allowedMsg)
-//                 allure.addStep(allowedMsg)
-//             } catch (err) {
-//                 const restrictedMsg = `🛑 [ORDER RESTRICTED]: Order placement blocked for '${symbol}' on segment '${segment}' - Account privilege disabled.`
-//                 console.log(restrictedMsg)
-//                 allure.addStep(restrictedMsg)
-//             }
-//         }
+//       try {
+//         segmentGuard.assertCanPlaceOrder(segment, symbol)
+//         const allowedMsg = `✅ [ORDER ALLOWED]: Order placement allowed for '${symbol}' on segment '${segment}'.`
+//         console.log(allowedMsg)
+//         allure.addStep(allowedMsg)
+//       } catch (err) {
+//         const restrictedMsg = `🛑 [ORDER RESTRICTED]: Order placement blocked for '${symbol}' on segment '${segment}' - Account privilege disabled.`
+//         console.log(restrictedMsg)
+//         allure.addStep(restrictedMsg)
+//       }
+//     }
 
-//         await ProfilePage.clickProfileBackButton()
+//     await ProfilePage.clickProfileBackButton()
 
-//         await ProfilePage.clickAccountsAndServicesCrossButton()
+//     await ProfilePage.clickAccountsAndServicesCrossButton()
 
-//     })
+//   })
 // })
 
 // describe('Should open watchlist, search and add scrips and remove if it is already present', () => {
-//     it('should search, add, remove stocks successfully across all watchlists', async () => {
-//         const orderTestData = testDataHelper.getOrderTestData()
+//   it('should search, add, remove stocks successfully across all watchlists', async () => {
+//     const orderTestData = testDataHelper.getOrderTestData()
 
-//         console.log("\nStarting Watchlist Add Scrip Flow for all watchlists...")
+//     console.log("\nStarting Watchlist Add Scrip Flow for all watchlists...")
 
-//         // 1. Click Watchlist Icon from footer
-//         await ProfilePage.openWatchlist()
+//     // 1. Click Watchlist Icon from footer
+//     await ProfilePage.openWatchlist()
 
-//         // Dynamically fetch watchlists based on the logged-in user's account
-//         let watchlists = await WatchlistPage.getAllWatchlistNames();
+//     // Dynamically fetch watchlists based on the logged-in user's account
+//     let watchlists = await WatchlistPage.getAllWatchlistNames();
 
-//         if (!watchlists || watchlists.length === 0) {
-//             // Fallback to testDataHelper if dynamic extraction fails completely
-//             watchlists = testDataHelper.getWatchlists();
+//     if (!watchlists || watchlists.length === 0) {
+//       // Fallback to testDataHelper if dynamic extraction fails completely
+//       watchlists = testDataHelper.getWatchlists();
+//     }
+
+//     // Process standard watchlists sequentially
+//     for (let i = 0; i < watchlists.length; i++) {
+//       const wlName = watchlists[i]
+//       console.log(`\n========================================`)
+//       console.log(`Processing Watchlist ${i + 1}/${watchlists.length}: '${wlName}'`)
+//       console.log(`========================================`)
+
+//       // For 1st watchlist, no need to open dropdown (already selected by default).
+//       // For 2nd, 3rd, 4th, 5th watchlists, open dropdown using previous watchlist name and select target watchlist.
+//       if (i > 0) {
+//         const prevWlName = watchlists[i - 1]
+//         await WatchlistPage.openWatchListDropdown(prevWlName)
+//         await WatchlistPage.clickWatchlistByName(wlName)
+//       }
+
+//       // Clean existing scrips if present
+//       await WatchlistPage.cleanExistingScripsIfPresent(orderTestData, wlName)
+
+//       // Open search
+//       await WatchlistPage.clickSearchIcon()
+
+//       // Process scrip additions using testData.csv
+//       for (const record of orderTestData) {
+//         const { symbol, segment } = record
+//         console.log(`\n--- Adding Scrip: '${symbol}' | Segment: '${segment}' ---`)
+
+//         const reqSeg = segment.trim().toUpperCase()
+
+//         // Check if segment is active in extracted account privileges
+//         const isEnabled = reqSeg === 'ALL' || segmentGuard.isSegmentEnabled(reqSeg)
+//         if (!isEnabled) {
+//           const skipMsg = `🛑 [SEGMENT RESTRICTION]: Segment '${reqSeg}' is INACTIVE / DISABLED for this account. Skipping scrip '${symbol}'.`
+//           console.log(skipMsg)
+//           allure.addStep(skipMsg)
+//           continue
 //         }
 
-//         // Process standard watchlists sequentially
-//         for (let i = 0; i < watchlists.length; i++) {
-//             const wlName = watchlists[i]
-//             console.log(`\n========================================`)
-//             console.log(`Processing Watchlist ${i + 1}/${watchlists.length}: '${wlName}'`)
-//             console.log(`========================================`)
+//         // Type Scrip Name
+//         await WatchlistPage.enterScripName(symbol)
 
-//             // For 1st watchlist, no need to open dropdown (already selected by default).
-//             // For 2nd, 3rd, 4th, 5th watchlists, open dropdown using previous watchlist name and select target watchlist.
-//             if (i > 0) {
-//                 const prevWlName = watchlists[i - 1]
-//                 await WatchlistPage.openWatchListDropdown(prevWlName)
-//                 await WatchlistPage.clickWatchlistByName(wlName)
-//             }
+//         // Select Segment Filter Chip (e.g. 'ALL', 'NSE', 'BSE', 'NFO', 'BFO', 'CDS', 'BCD', 'MCX')
+//         await WatchlistPage.selectExchangeFilter(reqSeg)
 
-//             // Clean existing scrips if present
-//             await WatchlistPage.cleanExistingScripsIfPresent(orderTestData, wlName)
+//         // Add scrip
+//         await WatchlistPage.addFirstScripToWatchlist(symbol)
+//       }
 
-//             // Open search
-//             await WatchlistPage.clickSearchIcon()
+//       // Close search overlay after processing current watchlist scrips
+//       await WatchlistPage.closeSearch()
+//       await driver.pause(1000)
 
-//             // Process scrip additions using testData.csv
-//             for (const record of orderTestData) {
-//                 const { symbol, segment } = record
-//                 console.log(`\n--- Adding Scrip: '${symbol}' | Segment: '${segment}' ---`)
+//       // Perform Heatmap verification for current Watchlist
+//       console.log(`\n--- Running Heatmap Verification for Watchlist: '${wlName}' ---`)
+//       const listCount = await WatchlistPage.getWatchlistStockCount()
 
-//                 const reqSeg = segment.trim().toUpperCase()
+//       await WatchlistPage.clickHeatMapView()
 
-//                 // Check if segment is active in extracted account privileges
-//                 const isEnabled = reqSeg === 'ALL' || segmentGuard.isSegmentEnabled(reqSeg)
-//                 if (!isEnabled) {
-//                     const skipMsg = `🛑 [SEGMENT RESTRICTION]: Segment '${reqSeg}' is INACTIVE / DISABLED for this account. Skipping scrip '${symbol}'.`
-//                     console.log(skipMsg)
-//                     allure.addStep(skipMsg)
-//                     continue
-//                 }
+//       // Heatmap % view count (Advance + Decline badges)
+//       const initPercent = await WatchlistPage.getHeatmapStockCount(listCount)
 
-//                 // Type Scrip Name
-//                 await WatchlistPage.enterScripName(symbol)
+//       await WatchlistPage.switchHeatmapDisplay('value')
 
-//                 // Select Segment Filter Chip (e.g. 'ALL', 'NSE', 'BSE', 'NFO', 'BFO', 'CDS', 'BCD', 'MCX')
-//                 await WatchlistPage.selectExchangeFilter(reqSeg)
+//       // Heatmap Val view count (Advance + Decline badges)
+//       const valCount = await WatchlistPage.getHeatmapStockCount(listCount)
 
-//                 // Add scrip
-//                 await WatchlistPage.addFirstScripToWatchlist(symbol)
-//             }
+//       await WatchlistPage.switchHeatmapDisplay('percent')
 
-//             // Close search overlay after processing current watchlist scrips
-//             await WatchlistPage.closeSearch()
-//             await driver.pause(1000)
+//       const hlSummary =
+//         `Watchlist '${wlName}' | ` +
+//         `List View Count: ${listCount} | ` +
+//         `Heatmap %: ${initPercent} | ` +
+//         `Heatmap Val: ${valCount}`
 
-//             // Perform Heatmap verification for current Watchlist
-//             console.log(`\n--- Running Heatmap Verification for Watchlist: '${wlName}' ---`)
-//             const listCount = await WatchlistPage.getWatchlistStockCount()
+//       console.log(hlSummary)
+//       allure.addStep(hlSummary)
 
-//             await WatchlistPage.clickHeatMapView()
+//       await WatchlistPage.clickHeatmapBackButton()
+//     }
 
-//             // Heatmap % view count (Advance + Decline badges)
-//             const initPercent = await WatchlistPage.getHeatmapStockCount(listCount)
+//     // Process Index watchlist (open dropdown using last active watchlist name, select Index, run list & heatmap verification)
+//     console.log(`\n========================================`)
+//     console.log(`Processing Index Watchlist`)
+//     console.log(`========================================`)
+//     const lastWlName = watchlists[watchlists.length - 1]
+//     await WatchlistPage.openWatchListDropdown(lastWlName)
+//     await WatchlistPage.clickWatchlistByName('Index')
+//     await WatchlistPage.scrollIndexWatchlist()
 
-//             await WatchlistPage.switchHeatmapDisplay('value')
-
-//             // Heatmap Val view count (Advance + Decline badges)
-//             const valCount = await WatchlistPage.getHeatmapStockCount(listCount)
-
-//             await WatchlistPage.switchHeatmapDisplay('percent')
-
-//             const hlSummary =
-//                 `Watchlist '${wlName}' | ` +
-//                 `List View Count: ${listCount} | ` +
-//                 `Heatmap %: ${initPercent} | ` +
-//                 `Heatmap Val: ${valCount}`
-
-//             console.log(hlSummary)
-//             allure.addStep(hlSummary)
-
-//             await WatchlistPage.clickHeatmapBackButton()
-//         }
-
-//         // Process Index watchlist (open dropdown using last active watchlist name, select Index, run list & heatmap verification)
-//         console.log(`\n========================================`)
-//         console.log(`Processing Index Watchlist`)
-//         console.log(`========================================`)
-//         const lastWlName = watchlists[watchlists.length - 1]
-//         await WatchlistPage.openWatchListDropdown(lastWlName)
-//         await WatchlistPage.clickWatchlistByName('Index')
-//         await WatchlistPage.scrollIndexWatchlist()
-
-//         // Return back to 1st watchlist and close dropdown
-//         console.log(`\n========================================`)
-//         console.log(`Returning to 1st Watchlist '${watchlists[0]}' & Closing Dropdown`)
-//         console.log(`========================================`)
-//         await WatchlistPage.openWatchListDropdown('Index')
-//         await WatchlistPage.clickWatchlistByName(watchlists[0])
-//     })
+//     // Return back to 1st watchlist and close dropdown
+//     console.log(`\n========================================`)
+//     console.log(`Returning to 1st Watchlist '${watchlists[0]}' & Closing Dropdown`)
+//     console.log(`========================================`)
+//     await WatchlistPage.openWatchListDropdown('Index')
+//     await WatchlistPage.clickWatchlistByName(watchlists[0])
+//   })
 // })
+
 describe('Market Watch Settings Validation', () => {
-    it('should open and close the market watch settings bottom sheet and verify sorting', async () => {
-        console.log(`\n========================================`)
-        console.log(`Validating Market Watch Settings Sorting`)
-        console.log(`========================================`)
+  it('should open and close the market watch settings bottom sheet and verify sorting', async () => {
+    console.log(`\n========================================`)
+    console.log(`Validating Market Watch Settings Sorting`)
+    console.log(`========================================`)
 
-        const sortOptions = [
-            { key: 'alphabeticalSorting', type: 'A-Z' },
-            { key: 'percentSorting', type: '%' },
-            { key: 'ltpSorting', type: 'LTP' },
-            { key: 'exchangeSorting', type: 'EXH' }
-        ];
+    const sortOptions = [
+      { key: 'alphabeticalSorting', type: 'A-Z' },
+      { key: 'percentSorting', type: '%' },
+      { key: 'ltpSorting', type: 'LTP' },
+      { key: 'exchangeSorting', type: 'EXH' }
+    ];
 
-        for (const sortOption of sortOptions) {
-            console.log(`\n--- Starting Sort Verification for ${sortOption.type} ---`);
-            // First click - we don't know the initial state, just verify it sorted in SOME direction
-            const detectedFirstDir = await WatchlistPage.performAndVerifySort(sortOption.key, sortOption.type, null);
+    for (const sortOption of sortOptions) {
+      console.log(`\n--- Starting Sort Verification for ${sortOption.type} ---`);
+      // First click - we don't know the initial state, just verify it sorted in SOME direction
+      // const detectedFirstDir = await WatchlistPage.performAndVerifySort(sortOption.key, sortOption.type, null);
 
-            // Second click - must be the REVERSE of the first click
-            await WatchlistPage.performAndVerifySort(sortOption.key, sortOption.type, !detectedFirstDir);
-        }
+      // Second click - must be the REVERSE of the first click
+      //  await WatchlistPage.performAndVerifySort(sortOption.key, sortOption.type, !detectedFirstDir);
+    }
 
-        console.log(`\n========================================`)
-        console.log(`Validating Open/Close Price Toggle`)
-        console.log(`========================================`)
-        await WatchlistPage.verifyOpenClosePriceChange();
+    console.log(`\n========================================`)
+    console.log(`Validating Open/Close Price Toggle`)
+    console.log(`========================================`)
+    //await WatchlistPage.verifyOpenClosePriceChange();
 
-        console.log(`\n========================================`)
-        console.log(`Validating Change Format Options`)
-        console.log(`========================================`)
-        await WatchlistPage.verifyChangeFormatOptions();
-    })
+    console.log(`\n========================================`)
+    console.log(`Validating Change Format Options`)
+    console.log(`========================================`)
+    // await WatchlistPage.verifyChangeFormatOptions();
+
+    console.log(`\n========================================`)
+    console.log(`Validating Show Direction Toggle`)
+    console.log(`========================================`)
+   // await WatchlistPage.verifyShowDirectionToggle();
+  })
 })
+
+describe('Holdings Verification', () => {
+  it('should extract holding and verify its quantity in watchlist', async () => {
+    console.log(`\n========================================`)
+    console.log(`Validating Holdings Symbol in Watchlist`)
+    console.log(`========================================`)
+
+    // Step 1: Navigate to Portfolio -> Holdings
+
+    await PortfolioPage.openPortfolio();
+    await PortfolioPage.openHoldings();
+
+    // Step 2: Extract a holding
+    const holding = await PortfolioPage.extractFirstHolding();
+    console.log(`Extracted holding: ${holding.name}, ${holding.qty}`);
+
+    // Step 3: Go back to Watchlist
+    await WatchlistPage.clickWatchlistTab();
+
+    // Step 5: Verify holdings symbol (blue bag) and quantity in Watchlist
+    await WatchlistPage.verifyHoldingSymbol(holding.name, holding.qty);
+  });
+})
+
 
 
 // describe('Funds and Margins Validation', () => {

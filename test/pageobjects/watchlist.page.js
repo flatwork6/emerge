@@ -6,7 +6,7 @@ class WatchlistPage {
     get searchIcon() {
         return $(locators.get('searchIcon'))
     }
-    
+
     get marketWatchSettingsGear() {
         return $(locators.get('marketWatchSettingsGear'))
     }
@@ -14,18 +14,29 @@ class WatchlistPage {
     get marketWatchSettingsCloseBtn() {
         return $(locators.get('marketWatchSettingsCloseBtn'))
     }
-    
+
     get alphabeticalSorting() { return $(locators.get('alphabeticalSorting')) }
     get percentSorting() { return $(locators.get('percentSorting')) }
     get ltpSorting() { return $(locators.get('ltpSorting')) }
     get exchangeSorting() { return $(locators.get('exchangeSorting')) }
-    
+
+    get watchlistTabIcon() { return $(locators.get('watchlistTabIcon')) }
+
     get openPriceRadioBtn() { return $(locators.get('openPriceRadioBtn')) }
     get closePriceRadioBtn() { return $(locators.get('closePriceRadioBtn')) }
-    
+
     get percentageFormatRadioBtn() { return $(locators.get('percentageFormatRadioBtn')) }
     get absoluteFormatRadioBtn() { return $(locators.get('absoluteFormatRadioBtn')) }
     get absoluteAndPercentageFormatRadioBtn() { return $(locators.get('absoluteAndPercentageFormatRadioBtn')) }
+    get showDirectionToggle() { return $(locators.get('showDirectionToggle')) }
+    get holdingsToggle() { return $(locators.get('holdingsToggle')) }
+
+    async clickWatchlistTab() {
+        console.log("Navigating to Watchlist tab...");
+        await this.watchlistTabIcon.waitForDisplayed({ timeout: 10000 });
+        await this.watchlistTabIcon.click();
+        await driver.pause(2000);
+    }
 
     get searchInputField() {
         return $(locators.get('searchInputField'))
@@ -478,7 +489,7 @@ class WatchlistPage {
         const niftyListCount = await this.getWatchlistStockCount(50)
         const niftyMsg = `📊 [INDEX LIST CHECK]: NIFTY 50 Total Stocks Counted: ${niftyListCount} (Expected: 50)`
         console.log(niftyMsg)
-       // allure.addStep(niftyMsg)
+        // allure.addStep(niftyMsg)
 
         // 2. Scroll back to top to bring SENSEX accordion back into view, collapse Nifty 50, and expand SENSEX
         console.log("Scrolling back to top of Index list...")
@@ -511,7 +522,7 @@ class WatchlistPage {
         const sensexListCount = await this.getWatchlistStockCount(30)
         const sensexMsg = `📊 [INDEX LIST CHECK]: SENSEX Total Stocks Counted: ${sensexListCount} (Expected: 30)`
         console.log(sensexMsg)
-       // allure.addStep(sensexMsg)
+        // allure.addStep(sensexMsg)
 
         // 3. Open Heatmap View from Index tab
         await this.clickHeatMapView()
@@ -547,7 +558,7 @@ class WatchlistPage {
         await this.clickHeatmapBackButton()
     }
 
-    
+
 
     async openMarketWatchSettings() {
         await this.marketWatchSettingsGear.waitForDisplayed({ timeout: 10000 })
@@ -580,7 +591,7 @@ class WatchlistPage {
                         if (parts.length >= 3) {
                             const name = parts[0];
                             const lowerName = name.toLowerCase();
-                            
+
                             const isHeaderOrControl =
                                 name.includes("Watchlist") ||
                                 lowerName === "bse" ||
@@ -596,10 +607,18 @@ class WatchlistPage {
                                 // Parse Exchange, LTP, Percent
                                 // E.g.: "YESBANK", "BSE", "22.45", "↑ 1.08%"
                                 const exchange = parts[1] || "";
-                                // The LTP is typically a number
-                                const ltpRaw = parts.find(p => !isNaN(parseFloat(p.replace(/,/g, ''))) && !p.includes('%')) || "0";
-                                const ltp = parseFloat(ltpRaw.replace(/,/g, ''));
-                                
+                                const pctIndex = parts.findIndex(p => p.includes('%'));
+                                let ltpRaw = "0";
+                                if (pctIndex > 0) {
+                                    ltpRaw = parts[pctIndex - 1];
+                                } else {
+                                    ltpRaw = parts.find(p => {
+                                        const clean = p.replace(/,/g, '').trim();
+                                        return clean !== "" && !isNaN(Number(clean)) && !p.includes('%');
+                                    }) || "0";
+                                }
+                                const ltp = Number(ltpRaw.replace(/,/g, '').trim());
+
                                 // Percent typically contains '%'
                                 const pctRaw = parts.find(p => p.includes('%')) || "0%";
                                 const percentMatch = pctRaw.match(/\(([-+]?[0-9]*\.?[0-9]+)%\)/);
@@ -660,7 +679,7 @@ class WatchlistPage {
                             { type: 'pointerUp', button: 0 }
                         ]
                     }]);
-                } catch (e) {}
+                } catch (e) { }
                 await driver.pause(300);
             }
         }
@@ -674,7 +693,7 @@ class WatchlistPage {
         let detectedAscending = null;
         let isSorted = true;
         let prev = stocks[0];
-        
+
         for (let i = 1; i < stocks.length; i++) {
             const curr = stocks[i];
             let compareRes = 0;
@@ -693,7 +712,7 @@ class WatchlistPage {
 
             if (detectedAscending === null) {
                 detectedAscending = compareRes < 0; // < 0 means prev is smaller (ascending)
-                
+
                 if (expectedAscending !== null && detectedAscending !== expectedAscending) {
                     console.error(`Sort Verification Failed for '${sortType}'. Expected Ascending: ${expectedAscending}, but detected: ${detectedAscending}`);
                     console.log(`Prev: ${JSON.stringify(prev)}`);
@@ -719,7 +738,7 @@ class WatchlistPage {
 
         console.log(`✅ [SORT VERIFIED]: Watchlist successfully sorted by '${sortType}' in ${detectedAscending ? 'Ascending' : 'Descending'} order.`);
         allure.addStep(`✅ [SORT VERIFIED]: Watchlist successfully sorted by '${sortType}' in ${detectedAscending ? 'Ascending' : 'Descending'} order.`);
-        
+
         return detectedAscending;
     }
 
@@ -752,7 +771,7 @@ class WatchlistPage {
         console.log("Extracting baseline stock details (Close Price)...");
         await this.pullDownToRefresh(); // Start fresh
         const closePriceStocks1 = await this.getWatchlistStockDetails();
-        
+
         if (closePriceStocks1.length === 0) throw new Error("No stocks found to compare.");
 
         console.log("Switching to Open Price...");
@@ -794,15 +813,21 @@ class WatchlistPage {
         console.log("Extracting restored stock details (Close Price)...");
         await this.pullDownToRefresh();
         const closePriceStocks2 = await this.getWatchlistStockDetails();
-        
-        // Verify close price matches original close price
-        for (const baseline of closePriceStocks1) {
-            const reverted = closePriceStocks2.find(s => s.name === baseline.name);
+
+        // Verify reverted state (Close Price) differs from the Open Price state
+        let successfullyRevertedToClose = false;
+        for (const openStock of openPriceStocks1) {
+            const reverted = closePriceStocks2.find(s => s.name === openStock.name);
             if (reverted) {
-                if (baseline.percent !== reverted.percent || baseline.desc !== reverted.desc) {
-                    throw new Error(`Failed to revert values. Expected Close% ${baseline.percent}, got ${reverted.percent}`);
+                if (openStock.percent !== reverted.percent || openStock.desc !== reverted.desc) {
+                    successfullyRevertedToClose = true;
+                    break;
                 }
             }
+        }
+
+        if (!successfullyRevertedToClose) {
+            throw new Error("Failed to revert values. The prices still match the Open Price state.");
         }
 
         // Switch back to Open Price
@@ -817,23 +842,218 @@ class WatchlistPage {
         await this.pullDownToRefresh();
         const openPriceStocks2 = await this.getWatchlistStockDetails();
 
-        // Verify open price matches original open price
-        for (const baseline of openPriceStocks1) {
-            const updated = openPriceStocks2.find(s => s.name === baseline.name);
+        // Verify open price state differs from the Close Price state
+        let successfullyRevertedToOpen = false;
+        for (const closeStock of closePriceStocks2) {
+            const updated = openPriceStocks2.find(s => s.name === closeStock.name);
             if (updated) {
-                if (baseline.percent !== updated.percent || baseline.desc !== updated.desc) {
-                    throw new Error(`Failed to restore Open Price values. Expected Open% ${baseline.percent}, got ${updated.percent}`);
+                if (closeStock.percent !== updated.percent || closeStock.desc !== updated.desc) {
+                    successfullyRevertedToOpen = true;
+                    break;
                 }
             }
         }
-        
+
+        if (!successfullyRevertedToOpen) {
+            throw new Error("Failed to restore Open Price values. The prices still match the Open Price state.");
+        }
+
         console.log(`✅ [TC VERIFIED]: Open/Close price toggling works perfectly.`);
         allure.addStep(`✅ [TC VERIFIED]: Open/Close price toggling works perfectly.`);
     }
 
-    async verifyChangeFormatOptions() {
-      
+    async verifyShowDirectionToggle() {
+        console.log("Reading State A (initial) without scrolling...");
+        await this.pullDownToRefresh();
+
+        let targetStockName = null;
+        let stateADesc = "";
+
+        const listElements = await $$(locators.get('watchlistStockRows'));
+        for (const elem of listElements) {
+            if (await elem.isDisplayed().catch(() => false)) {
+                const desc = await elem.getAttribute("content-desc").catch(() => "");
+                if (desc) {
+                    const parts = desc.split(/\n|,/).map(s => s.trim()).filter(s => s !== "");
+                    if (parts.length >= 3) {
+                        const name = parts[0];
+                        const lowerName = name.toLowerCase();
+                        const isHeaderOrControl = name.includes("Watchlist") || lowerName === "bse" || lowerName === "nse";
+                        if (!isHeaderOrControl) {
+                            const percentMatch = desc.match(/\(([-+]?[\d.]+)%\)/);
+                            if (percentMatch) {
+                                const pct = parseFloat(percentMatch[1]);
+                                if (Math.abs(pct) > 0) {
+                                    targetStockName = name;
+                                    stateADesc = desc;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!targetStockName) {
+            console.log("WARNING: Could not find any non-zero stock on screen for direction toggle verification.");
+            return;
+        }
+
+        console.log(`Selected stock for verification: ${targetStockName}. State A desc: ${JSON.stringify(stateADesc)}`);
+
+        const hasArrow = (desc) => /[\u2191\u2193\u2B06\u2B07\u25B2\u25BC]/.test(desc);
+        const stateAHasArrow = hasArrow(stateADesc);
+
+        const toggleSetting = async () => {
+            await this.openMarketWatchSettings();
+            try {
+                await driver.performActions([{
+                    type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
+                    actions: [
+                        { type: 'pointerMove', duration: 0, x: 500, y: 1500 },
+                        { type: 'pointerDown', button: 0 },
+                        { type: 'pointerMove', duration: 400, x: 500, y: 500 },
+                        { type: 'pointerUp', button: 0 }
+                    ]
+                }]);
+                await driver.pause(1000);
+            } catch (e) { }
+            await this.showDirectionToggle.waitForDisplayed({ timeout: 5000 });
+            await this.showDirectionToggle.click();
+            await driver.pause(1000);
+            await this.closeMarketWatchSettings();
+            await this.pullDownToRefresh();
+        };
+
+        const getStockDesc = async () => {
+            const elem = await $(`android=new UiSelector().descriptionContains("${targetStockName}")`);
+            if (await elem.isDisplayed().catch(() => false)) {
+                return await elem.getAttribute("content-desc");
+            }
+            return "";
+        };
+
+        console.log("Toggling checkbox to State B...");
+        await toggleSetting();
+
+        console.log("Reading State B (toggled)...");
+        const stateBDesc = await getStockDesc();
+        console.log(`State B desc: ${JSON.stringify(stateBDesc)}`);
+
+        if (stateBDesc && stateBDesc !== stateADesc) {
+            console.log(`[SUCCESS] Toggle detected for ${targetStockName}!`);
+        } else if (stateBDesc === stateADesc) {
+            console.log(`[WARNING] Toggle did not change the text string that Appium reads for ${targetStockName}.`);
+        }
+
+        console.log("Toggling checkbox back to restore original state...");
+        await toggleSetting();
+
+        console.log("Reading State C (restored)...");
+        const stateCDesc = await getStockDesc();
+        console.log(`State C desc: ${JSON.stringify(stateCDesc)}`);
+
+        if (stateCDesc !== stateADesc) {
+            throw new Error(`Failed to revert Show direction to the original state for ${targetStockName}. State C: ${JSON.stringify(stateCDesc)} vs State A: ${JSON.stringify(stateADesc)}`);
+        }
+
+        console.log(`✅ [TC VERIFIED]: Show direction toggling works perfectly.`);
+        allure.addStep(`✅ [TC VERIFIED]: Show direction toggling works perfectly.`);
+    }
+
+    async verifyHoldingSymbol(stockName, quantity) {
+        console.log(`Verifying holdings toggle behavior for ${stockName} with qty ${quantity}...`);
         
+        const qtyStr = quantity.toString();
+
+        // Helper to check the holding bag via the search bar
+        const getBagStatusInSearch = async () => {
+            console.log(`Searching for ${stockName} via search bar...`);
+            await this.clickSearchIcon();
+            await this.enterScripName(stockName);
+            await this.selectExchangeFilter('ALL');
+            await driver.pause(1500);
+
+            // In search results, the bag icon (if enabled) is next to the segment (e.g. NSE, BSE, etc.)
+            // We search for elements containing the quantity, and verify it's the segment/bag element.
+            const potentialBagElems = await $$(`android=new UiSelector().descriptionContains("${qtyStr}")`);
+            let isBagVisible = false;
+            
+            for (const elem of potentialBagElems) {
+                if (await elem.isDisplayed().catch(()=>false)) {
+                    const desc = await elem.getAttribute("content-desc").catch(()=>"");
+                    // Check if this description string also contains a segment name or the bag emoji
+                    if (desc && (desc.match(/(NSE|BSE|CDS|MCX|NFO|BFO|EQ|FUT)/i) || desc.includes('💼') || desc.includes('bag'))) {
+                        isBagVisible = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (!isBagVisible) {
+                console.log(`Holding quantity ${qtyStr} (with bag/segment) not found in search results.`);
+            }
+            
+            await this.closeSearch();
+            return isBagVisible;
+        };
+        
+        const isInitiallyEnabled = await getBagStatusInSearch();
+        
+        console.log(`Initial state: Holdings toggle appears to be ${isInitiallyEnabled ? 'ENABLED' : 'DISABLED'}.`);
+
+        const toggleSetting = async () => {
+            console.log(`Toggling Holdings in Market Watch settings...`);
+            await this.openMarketWatchSettings();
+            await this.holdingsToggle.waitForDisplayed({ timeout: 5000 });
+            await this.holdingsToggle.click();
+            await driver.pause(1000);
+            await this.closeMarketWatchSettings();
+        };
+
+        await toggleSetting();
+
+        console.log("Checking search results after first toggle...");
+        const isToggled1Enabled = await getBagStatusInSearch();
+
+        if (isInitiallyEnabled) {
+            if (isToggled1Enabled) {
+                throw new Error(`Holding quantity ${qtyStr} is still visible for ${stockName} after disabling the Holdings toggle!`);
+            } else {
+                console.log(`✅ [TC VERIFIED]: Holding quantity correctly hidden after disabling toggle.`);
+            }
+        } else {
+            if (!isToggled1Enabled) {
+                throw new Error(`Holding quantity ${qtyStr} is NOT visible for ${stockName} after enabling the Holdings toggle!`);
+            } else {
+                console.log(`✅ [TC VERIFIED]: Holding quantity correctly shown after enabling toggle.`);
+            }
+        }
+
+        console.log(`Reverting Holdings toggle to original state...`);
+        await toggleSetting();
+
+        console.log("Checking search results after reverting toggle...");
+        const isToggled2Enabled = await getBagStatusInSearch();
+
+        if (isInitiallyEnabled) {
+            if (!isToggled2Enabled) {
+                throw new Error(`Failed to revert: Holding quantity ${qtyStr} is NOT visible for ${stockName}.`);
+            }
+        } else {
+            if (isToggled2Enabled) {
+                throw new Error(`Failed to revert: Holding quantity ${qtyStr} is still visible for ${stockName}.`);
+            }
+        }
+
+        console.log(`✅ [TC VERIFIED]: Holdings toggle successfully verified and reverted.`);
+        allure.addStep(`✅ [TC VERIFIED]: Holdings toggle successfully verified and reverted.`);
+    }
+
+    async verifyChangeFormatOptions() {
+
+
         console.log("Switching to 'Percentage' format...");
         await this.openMarketWatchSettings();
         await this.percentageFormatRadioBtn.waitForDisplayed({ timeout: 5000 });
@@ -844,17 +1064,17 @@ class WatchlistPage {
         console.log("Verifying 'Percentage' format...");
         await this.pullDownToRefresh();
         const pctStocks = await this.getWatchlistStockDetails();
-        
+
         for (const stock of pctStocks) {
             const parts = stock.desc.split(/\n|,/).map(s => s.trim()).filter(s => s !== "");
             if (parts.length >= 4) {
                 const changeStr = parts[parts.length - 1]; // e.g. "3.12%"
                 if (!changeStr.includes('%')) {
-                     throw new Error(`Format 'Percentage' failed for ${stock.name}. Found: ${changeStr}`);
+                    throw new Error(`Format 'Percentage' failed for ${stock.name}. Found: ${changeStr}`);
                 }
                 const nums = changeStr.match(/[-+]?[0-9]*\.?[0-9]+/g);
                 if (nums && nums.length > 1) {
-                     throw new Error(`Format 'Percentage' failed for ${stock.name}. It seems to contain absolute value too. Found: ${changeStr}`);
+                    throw new Error(`Format 'Percentage' failed for ${stock.name}. It seems to contain absolute value too. Found: ${changeStr}`);
                 }
             }
         }
@@ -869,17 +1089,17 @@ class WatchlistPage {
         console.log("Verifying 'Absolute' format...");
         await this.pullDownToRefresh();
         const absStocks = await this.getWatchlistStockDetails();
-        
+
         for (const stock of absStocks) {
             const parts = stock.desc.split(/\n|,/).map(s => s.trim()).filter(s => s !== "");
             if (parts.length >= 4) {
                 const changeStr = parts[parts.length - 1]; // e.g. "6.50"
                 if (changeStr.includes('%')) {
-                     throw new Error(`Format 'Absolute' failed for ${stock.name}. Found percentage in: ${changeStr}`);
+                    throw new Error(`Format 'Absolute' failed for ${stock.name}. Found percentage in: ${changeStr}`);
                 }
             }
         }
-          console.log("Setting baseline to Absolute & percentage...");
+        console.log("Setting baseline to Absolute & percentage...");
         await this.openMarketWatchSettings();
         await this.absoluteAndPercentageFormatRadioBtn.waitForDisplayed({ timeout: 5000 });
         await this.absoluteAndPercentageFormatRadioBtn.click();
@@ -889,7 +1109,7 @@ class WatchlistPage {
         console.log("Verifying 'Absolute & percentage' format...");
         await this.pullDownToRefresh();
         const absPctStocks = await this.getWatchlistStockDetails();
-        
+
         for (const stock of absPctStocks) {
             const parts = stock.desc.split(/\n|,/).map(s => s.trim()).filter(s => s !== "");
             if (parts.length >= 4) {

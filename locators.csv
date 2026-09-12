@@ -80,3 +80,9 @@ closePriceRadioBtn,~Close price
 percentageFormatRadioBtn,~Percentage
 absoluteFormatRadioBtn,~Absolute
 absoluteAndPercentageFormatRadioBtn,~Absolute & percentage
+showDirectionToggle,~Show direction
+portfolioTabIcon,"~Portfolio"
+holdingsTab,"android=new UiSelector().descriptionContains(""Holdings"")"
+portfolioStockRows,"android=new UiSelector().descriptionContains(""Qty"")"
+watchlistTabIcon,"~Watchlist"
+holdingsToggle,~Show holdings

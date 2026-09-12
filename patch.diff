@@ -1,0 +1,136 @@
+--- test/pageobjects/watchlist.page.js
++++ test/pageobjects/watchlist.page.js
+@@ -29,6 +29,7 @@
+     get absoluteFormatRadioBtn() { return $(locators.get('absoluteFormatRadioBtn')) }
+     get absoluteAndPercentageFormatRadioBtn() { return $(locators.get('absoluteAndPercentageFormatRadioBtn')) }
+     get showDirectionToggle() { return $(locators.get('showDirectionToggle')) }
++    get holdingsToggle() { return $(locators.get('holdingsToggle')) }
+ 
+     async clickWatchlistTab() {
+         console.log("Navigating to Watchlist tab...");
+@@ -609,8 +610,10 @@
+ 
+                                 // Extract percent
+                                 // The LTP is typically a number
+-                                const ltpRaw = parts.find(p => !isNaN(parseFloat(p.replace(/,/g, ''))) && !p.includes('%')) || "0";
++                                const ltpRaw = parts.find(p => {
++                                    const clean = p.replace(/,/g, '').trim();
++                                    return clean !== "" && !isNaN(Number(clean)) && !p.includes('%');
++                                }) || "0";
+                                 const ltp = parseFloat(ltpRaw.replace(/,/g, ''));
+ 
+                                 extractedStocks.push({
+@@ -954,6 +957,26 @@
+         } finally {
+             try { await this.closeMarketWatchSettings(); } catch(e) {}
+         }
++        console.log("Reading State C (restored)...");
++        await this.pullDownToRefresh();
++        const stocksStateC = await this.getWatchlistStockDetails();
++
++        let successfullyRestored = false;
++        for (const stockB of stocksStateB) {
++            if (Math.abs(parseFloat(stockB.percent)) > 0) {
++                const stockC = stocksStateC.find(s => s.name === stockB.name);
++                if (stockC) {
++                    if (stockC.desc !== stockB.desc) {
++                        successfullyRestored = true;
++                        break;
++                    }
++                }
++            }
++        }
++
++        if (stateAHasNonZero && stateBHasNonZero && !successfullyRestored && anyDescChanged) {
++            throw new Error("Failed to revert Show direction to the original state.");
++        }
+         
+         console.log(`✅ [TC VERIFIED]: Show direction toggling works perfectly.`);
+         allure.addStep(`✅ [TC VERIFIED]: Show direction toggling works perfectly.`);
+@@ -973,20 +996,62 @@
+     }
+ 
+     async verifyHoldingSymbol(stockName, quantity) {
+-        console.log(`Verifying holdings symbol for ${stockName} with qty ${quantity}...`);
+-        await this.pullDownToRefresh();
+-        const stocks = await this.getWatchlistStockDetails();
+-
+-        const holdingStock = stocks.find(s => s.name === stockName);
+-        if (!holdingStock) {
+-            throw new Error(`Stock ${stockName} not found in the watchlist after adding!`);
+-        }
+-
+-        console.log(`Found stock in watchlist. Desc: ${JSON.stringify(holdingStock.desc)}`);
+-
++        console.log(`Verifying holdings toggle behavior for ${stockName} with qty ${quantity}...`);
++        
+         const qtyStr = quantity.toString();
+-        
+-        if (!holdingStock.desc.includes(qtyStr)) {
+-            console.log(`[WARNING] Holding quantity ${qtyStr} is NOT visible in the stock text for ${stockName}. It might be an image without text. Actual desc: ${JSON.stringify(holdingStock.desc)}`);
+-        } else {
+-            console.log(`✅ [TC VERIFIED]: Holding quantity ${quantity} is visible next to segment for ${stockName}`);
+-        }
++
++        const getStockDescriptionFromWatchlist = async () => {
++            console.log(`Scrolling to find ${stockName} in watchlist...`);
++            const selector = `new UiSelector().descriptionContains("${stockName}")`;
++            const scrollable = `new UiScrollable(new UiSelector().scrollable(true)).scrollIntoView(${selector})`;
++            const elem = await $(`android=${scrollable}`);
++            if (!(await elem.isDisplayed().catch(()=>false))) {
++                throw new Error(`Stock ${stockName} not found in the watchlist!`);
++            }
++            return await elem.getAttribute("content-desc");
++        };
++        
++        const initialDesc = await getStockDescriptionFromWatchlist();
++        const isInitiallyEnabled = initialDesc.includes(qtyStr);
++        
++        console.log(`Initial state: Holdings toggle appears to be ${isInitiallyEnabled ? 'ENABLED' : 'DISABLED'}.`);
++        
++        console.log(`Toggling Holdings in Market Watch settings...`);
++        await this.openMarketWatchSettings();
++        await this.holdingsToggle.waitForDisplayed({ timeout: 5000 });
++        await this.holdingsToggle.click();
++        await driver.pause(1000);
++        await this.closeMarketWatchSettings();
++        
++        console.log("Checking watchlist after first toggle...");
++        const descToggled1 = await getStockDescriptionFromWatchlist();
++        
++        if (isInitiallyEnabled) {
++            if (descToggled1.includes(qtyStr)) {
++                throw new Error(`Holding quantity ${qtyStr} is still visible for ${stockName} after disabling the Holdings toggle!`);
++            } else {
++                console.log(`✅ [TC VERIFIED]: Holding quantity correctly hidden after disabling toggle.`);
++            }
++        } else {
++            if (!descToggled1.includes(qtyStr)) {
++                throw new Error(`Holding quantity ${qtyStr} is NOT visible for ${stockName} after enabling the Holdings toggle!`);
++            } else {
++                console.log(`✅ [TC VERIFIED]: Holding quantity correctly shown after enabling toggle.`);
++            }
++        }
++        
++        console.log(`Reverting Holdings toggle to original state...`);
++        await this.openMarketWatchSettings();
++        await this.holdingsToggle.waitForDisplayed({ timeout: 5000 });
++        await this.holdingsToggle.click();
++        await driver.pause(1000);
++        await this.closeMarketWatchSettings();
++        
++        console.log("Checking watchlist after reverting toggle...");
++        const descToggled2 = await getStockDescriptionFromWatchlist();
++        
++        if (isInitiallyEnabled) {
++            if (!descToggled2.includes(qtyStr)) {
++                throw new Error(`Failed to revert: Holding quantity ${qtyStr} is NOT visible for ${stockName}.`);
++            }
++        } else {
++            if (descToggled2.includes(qtyStr)) {
++                throw new Error(`Failed to revert: Holding quantity ${qtyStr} is still visible for ${stockName}.`);
++            }
++        }
++        console.log(`✅ [TC VERIFIED]: Holdings toggle successfully verified and reverted.`);
++        allure.addStep(`✅ [TC VERIFIED]: Holdings toggle successfully verified and reverted.`);
+     }
