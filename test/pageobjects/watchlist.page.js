@@ -1051,6 +1051,109 @@ class WatchlistPage {
         allure.addStep(`✅ [TC VERIFIED]: Holdings toggle successfully verified and reverted.`);
     }
 
+    get gttToggle() {
+        return $(locators.get('gttToggle'))
+    }
+
+    async verifyGTTSymbol(stockName) {
+        console.log(`Verifying GTT toggle behavior for ${stockName}...`);
+
+        // Helper to check the GTT symbol via the search bar
+        const getGTTStatusInSearch = async () => {
+            console.log(`Searching for ${stockName} via search bar...`);
+            await this.clickSearchIcon();
+            await this.enterScripName(stockName);
+            await this.selectExchangeFilter('ALL');
+            await driver.pause(1500);
+
+            // In search results, the GTT icon (if enabled) appears next to the segment (e.g. NSE ⏩)
+            const potentialElems = await $$(`android=new UiSelector().descriptionMatches(".*(NSE|BSE|CDS|MCX|NFO|BFO|EQ|FUT).*")`);
+            let isGTTVisible = false;
+            
+            for (const elem of potentialElems) {
+                if (await elem.isDisplayed().catch(()=>false)) {
+                    const desc = await elem.getAttribute("content-desc").catch(()=>"");
+                    // Check if description has the blue right arrows "⏩" or ">>"
+                    if (desc && (desc.includes('⏩') || desc.includes('>>') || desc.includes('»') || desc.includes('GTT'))) {
+                        isGTTVisible = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (!isGTTVisible) {
+                console.log(`GTT symbol not found in search results.`);
+            }
+            
+            await this.closeSearch();
+            return isGTTVisible;
+        };
+        
+        const isInitiallyEnabled = await getGTTStatusInSearch();
+        
+        console.log(`Initial state: GTT toggle appears to be ${isInitiallyEnabled ? 'ENABLED' : 'DISABLED'}.`);
+
+        const toggleSetting = async () => {
+            console.log(`Toggling GTT in Market Watch settings...`);
+            await this.openMarketWatchSettings();
+            try {
+                await driver.performActions([{
+                    type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
+                    actions: [
+                        { type: 'pointerMove', duration: 0, x: 500, y: 1500 },
+                        { type: 'pointerDown', button: 0 },
+                        { type: 'pointerMove', duration: 400, x: 500, y: 500 },
+                        { type: 'pointerUp', button: 0 }
+                    ]
+                }]);
+                await driver.pause(1000);
+            } catch (e) { }
+
+            await this.gttToggle.waitForDisplayed({ timeout: 5000 });
+            await this.gttToggle.click();
+            await driver.pause(1000);
+            await this.closeMarketWatchSettings();
+        };
+
+        await toggleSetting();
+
+        console.log("Checking search results after first toggle...");
+        const isToggled1Enabled = await getGTTStatusInSearch();
+
+        if (isInitiallyEnabled) {
+            if (isToggled1Enabled) {
+                throw new Error(`GTT symbol is still visible for ${stockName} after disabling the GTT toggle!`);
+            } else {
+                console.log(`✅ [TC VERIFIED]: GTT symbol correctly hidden after disabling toggle.`);
+            }
+        } else {
+            if (!isToggled1Enabled) {
+                throw new Error(`GTT symbol is NOT visible for ${stockName} after enabling the GTT toggle!`);
+            } else {
+                console.log(`✅ [TC VERIFIED]: GTT symbol correctly shown after enabling toggle.`);
+            }
+        }
+
+        console.log(`Reverting GTT toggle to original state...`);
+        await toggleSetting();
+
+        console.log("Checking search results after reverting toggle...");
+        const isToggled2Enabled = await getGTTStatusInSearch();
+
+        if (isInitiallyEnabled) {
+            if (!isToggled2Enabled) {
+                throw new Error(`Failed to revert: GTT symbol is NOT visible for ${stockName}.`);
+            }
+        } else {
+            if (isToggled2Enabled) {
+                throw new Error(`Failed to revert: GTT symbol is still visible for ${stockName}.`);
+            }
+        }
+
+        console.log(`✅ [TC VERIFIED]: GTT toggle successfully verified and reverted.`);
+        allure.addStep(`✅ [TC VERIFIED]: GTT toggle successfully verified and reverted.`);
+    }
+
     async verifyChangeFormatOptions() {
 
 

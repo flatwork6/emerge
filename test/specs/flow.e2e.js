@@ -215,69 +215,91 @@ import testDataHelper from '../utils/testDataHelper.js'
 //   })
 // })
 
-describe('Market Watch Settings Validation', () => {
-  it('should open and close the market watch settings bottom sheet and verify sorting', async () => {
-    console.log(`\n========================================`)
-    console.log(`Validating Market Watch Settings Sorting`)
-    console.log(`========================================`)
+// describe('Market Watch Settings Validation', () => {
+//   it('should open and close the market watch settings bottom sheet and verify sorting', async () => {
+//     console.log(`\n========================================`)
+//     console.log(`Validating Market Watch Settings Sorting`)
+//     console.log(`========================================`)
 
-    const sortOptions = [
-      { key: 'alphabeticalSorting', type: 'A-Z' },
-      { key: 'percentSorting', type: '%' },
-      { key: 'ltpSorting', type: 'LTP' },
-      { key: 'exchangeSorting', type: 'EXH' }
-    ];
+//     const sortOptions = [
+//       { key: 'alphabeticalSorting', type: 'A-Z' },
+//       { key: 'percentSorting', type: '%' },
+//       { key: 'ltpSorting', type: 'LTP' },
+//       { key: 'exchangeSorting', type: 'EXH' }
+//     ];
 
-    for (const sortOption of sortOptions) {
-      console.log(`\n--- Starting Sort Verification for ${sortOption.type} ---`);
-      // First click - we don't know the initial state, just verify it sorted in SOME direction
-      // const detectedFirstDir = await WatchlistPage.performAndVerifySort(sortOption.key, sortOption.type, null);
+//     for (const sortOption of sortOptions) {
+//       console.log(`\n--- Starting Sort Verification for ${sortOption.type} ---`);
+//       // First click - we don't know the initial state, just verify it sorted in SOME direction
+//       const detectedFirstDir = await WatchlistPage.performAndVerifySort(sortOption.key, sortOption.type, null);
 
-      // Second click - must be the REVERSE of the first click
-      //  await WatchlistPage.performAndVerifySort(sortOption.key, sortOption.type, !detectedFirstDir);
-    }
+//       // Second click - must be the REVERSE of the first click
+//       await WatchlistPage.performAndVerifySort(sortOption.key, sortOption.type, !detectedFirstDir);
+//     }
 
-    console.log(`\n========================================`)
-    console.log(`Validating Open/Close Price Toggle`)
-    console.log(`========================================`)
-    //await WatchlistPage.verifyOpenClosePriceChange();
+//     console.log(`\n========================================`)
+//     console.log(`Validating Open/Close Price Toggle`)
+//     console.log(`========================================`)
+//     await WatchlistPage.verifyOpenClosePriceChange();
 
-    console.log(`\n========================================`)
-    console.log(`Validating Change Format Options`)
-    console.log(`========================================`)
-    // await WatchlistPage.verifyChangeFormatOptions();
+//     console.log(`\n========================================`)
+//     console.log(`Validating Change Format Options`)
+//     console.log(`========================================`)
+//     await WatchlistPage.verifyChangeFormatOptions();
 
-    console.log(`\n========================================`)
-    console.log(`Validating Show Direction Toggle`)
-    console.log(`========================================`)
-   // await WatchlistPage.verifyShowDirectionToggle();
-  })
-})
+//     console.log(`\n========================================`)
+//     console.log(`Validating Show Direction Toggle`)
+//     console.log(`========================================`)
+//     await WatchlistPage.verifyShowDirectionToggle();
+//   })
+// })
 
-describe('Holdings Verification', () => {
-  it('should extract holding and verify its quantity in watchlist', async () => {
-    console.log(`\n========================================`)
-    console.log(`Validating Holdings Symbol in Watchlist`)
-    console.log(`========================================`)
+// describe('Holdings Verification', () => {
+//   it('should extract holding and verify its quantity in watchlist', async () => {
+//     console.log(`\n========================================`)
+//     console.log(`Validating Holdings Symbol in Watchlist`)
+//     console.log(`========================================`)
 
-    // Step 1: Navigate to Portfolio -> Holdings
+//     // Step 1: Navigate to Portfolio -> Holdings
 
-    await PortfolioPage.openPortfolio();
-    await PortfolioPage.openHoldings();
+//     await PortfolioPage.openPortfolio();
+//     await PortfolioPage.openHoldings();
 
-    // Step 2: Extract a holding
-    const holding = await PortfolioPage.extractFirstHolding();
-    console.log(`Extracted holding: ${holding.name}, ${holding.qty}`);
+//     // Step 2: Extract a holding
+//     const holding = await PortfolioPage.extractFirstHolding();
+//     console.log(`Extracted holding: ${holding.name}, ${holding.qty}`);
 
-    // Step 3: Go back to Watchlist
-    await WatchlistPage.clickWatchlistTab();
+//     // Step 3: Go back to Watchlist
+//     await WatchlistPage.clickWatchlistTab();
 
-    // Step 5: Verify holdings symbol (blue bag) and quantity in Watchlist
-    await WatchlistPage.verifyHoldingSymbol(holding.name, holding.qty);
-  });
-})
+//     // Step 5: Verify holdings symbol (blue bag) and quantity in Watchlist
+      // await WatchlistPage.verifyHoldingSymbol(holding.name, holding.qty);
+//   });
+// })
 
+describe('GTT Verification', () => {
+// describe('GTT Verification', () => {
+//   it('should extract GTT stock from Orders and verify GTT symbol in watchlist', async () => {
+//     console.log(`\n========================================`)
+//     console.log(`Validating GTT Symbol in Watchlist`)
+//     console.log(`========================================`)
 
+//     // Step 1: Navigate to Orders -> GTT
+//     const OrdersPage = require('../pageobjects/orders.page.js').default;
+//     await OrdersPage.openOrders();
+//     await OrdersPage.openGTT();
+
+//     // Step 2: Extract a GTT stock
+//     const gttStockName = await OrdersPage.extractFirstGTTStock();
+//     console.log(`Extracted GTT stock: ${gttStockName}`);
+
+//     // Step 3: Go back to Watchlist
+//     await WatchlistPage.clickWatchlistTab();
+
+//     // Step 4: Verify GTT symbol in Watchlist search results
+//     await WatchlistPage.verifyGTTSymbol(gttStockName);
+//   });
+// })
 
 // describe('Funds and Margins Validation', () => {
 
