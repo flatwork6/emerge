@@ -2113,6 +2113,88 @@ class WatchlistPage {
         console.log(`✅ [TC VERIFIED]: Positions toggle successfully verified and reverted.`);
         allure.addStep(`✅ [TC VERIFIED]: Positions toggle successfully verified and reverted.`);
     }
+
+    get editWatchlistPencilIcon() {
+        // The pencil icon is instance 15 on the Watchlist page
+        return $(`android=new UiSelector().className("android.view.View").instance(15)`);
+    }
+
+    async openEditWatchlist() {
+        console.log("Opening edit watchlist...");
+        await this.editWatchlistPencilIcon.waitForDisplayed({ timeout: 5000 });
+        await this.editWatchlistPencilIcon.click();
+        await driver.pause(2000); // Wait for the 'My Watchlists' screen to load
+    }
+
+    async verifyAllWatchlistsByClickingTabs(expectedNames = []) {
+        console.log("Verifying all watchlist tabs by clicking them in My Watchlists...");
+        
+        if (!expectedNames || expectedNames.length === 0) {
+            console.log("No expected names provided. Cannot verify tabs.");
+            return;
+        }
+
+        for (let i = 0; i < expectedNames.length; i++) {
+            const expected = expectedNames[i];
+            
+            // Use UiScrollable to automatically scroll horizontally until the tab is found
+            let tab = $(`android=new UiScrollable(new UiSelector().className("android.widget.HorizontalScrollView")).setAsHorizontalList().scrollIntoView(new UiSelector().description("${expected}"))`);
+            
+            if (await tab.isExisting()) {
+                console.log(`✅ Verified and found tab: ${expected}`);
+                await tab.click();
+                await driver.pause(1000); // Wait for the list of stocks to update
+            } else {
+                throw new Error(`Failed to find tab '${expected}' even after UiScrollable attempted to scroll!`);
+            }
+        }
+        
+        console.log(`Successfully verified all ${expectedNames.length} watchlist tabs.`);
+    }
+
+    async clickEditWatchlistTabByName(name) {
+        console.log(`Switching back to watchlist tab: ${name}`);
+        let tab = $(`android=new UiScrollable(new UiSelector().className("android.widget.HorizontalScrollView")).setAsHorizontalList().scrollIntoView(new UiSelector().description("${name}"))`);
+        if (await tab.isExisting()) {
+            await tab.click();
+            await driver.pause(1500); // Wait for stocks to load
+        } else {
+            throw new Error(`Failed to find tab '${name}' to switch back to.`);
+        }
+    }
+
+    async deleteStockByRowIndex(index) {
+        console.log(`Attempting to delete stock at row index ${index}...`);
+        // Stock rows are located inside a ScrollView
+        const row = $(`android=new UiSelector().className("android.widget.ScrollView").childSelector(new UiSelector().className("android.view.View").instance(${index}))`);
+        await row.waitForDisplayed({ timeout: 5000 });
+        
+        const desc = await row.getAttribute("content-desc").catch(() => "");
+        console.log(`Stock to delete: ${desc.replace(/\n/g, ' ')}`);
+
+        // Because the dustbin doesn't have a separate accessibility node, we tap the far right of the row bounds
+        const location = await row.getLocation();
+        const size = await row.getSize();
+        
+        const clickX = location.x + size.width - 60; // Approx 60 pixels from the right edge
+        const clickY = location.y + Math.floor(size.height / 2); // Center vertically
+
+        console.log(`Performing coordinate tap at (${clickX}, ${clickY}) to hit the dustbin...`);
+        await driver.performActions([{
+            type: 'pointer',
+            id: 'finger1',
+            parameters: { pointerType: 'touch' },
+            actions: [
+                { type: 'pointerMove', duration: 0, x: clickX, y: clickY },
+                { type: 'pointerDown', button: 0 },
+                { type: 'pause', duration: 50 },
+                { type: 'pointerUp', button: 0 }
+            ]
+        }]);
+        
+        console.log("Waiting 4 seconds to observe the deletion snackbar...");
+        await driver.pause(4000); // Wait longer to observe deletion snackbar
+    }
 }
 
 export default new WatchlistPage()
