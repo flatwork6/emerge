@@ -7,7 +7,7 @@ describe('Dump Settings', () => {
         await icon.waitForDisplayed({ timeout: 5000 });
         await icon.click();
         
-        await WatchlistPage.openMarketWatchSettings();
+       // await WatchlistPage.openMarketWatchSettings();
         await driver.pause(2000);
         const pageSource = await driver.getPageSource();
         fs.writeFileSync('settings_dump.xml', pageSource);

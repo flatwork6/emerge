@@ -85,9 +85,9 @@ portfolioTabIcon,"~Portfolio"
 holdingsTab,"android=new UiSelector().descriptionContains(""Holdings"")"
 portfolioStockRows,"android=new UiSelector().descriptionContains(""Qty"")"
 watchlistTabIcon,"~Watchlist"
-holdingsToggle,~Show Holdings
+holdingsToggle,~Show holdings
 gttTab,"~GTT"
 gttStockRows,"android=new UiSelector().descriptionContains(""Qty"")"
 gttToggle,~Show GTT
-positionsTab,~Positions
+positionsTab,"android=new UiSelector().descriptionContains(""Positions"")"
 positionsToggle,~Show Position

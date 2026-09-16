@@ -964,7 +964,7 @@ class WatchlistPage {
 
     async verifyHoldingSymbol(stockName, quantity) {
         console.log(`Verifying holdings toggle behavior for ${stockName} with qty ${quantity}...`);
-        
+
         const qtyStr = quantity.toString();
 
         // Helper to check the holding bag via the search bar
@@ -973,34 +973,42 @@ class WatchlistPage {
             await this.clickSearchIcon();
             await this.enterScripName(stockName);
             await this.selectExchangeFilter('ALL');
+            await this.addFirstScripToWatchlist();
             await driver.pause(1500);
 
             // In search results, the bag icon (if enabled) is next to the segment (e.g. NSE, BSE, etc.)
             // We search for elements containing the quantity, and verify it's the segment/bag element.
             const potentialBagElems = await $$(`android=new UiSelector().descriptionContains("${qtyStr}")`);
             let isBagVisible = false;
-            
+
             for (const elem of potentialBagElems) {
-                if (await elem.isDisplayed().catch(()=>false)) {
-                    const desc = await elem.getAttribute("content-desc").catch(()=>"");
-                    // Check if this description string also contains a segment name or the bag emoji
-                    if (desc && (desc.match(/(NSE|BSE|CDS|MCX|NFO|BFO|EQ|FUT)/i) || desc.includes('💼') || desc.includes('bag'))) {
-                        isBagVisible = true;
-                        break;
+                if (await elem.isDisplayed().catch(() => false)) {
+                    const desc = await elem.getAttribute("content-desc").catch(() => "");
+                    if (desc) {
+                        const parts = desc.split(/\n/).map(s => s.trim());
+                        for (const part of parts) {
+                            // The bag quantity usually appears on its own line, possibly with a bag emoji
+                            // If it exactly matches the qty, or matches 💼 <qty>, it's our bag!
+                            if (part === qtyStr || part === `💼 ${qtyStr}` || part === `💼${qtyStr}` || part.includes(`bag ${qtyStr}`)) {
+                                isBagVisible = true;
+                                break;
+                            }
+                        }
                     }
+                    if (isBagVisible) break;
                 }
             }
-            
+
             if (!isBagVisible) {
                 console.log(`Holding quantity ${qtyStr} (with bag/segment) not found in search results.`);
             }
-            
+
             await this.closeSearch();
             return isBagVisible;
         };
-        
+
         const isInitiallyEnabled = await getBagStatusInSearch();
-        
+
         console.log(`Initial state: Holdings toggle appears to be ${isInitiallyEnabled ? 'ENABLED' : 'DISABLED'}.`);
 
         const toggleSetting = async () => {
@@ -1069,10 +1077,10 @@ class WatchlistPage {
             // In search results, the GTT icon (if enabled) appears next to the segment (e.g. NSE ⏩)
             const potentialElems = await $$(`android=new UiSelector().descriptionMatches(".*(NSE|BSE|CDS|MCX|NFO|BFO|EQ|FUT).*")`);
             let isGTTVisible = false;
-            
+
             for (const elem of potentialElems) {
-                if (await elem.isDisplayed().catch(()=>false)) {
-                    const desc = await elem.getAttribute("content-desc").catch(()=>"");
+                if (await elem.isDisplayed().catch(() => false)) {
+                    const desc = await elem.getAttribute("content-desc").catch(() => "");
                     // Check if description has the blue right arrows "⏩" or ">>"
                     if (desc && (desc.includes('⏩') || desc.includes('>>') || desc.includes('»') || desc.includes('GTT'))) {
                         isGTTVisible = true;
@@ -1080,17 +1088,17 @@ class WatchlistPage {
                     }
                 }
             }
-            
+
             if (!isGTTVisible) {
                 console.log(`GTT symbol not found in search results.`);
             }
-            
+
             await this.closeSearch();
             return isGTTVisible;
         };
-        
+
         const isInitiallyEnabled = await getGTTStatusInSearch();
-        
+
         console.log(`Initial state: GTT toggle appears to be ${isInitiallyEnabled ? 'ENABLED' : 'DISABLED'}.`);
 
         const toggleSetting = async () => {
@@ -2000,6 +2008,110 @@ class WatchlistPage {
             await driver.pause(1000)
             console.log('✅ Navigated back from Heatmap using driver.back()')
         } catch (e) { }
+    }
+    get positionsToggle() {
+        return $(locators.get('positionsToggle'))
+    }
+
+    async verifyPositionSymbol(stockName, quantity) {
+        console.log(`Verifying positions toggle behavior for ${stockName} with qty ${quantity}...`);
+
+        const qtyStr = quantity.toString();
+
+        const getBagStatusInSearch = async () => {
+            console.log(`Searching for ${stockName} via search bar...`);
+            await this.clickSearchIcon();
+            await this.enterScripName(stockName);
+            await this.selectExchangeFilter('ALL');
+            await driver.pause(1500);
+
+            const potentialElems = await $$(`android=new UiSelector().descriptionMatches(".*(NSE|BSE|CDS|MCX|NFO|BFO|EQ|FUT).*")`);
+            let isBagVisible = false;
+
+            for (const elem of potentialElems) {
+                if (await elem.isDisplayed().catch(() => false)) {
+                    const desc = await elem.getAttribute("content-desc").catch(() => "");
+                    if (desc) {
+                        const parts = desc.split(/\n/).map(s => s.trim());
+                        for (const part of parts) {
+                            if (part === qtyStr || part === `💼 ${qtyStr}` || part === `💼${qtyStr}` || part.includes(`bag ${qtyStr}`)) {
+                                console.log(`Found position bag/qty for ${qtyStr} in description part: ${part}`);
+                                isBagVisible = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (isBagVisible) break;
+                }
+            }
+
+            await this.closeSearch();
+            return isBagVisible;
+        };
+
+        const isInitiallyEnabled = await getBagStatusInSearch();
+
+        console.log(`Initial state: Positions toggle appears to be ${isInitiallyEnabled ? 'ENABLED' : 'DISABLED'}.`);
+
+        const toggleSetting = async () => {
+            console.log(`Toggling Positions in Market Watch settings...`);
+            await this.openMarketWatchSettings();
+            try {
+                await driver.performActions([{
+                    type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
+                    actions: [
+                        { type: 'pointerMove', duration: 0, x: 500, y: 1500 },
+                        { type: 'pointerDown', button: 0 },
+                        { type: 'pointerMove', duration: 400, x: 500, y: 500 },
+                        { type: 'pointerUp', button: 0 }
+                    ]
+                }]);
+                await driver.pause(1000);
+            } catch (e) { }
+
+            await this.positionsToggle.waitForDisplayed({ timeout: 5000 });
+            await this.positionsToggle.click();
+            await driver.pause(1000);
+            await this.closeMarketWatchSettings();
+        };
+
+        await toggleSetting();
+
+        console.log("Checking search results after first toggle...");
+        const isToggled1Enabled = await getBagStatusInSearch();
+
+        if (isInitiallyEnabled) {
+            if (isToggled1Enabled) {
+                throw new Error(`Position quantity ${quantity} is still visible for ${stockName} after disabling the Positions toggle!`);
+            } else {
+                console.log(`✅ [TC VERIFIED]: Position quantity correctly hidden after disabling toggle.`);
+            }
+        } else {
+            if (!isToggled1Enabled) {
+                throw new Error(`Position quantity ${quantity} is NOT visible for ${stockName} after enabling the Positions toggle!`);
+            } else {
+                console.log(`✅ [TC VERIFIED]: Position quantity correctly shown after enabling toggle.`);
+            }
+        }
+
+        console.log(`Reverting Positions toggle to original state...`);
+        await toggleSetting();
+
+        console.log("Checking search results after reverting toggle...");
+        const isToggled2Enabled = await getBagStatusInSearch();
+
+        if (isInitiallyEnabled) {
+            if (!isToggled2Enabled) {
+                throw new Error(`Failed to revert: Position quantity ${quantity} is NOT visible for ${stockName}.`);
+            }
+        } else {
+            if (isToggled2Enabled) {
+                throw new Error(`Failed to revert: Position quantity ${quantity} is still visible for ${stockName}.`);
+            }
+        }
+
+        console.log(`✅ [TC VERIFIED]: Positions toggle successfully verified and reverted.`);
+        allure.addStep(`✅ [TC VERIFIED]: Positions toggle successfully verified and reverted.`);
     }
 }
 

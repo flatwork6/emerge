@@ -254,30 +254,30 @@ import testDataHelper from '../utils/testDataHelper.js'
 //   })
 // })
 
-// describe('Holdings Verification', () => {
-//   it('should extract holding and verify its quantity in watchlist', async () => {
-//     console.log(`\n========================================`)
-//     console.log(`Validating Holdings Symbol in Watchlist`)
-//     console.log(`========================================`)
+describe('Holdings Verification', () => {
+  it('should extract holding and verify its quantity in watchlist', async () => {
+    console.log(`\n========================================`)
+    console.log(`Validating Holdings Symbol in Watchlist`)
+    console.log(`========================================`)
 
-//     // Step 1: Navigate to Portfolio -> Holdings
+    // Step 1: Navigate to Portfolio -> Holdings
 
-//     await PortfolioPage.openPortfolio();
-//     await PortfolioPage.openHoldings();
+    await PortfolioPage.openPortfolio();
+    await PortfolioPage.openHoldings();
 
-//     // Step 2: Extract a holding
-//     const holding = await PortfolioPage.extractFirstHolding();
-//     console.log(`Extracted holding: ${holding.name}, ${holding.qty}`);
+    // Step 2: Extract a holding
+    const holding = await PortfolioPage.extractFirstHolding();
+    console.log(`Extracted holding: ${holding.name}, ${holding.qty}`);
 
-//     // Step 3: Go back to Watchlist
-//     await WatchlistPage.clickWatchlistTab();
+    // Step 3: Go back to Watchlist
+    await WatchlistPage.clickWatchlistTab();
 
-//     // Step 5: Verify holdings symbol (blue bag) and quantity in Watchlist
-      // await WatchlistPage.verifyHoldingSymbol(holding.name, holding.qty);
-//   });
-// })
+   
+    // Step 5: Verify holdings symbol (blue bag) and quantity in Watchlist
+await WatchlistPage.verifyHoldingSymbol(holding.name, holding.qty);
+  });
+})
 
-describe('GTT Verification', () => {
 // describe('GTT Verification', () => {
 //   it('should extract GTT stock from Orders and verify GTT symbol in watchlist', async () => {
 //     console.log(`\n========================================`)
@@ -298,6 +298,29 @@ describe('GTT Verification', () => {
 
 //     // Step 4: Verify GTT symbol in Watchlist search results
 //     await WatchlistPage.verifyGTTSymbol(gttStockName);
+//   });
+// })
+
+// describe('Positions Verification', () => {
+//   it('should extract position stock from Portfolio and verify position symbol in watchlist', async () => {
+//     console.log(`\n========================================`)
+//     console.log(`Validating Positions Symbol in Watchlist`)
+//     console.log(`========================================`)
+
+//     // Step 1: Navigate to Portfolio -> Positions
+//     //const PortfolioPage = require('../pageobjects/portfolio.page.js').default;
+//     await PortfolioPage.openPortfolio();
+//     await PortfolioPage.openPositions();
+
+//     // Step 2: Extract a Positions stock
+//     const position = await PortfolioPage.extractFirstPosition();
+//     console.log(`Extracted Position stock: ${position.name} with Qty: ${position.qty}`);
+
+//     // Step 3: Go back to Watchlist
+//     await WatchlistPage.clickWatchlistTab();
+
+//     // Step 4: Verify Positions symbol in Watchlist search results
+//     await WatchlistPage.verifyPositionSymbol(position.name, position.qty);
 //   });
 // })
 
@@ -345,5 +368,3 @@ describe('GTT Verification', () => {
 //     })
 
 // })
-
-
