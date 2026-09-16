@@ -301,28 +301,27 @@ await WatchlistPage.verifyHoldingSymbol(holding.name, holding.qty);
 //   });
 // })
 
-// describe('Positions Verification', () => {
-//   it('should extract position stock from Portfolio and verify position symbol in watchlist', async () => {
-//     console.log(`\n========================================`)
-//     console.log(`Validating Positions Symbol in Watchlist`)
-//     console.log(`========================================`)
+describe('Positions Verification', () => {
+  it('should extract position stock from Portfolio and verify position symbol in watchlist', async () => {
+    console.log(`\n========================================`)
+    console.log(`Validating Positions Symbol in Watchlist`)
+    console.log(`========================================`)
 
-//     // Step 1: Navigate to Portfolio -> Positions
-//     //const PortfolioPage = require('../pageobjects/portfolio.page.js').default;
-//     await PortfolioPage.openPortfolio();
-//     await PortfolioPage.openPositions();
+    // Step 1: Navigate to Portfolio -> Positions
+    //const PortfolioPage = require('../pageobjects/portfolio.page.js').default;
+    await PortfolioPage.openPortfolio('Positions');
 
-//     // Step 2: Extract a Positions stock
-//     const position = await PortfolioPage.extractFirstPosition();
-//     console.log(`Extracted Position stock: ${position.name} with Qty: ${position.qty}`);
+    // Step 2: Extract a Positions stock
+    const position = await PortfolioPage.extractFirstPosition();
+    console.log(`Extracted Position stock: ${position.name} with Qty: ${position.qty}`);
 
-//     // Step 3: Go back to Watchlist
-//     await WatchlistPage.clickWatchlistTab();
+    // Step 3: Go back to Watchlist
+    await WatchlistPage.clickWatchlistTab();
 
-//     // Step 4: Verify Positions symbol in Watchlist search results
-//     await WatchlistPage.verifyPositionSymbol(position.name, position.qty);
-//   });
-// })
+    // Step 4: Verify Positions symbol in Watchlist search results
+    await WatchlistPage.verifyPositionSymbol(position.name, position.qty);
+  });
+})
 
 // describe('Funds and Margins Validation', () => {
 

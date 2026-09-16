@@ -4,8 +4,8 @@ class PortfolioPage {
 
     get holdingsTab() { return $(locators.get('holdingsTab')) }
 
-    async openPortfolio() {
-        console.log("Navigating to Portfolio tab...");
+    async openPortfolio(tab = 'Holdings') {
+        console.log(`Navigating to Portfolio -> ${tab} tab...`);
         // Wait for bottom tabs to render
         // await driver.waitUntil(async () => {
         //     const el = $(`android=new UiSelector().className("android.widget.ImageView").instance(3)`);
@@ -22,13 +22,24 @@ class PortfolioPage {
             if (await icon.isExisting()) {
                 await icon.click();
                 try {
-                    await this.holdingsTab.waitForDisplayed({ timeout: 1500 });
-                    await this.holdingsTab.click();
-                    // Verify this is actually the portfolio page by checking for the Qty rows
-                    const firstRow = $(locators.get('portfolioStockRows'));
-                    await firstRow.waitForDisplayed({ timeout: 1500 });
-                    console.log(`Found Portfolio tab at instance(${i})!`);
-                    return;
+                    // Check if we are on the Portfolio page by looking for either tab
+                    const isPortfolio = await driver.waitUntil(async () => {
+                        return (await this.holdingsTab.isExisting()) || (await this.positionsTab.isExisting());
+                    }, { timeout: 1500 });
+                    
+                    if (isPortfolio) {
+                        console.log(`Found Portfolio tab at instance(${i})!`);
+                        if (tab.toLowerCase() === 'positions') {
+                            await this.positionsTab.click();
+                        } else {
+                            await this.holdingsTab.click();
+                        }
+                        
+                        // Verify the content loaded by checking for the Qty rows
+                        const firstRow = $(locators.get('portfolioStockRows'));
+                        await firstRow.waitForDisplayed({ timeout: 1500 });
+                        return;
+                    }
                 } catch (e) {
                     // Not the right tab, try the next one
                 }
@@ -128,7 +139,8 @@ class PortfolioPage {
                         // Wait, in positions, the format might be slightly different.
                         // usually Name is the first alphabet part.
                         for (const p of parts) {
-                            if (!p.includes("Qty") && !p.includes("LTP") && !p.includes("Invested") && !p.includes("Avg") && /[a-zA-Z]/.test(p)) {
+                            const isProductType = ['CNC', 'MIS', 'NRML', 'MTF', 'BO', 'CO'].includes(p);
+                            if (!p.includes("Qty") && !p.includes("LTP") && !p.includes("Invested") && !p.includes("Avg") && !isProductType && /[a-zA-Z]/.test(p)) {
                                 stockName = p;
                                 break;
                             }
