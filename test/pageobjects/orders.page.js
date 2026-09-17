@@ -110,16 +110,50 @@ class OrdersPage {
         const viewBtn = $(locators.get('viewSipBtn'));
         await viewBtn.waitForDisplayed({ timeout: 5000 });
         await viewBtn.click();
-        await driver.pause(1000);
+        await driver.pause(1500);
 
-        const sipScripRows = await $$(locators.get('sipScripRows'));
+        // Since the stock name and "Qty: 1" are separate widgets in Flutter,
+        // we'll get all descriptions to find "Scrips in this SIP" and take the next text.
+        const allElements = await $$('//*');
+        let texts = [];
+        for (const el of allElements) {
+            let desc = await el.getAttribute("content-desc").catch(() => "");
+            let textAttr = await el.getText().catch(() => "");
+            let combined = (desc || "") + "\n" + (textAttr || "");
+            if (combined.trim() !== "") {
+                texts.push(combined.trim());
+            }
+        }
+        console.log("ALL EXTRACTED TEXTS:", JSON.stringify(texts, null, 2));
+
         let foundStockName = null;
-        for (const elem of sipScripRows) {
-            if (await elem.isDisplayed().catch(() => false)) {
-                const desc = await elem.getAttribute("content-desc").catch(() => "");
-                if (desc && desc.includes("Qty:")) {
-                    console.log(`Found SIP scrip desc: \n${desc}`);
-                    const parts = desc.split(/\n/).map(s => s.trim()).filter(s => s !== "");
+        for (let i = 0; i < texts.length; i++) {
+            if (texts[i].includes("Scrips in this SIP")) {
+                const parts = texts[i].split(/\n/).map(s => s.trim()).filter(s => s !== "");
+                const headerIdx = parts.findIndex(p => p.includes("Scrips in this SIP"));
+                
+                if (headerIdx !== -1 && headerIdx + 1 < parts.length) {
+                    // It was merged into the same element
+                    foundStockName = parts[headerIdx + 2];
+                } else if (i + 1 < texts.length) {
+                    // It is in the next element
+                    const nextParts = texts[i + 2].split(/\n/).map(s => s.trim()).filter(s => s !== "");
+                    foundStockName = nextParts[0];
+                }
+                
+                if (foundStockName) {
+                    console.log(`Found SIP scrip via robust text search: ${foundStockName}`);
+                    break;
+                }
+            }
+        }
+
+        if (!foundStockName) {
+            // Fallback to original logic if the layout is weird
+            for (const text of texts) {
+                if (text.includes("Qty:")) {
+                    console.log(`Found Qty row: \n${text}`);
+                    const parts = text.split(/\n/).map(s => s.trim()).filter(s => s !== "");
                     if (parts.length >= 2) {
                         for (const p of parts) {
                             if (!p.includes("Qty:") && !p.includes("Scrips") && /[a-zA-Z]/.test(p)) {
@@ -127,9 +161,9 @@ class OrdersPage {
                                 break;
                             }
                         }
-                        if (foundStockName) break;
                     }
                 }
+                if (foundStockName) break;
             }
         }
         
@@ -137,7 +171,7 @@ class OrdersPage {
             throw new Error("Could not find any stocks in the SIP view!");
         }
 
-        // Close bottom sheet (Wait, user did not mention closing, but we should close it so we can go to Watchlist)
+        // Close bottom sheet (optional, but good practice to clean up)
         try {
              await driver.back();
              await driver.pause(1000);
@@ -155,34 +189,25 @@ class OrdersPage {
 
     async extractFirstAlertStock() {
         console.log("Extracting first Alert stock...");
-        const listElements = await $$(locators.get('alertStockRows'));
-        
+        const potentialElems = await $$('//*');
         let foundStockName = null;
 
-        for (const elem of listElements) {
-            if (await elem.isDisplayed().catch(() => false)) {
-                const desc = await elem.getAttribute("content-desc").catch(() => "");
-                // Alert rows typically contain 'Pending' or 'Triggered'
-                if (desc && (desc.includes("Pending") || desc.includes("Triggered"))) {
-                    console.log(`Found Alert desc: \n${desc}`);
-                    
-                    const parts = desc.split(/\n/).map(s => s.trim()).filter(s => s !== "");
-                    
-                    if (parts.length >= 2) {
-                        for (const p of parts) {
-                            if (!p.includes("Pending") && !p.includes("Triggered") && !p.includes("LTP") && /[a-zA-Z]/.test(p)) {
-                                foundStockName = p.trim();
-                                break;
-                            }
+        for (const elem of potentialElems) {
+            const desc = await elem.getAttribute("content-desc").catch(() => "");
+            if (desc && (desc.includes("Pending") || desc.includes("Triggered"))) {
+                console.log(`Found Alert desc: \n${desc}`);
+                const parts = desc.split(/\n/).map(s => s.trim()).filter(s => s !== "");
+                if (parts.length >= 2) {
+                    for (const p of parts) {
+                        if (!p.includes("Pending") && !p.includes("Triggered") && !p.includes("LTP") && /[a-zA-Z]/.test(p)) {
+                            foundStockName = p.trim();
+                            break;
                         }
-
-                        if (!foundStockName) {
-                            foundStockName = parts[0].trim();
-                        }
-
-                        console.log(`Extracted Alert Stock: ${foundStockName}`);
-                        break;
                     }
+                    if (!foundStockName) {
+                        foundStockName = parts[0].trim();
+                    }
+                    break;
                 }
             }
         }

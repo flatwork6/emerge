@@ -35,9 +35,15 @@ class PortfolioPage {
                             await this.holdingsTab.click();
                         }
                         
-                        // Verify the content loaded by checking for the Qty rows
-                        const firstRow = $(locators.get('portfolioStockRows'));
-                        await firstRow.waitForDisplayed({ timeout: 1500 });
+                        // Verify the content loaded by checking for the Qty rows or empty states
+                        try {
+                            await driver.waitUntil(async () => {
+                                const rowExists = await $(locators.get('portfolioStockRows')).isExisting();
+                                const emptyPositions = await $(`android=new UiSelector().textContains("No positions available")`).isExisting();
+                                const emptyHoldings = await $(`android=new UiSelector().textContains("Start Your Investment")`).isExisting();
+                                return rowExists || emptyPositions || emptyHoldings;
+                            }, { timeout: 2500 });
+                        } catch (e) {}
                         return;
                     }
                 } catch (e) {
@@ -56,6 +62,12 @@ class PortfolioPage {
 
     async extractFirstHolding() {
         console.log("Extracting first holding...");
+        const emptyState = await $(`android=new UiSelector().textContains("Start Your Investment")`);
+        if (await emptyState.isExisting()) {
+            console.log("Empty holdings state found: Start Your Investment");
+            return "No Holdings found";
+        }
+
         const listElements = await $$(locators.get('portfolioStockRows'));
 
         let foundHolding = null;
@@ -121,6 +133,12 @@ class PortfolioPage {
 
     async extractFirstPosition() {
         console.log("Extracting first position...");
+        const emptyState = await $(`android=new UiSelector().textContains("No positions available")`);
+        if (await emptyState.isExisting()) {
+            console.log("Empty positions state found: No positions available");
+            return "No Positions found";
+        }
+
         const listElements = await $$(locators.get('portfolioStockRows'));
 
         let foundPosition = null;

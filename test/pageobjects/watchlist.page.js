@@ -1059,6 +1059,7 @@ class WatchlistPage {
         allure.addStep(`✅ [TC VERIFIED]: Holdings toggle successfully verified and reverted.`);
     }
 
+
     get gttToggle() {
         return $(locators.get('gttToggle'))
     }
@@ -2030,13 +2031,12 @@ class WatchlistPage {
             await this.enterScripName(stockName);
             await this.selectExchangeFilter('ALL');
             await this.addFirstScripToWatchlist();
-
             await driver.pause(1500);
 
-            const potentialElems = await $$(`android=new UiSelector().descriptionMatches(".*(NSE|BSE|CDS|MCX|NFO|BFO|EQ|FUT).*")`);
+            const potentialBagElems = await $$(`android=new UiSelector().descriptionContains("${qtyStr}")`);
             let isBagVisible = false;
 
-            for (const elem of potentialElems) {
+            for (const elem of potentialBagElems) {
                 if (await elem.isDisplayed().catch(() => false)) {
                     const desc = await elem.getAttribute("content-desc").catch(() => "");
                     if (desc) {
@@ -2064,19 +2064,7 @@ class WatchlistPage {
         const toggleSetting = async () => {
             console.log(`Toggling Positions in Market Watch settings...`);
             await this.openMarketWatchSettings();
-            try {
-                await driver.performActions([{
-                    type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
-                    actions: [
-                        { type: 'pointerMove', duration: 0, x: 500, y: 1500 },
-                        { type: 'pointerDown', button: 0 },
-                        { type: 'pointerMove', duration: 400, x: 500, y: 500 },
-                        { type: 'pointerUp', button: 0 }
-                    ]
-                }]);
-                await driver.pause(1000);
-            } catch (e) { }
-
+            await this.openMarketWatchSettings();
             await this.positionsToggle.waitForDisplayed({ timeout: 5000 });
             await this.positionsToggle.click();
             await driver.pause(1000);
@@ -2125,39 +2113,84 @@ class WatchlistPage {
     async verifySIPSymbol(stockName) {
         console.log(`Verifying SIP toggle behavior for ${stockName}...`);
 
-        const getSIPStatusInSearch = async () => {
+        // Initial Add Step: Ensure the stock is in the Watchlist before verifying
+        console.log(`Adding ${stockName} to watchlist before verifying SIP toggle...`);
+        await this.clickSearchIcon();
+        await this.enterScripName(stockName);
+        await this.selectExchangeFilter('ALL');
+        await this.addFirstScripToWatchlist();
+        console.log("Pressing back to close potential bottom sheet after adding...");
+        await driver.pause(1000);
+
+        const closeBtnS = await $(locators.get('searchCloseButton'));
+        if (await closeBtnS.isDisplayed().catch(() => false)) {
+            await closeBtnS.click();
+            await driver.pause(1000);
+        }
+
+        const getEmptyIconCountInSearch = async () => {
             console.log(`Searching for ${stockName} via search bar...`);
             await this.clickSearchIcon();
             await this.enterScripName(stockName);
             await this.selectExchangeFilter('ALL');
-            await this.addFirstScripToWatchlist();
+            await driver.pause(4000);
 
-            await driver.pause(1500);
-
-            const potentialElems = await $$(`android=new UiSelector().descriptionMatches(".*(NSE|BSE|CDS|MCX|NFO|BFO|EQ|FUT).*")`);
-            let isSIPVisible = false;
+            const potentialElems = await $$('//*');
+            let targetElemLoc = null;
+            let targetElemSize = null;
 
             for (const elem of potentialElems) {
-                if (await elem.isDisplayed().catch(() => false)) {
+                const desc = await elem.getAttribute("content-desc").catch(() => "");
+                if (desc && desc.includes(stockName) && desc.includes("NSE")) {
+                    targetElemLoc = await elem.getLocation().catch(() => null);
+                    targetElemSize = await elem.getSize().catch(() => null);
+                    break;
+                }
+            }
+
+            let emptyCount = 0;
+            if (targetElemLoc && targetElemSize) {
+                for (const elem of potentialElems) {
                     const desc = await elem.getAttribute("content-desc").catch(() => "");
-                    if (desc && (desc.includes('📅') || desc.includes('🗓') || desc.includes('🗓️'))) {
-                        isSIPVisible = true;
-                        break;
+                    const textAttr = await elem.getText().catch(() => "");
+                    if (!desc && !textAttr) {
+                        const loc = await elem.getLocation().catch(() => null);
+                        if (loc) {
+                            const size = await elem.getSize().catch(() => ({ height: 0 }));
+                            const centerY = loc.y + (size.height / 2);
+                            if (centerY >= targetElemLoc.y && centerY <= targetElemLoc.y + targetElemSize.height) {
+                                emptyCount++;
+                            }
+                        }
                     }
                 }
             }
 
-            if (!isSIPVisible) {
-                console.log(`SIP symbol not found in search results.`);
-            }
-
             await this.closeSearch();
-            return isSIPVisible;
+            return emptyCount;
         };
 
-        const isInitiallyEnabled = await getSIPStatusInSearch();
+        const getMwCheckboxState = async () => {
+            await this.openMarketWatchSettings();
+            try {
+                await driver.performActions([{
+                    type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
+                    actions: [
+                        { type: 'pointerMove', duration: 0, x: 500, y: 1500 },
+                        { type: 'pointerDown', button: 0 },
+                        { type: 'pointerMove', duration: 400, x: 500, y: 500 },
+                        { type: 'pointerUp', button: 0 }
+                    ]
+                }]);
+                await driver.pause(1000);
+            } catch (e) { }
 
-        console.log(`Initial state: SIP toggle appears to be ${isInitiallyEnabled ? 'ENABLED' : 'DISABLED'}.`);
+            await this.showSipToggle.waitForDisplayed({ timeout: 5000 });
+            const checkedAttr = await this.showSipToggle.getAttribute("checked").catch(() => "false");
+            const isChecked = checkedAttr === "true";
+            await this.closeMarketWatchSettings();
+            return isChecked;
+        };
 
         const toggleSetting = async () => {
             console.log(`Toggling SIP in Market Watch settings...`);
@@ -2181,38 +2214,44 @@ class WatchlistPage {
             await this.closeMarketWatchSettings();
         };
 
+        // 1. Initial State Check
+        console.log(`Extracting initial MW Settings state...`);
+        const isInitiallyChecked = await getMwCheckboxState();
+        console.log(`MW Settings initial checked state: ${isInitiallyChecked}`);
+
+        const initialCount = await getEmptyIconCountInSearch();
+        console.log(`Initial search empty icon count: ${initialCount}`);
+
+        // 2. First Toggle
         await toggleSetting();
+        const count1 = await getEmptyIconCountInSearch();
 
-        console.log("Checking search results after first toggle...");
-        const isToggled1Enabled = await getSIPStatusInSearch();
-
-        if (isInitiallyEnabled) {
-            if (isToggled1Enabled) {
-                throw new Error(`SIP symbol is still visible for ${stockName} after disabling the SIP toggle!`);
-            } else {
-                console.log(`✅ [TC VERIFIED]: SIP symbol correctly hidden after disabling toggle.`);
+        if (isInitiallyChecked) {
+            // Was ON, toggled OFF. Count should decrease.
+            if (count1 >= initialCount) {
+                throw new Error(`SIP symbol is NOT visible for ${stockName} after disabling the SIP toggle! (Expected count to decrease, but went from ${initialCount} to ${count1})`);
             }
         } else {
-            if (!isToggled1Enabled) {
-                throw new Error(`SIP symbol is NOT visible for ${stockName} after enabling the SIP toggle!`);
-            } else {
-                console.log(`✅ [TC VERIFIED]: SIP symbol correctly shown after enabling toggle.`);
+            // Was OFF, toggled ON. Count should increase.
+            if (count1 <= initialCount) {
+                throw new Error(`SIP symbol is NOT visible for ${stockName} after enabling the SIP toggle! (Expected count to increase, but went from ${initialCount} to ${count1})`);
             }
         }
+        console.log(`✅ [TC VERIFIED]: SIP symbol state matched toggle 1.`);
 
-        console.log(`Reverting SIP toggle to original state...`);
+        // 3. Second Toggle
         await toggleSetting();
+        const count2 = await getEmptyIconCountInSearch();
 
-        console.log("Checking search results after reverting toggle...");
-        const isToggled2Enabled = await getSIPStatusInSearch();
-
-        if (isInitiallyEnabled) {
-            if (!isToggled2Enabled) {
-                throw new Error(`Failed to revert: SIP symbol is NOT visible for ${stockName}.`);
+        if (isInitiallyChecked) {
+            // Was OFF, toggled ON again. Count should increase.
+            if (count2 <= count1) {
+                throw new Error(`Failed to revert: SIP symbol is NOT visible for ${stockName} after second toggle. (Expected count to increase, but went from ${count1} to ${count2})`);
             }
         } else {
-            if (isToggled2Enabled) {
-                throw new Error(`Failed to revert: SIP symbol is still visible for ${stockName}.`);
+            // Was ON, toggled OFF again. Count should decrease.
+            if (count2 >= count1) {
+                throw new Error(`Failed to revert: SIP symbol is still visible for ${stockName} after second toggle. (Expected count to decrease, but went from ${count1} to ${count2})`);
             }
         }
 
@@ -2223,38 +2262,85 @@ class WatchlistPage {
     async verifyAlertSymbol(stockName) {
         console.log(`Verifying Alerts toggle behavior for ${stockName}...`);
 
-        const getAlertStatusInSearch = async () => {
+        // Initial Add Step: Ensure the stock is in the Watchlist before verifying
+        console.log(`Adding ${stockName} to watchlist before verifying Alerts toggle...`);
+        await this.clickSearchIcon();
+        await this.enterScripName(stockName);
+        await this.selectExchangeFilter('ALL');
+        await this.addFirstScripToWatchlist();
+        console.log("Pressing back to close potential bottom sheet after adding...");
+        await driver.back();
+        await driver.pause(1000);
+
+        const closeBtnA = await $(locators.get('searchCloseButton'));
+        if (await closeBtnA.isDisplayed().catch(() => false)) {
+            await closeBtnA.click();
+            await driver.pause(1000);
+        }
+
+        const getEmptyIconCountInSearch = async () => {
             console.log(`Searching for ${stockName} via search bar...`);
             await this.clickSearchIcon();
             await this.enterScripName(stockName);
             await this.selectExchangeFilter('ALL');
-            await this.addFirstScripToWatchlist();
-            await driver.pause(1500);
+            await driver.pause(4000);
 
-            const potentialElems = await $$(`android=new UiSelector().descriptionMatches(".*(NSE|BSE|CDS|MCX|NFO|BFO|EQ|FUT).*")`);
-            let isAlertVisible = false;
+            const potentialElems = await $$('//*');
+            let targetElemLoc = null;
+            let targetElemSize = null;
 
             for (const elem of potentialElems) {
-                if (await elem.isDisplayed().catch(() => false)) {
+                const desc = await elem.getAttribute("content-desc").catch(() => "");
+                if (desc && desc.includes(stockName) && desc.includes("NSE")) {
+                    targetElemLoc = await elem.getLocation().catch(() => null);
+                    targetElemSize = await elem.getSize().catch(() => null);
+                    break;
+                }
+            }
+
+            let emptyCount = 0;
+            if (targetElemLoc && targetElemSize) {
+                for (const elem of potentialElems) {
                     const desc = await elem.getAttribute("content-desc").catch(() => "");
-                    if (desc && (desc.includes('🔔'))) {
-                        isAlertVisible = true;
-                        break;
+                    const textAttr = await elem.getText().catch(() => "");
+                    if (!desc && !textAttr) {
+                        const loc = await elem.getLocation().catch(() => null);
+                        if (loc) {
+                            const size = await elem.getSize().catch(() => ({ height: 0 }));
+                            const centerY = loc.y + (size.height / 2);
+                            if (centerY >= targetElemLoc.y && centerY <= targetElemLoc.y + targetElemSize.height) {
+                                emptyCount++;
+                            }
+                        }
                     }
                 }
             }
 
-            if (!isAlertVisible) {
-                console.log(`Alert symbol not found in search results.`);
-            }
-
             await this.closeSearch();
-            return isAlertVisible;
+            return emptyCount;
         };
 
-        const isInitiallyEnabled = await getAlertStatusInSearch();
+        const getMwCheckboxState = async () => {
+            await this.openMarketWatchSettings();
+            try {
+                await driver.performActions([{
+                    type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
+                    actions: [
+                        { type: 'pointerMove', duration: 0, x: 500, y: 1500 },
+                        { type: 'pointerDown', button: 0 },
+                        { type: 'pointerMove', duration: 400, x: 500, y: 500 },
+                        { type: 'pointerUp', button: 0 }
+                    ]
+                }]);
+                await driver.pause(1000);
+            } catch (e) { }
 
-        console.log(`Initial state: Alerts toggle appears to be ${isInitiallyEnabled ? 'ENABLED' : 'DISABLED'}.`);
+            await this.showAlertsToggle.waitForDisplayed({ timeout: 5000 });
+            const checkedAttr = await this.showAlertsToggle.getAttribute("checked").catch(() => "false");
+            const isChecked = checkedAttr === "true";
+            await this.closeMarketWatchSettings();
+            return isChecked;
+        };
 
         const toggleSetting = async () => {
             console.log(`Toggling Alerts in Market Watch settings...`);
@@ -2278,44 +2364,51 @@ class WatchlistPage {
             await this.closeMarketWatchSettings();
         };
 
+        // 1. Initial State Check
+        console.log(`Extracting initial MW Settings state...`);
+        const isInitiallyChecked = await getMwCheckboxState();
+        console.log(`MW Settings initial checked state: ${isInitiallyChecked}`);
+
+        const initialCount = await getEmptyIconCountInSearch();
+        console.log(`Initial search empty icon count: ${initialCount}`);
+
+        // 2. First Toggle
         await toggleSetting();
+        const count1 = await getEmptyIconCountInSearch();
 
-        console.log("Checking search results after first toggle...");
-        const isToggled1Enabled = await getAlertStatusInSearch();
-
-        if (isInitiallyEnabled) {
-            if (isToggled1Enabled) {
-                throw new Error(`Alert symbol is still visible for ${stockName} after disabling the Alerts toggle!`);
-            } else {
-                console.log(`✅ [TC VERIFIED]: Alert symbol correctly hidden after disabling toggle.`);
+        if (isInitiallyChecked) {
+            // Was ON, toggled OFF. Count should decrease.
+            if (count1 >= initialCount) {
+                throw new Error(`Alert symbol is NOT visible for ${stockName} after disabling the Alerts toggle! (Expected count to decrease, but went from ${initialCount} to ${count1})`);
             }
         } else {
-            if (!isToggled1Enabled) {
-                throw new Error(`Alert symbol is NOT visible for ${stockName} after enabling the Alerts toggle!`);
-            } else {
-                console.log(`✅ [TC VERIFIED]: Alert symbol correctly shown after enabling toggle.`);
+            // Was OFF, toggled ON. Count should increase.
+            if (count1 <= initialCount) {
+                throw new Error(`Alert symbol is NOT visible for ${stockName} after enabling the Alerts toggle! (Expected count to increase, but went from ${initialCount} to ${count1})`);
             }
         }
+        console.log(`✅ [TC VERIFIED]: Alert symbol state matched toggle 1.`);
 
-        console.log(`Reverting Alerts toggle to original state...`);
+        // 3. Second Toggle
         await toggleSetting();
+        const count2 = await getEmptyIconCountInSearch();
 
-        console.log("Checking search results after reverting toggle...");
-        const isToggled2Enabled = await getAlertStatusInSearch();
-
-        if (isInitiallyEnabled) {
-            if (!isToggled2Enabled) {
-                throw new Error(`Failed to revert: Alert symbol is NOT visible for ${stockName}.`);
+        if (isInitiallyChecked) {
+            // Was OFF, toggled ON again. Count should increase.
+            if (count2 <= count1) {
+                throw new Error(`Failed to revert: Alert symbol is NOT visible for ${stockName} after second toggle. (Expected count to increase, but went from ${count1} to ${count2})`);
             }
         } else {
-            if (isToggled2Enabled) {
-                throw new Error(`Failed to revert: Alert symbol is still visible for ${stockName}.`);
+            // Was ON, toggled OFF again. Count should decrease.
+            if (count2 >= count1) {
+                throw new Error(`Failed to revert: Alert symbol is still visible for ${stockName} after second toggle. (Expected count to decrease, but went from ${count1} to ${count2})`);
             }
         }
 
         console.log(`✅ [TC VERIFIED]: Alerts toggle successfully verified and reverted.`);
         allure.addStep(`✅ [TC VERIFIED]: Alerts toggle successfully verified and reverted.`);
     }
+
 
     get editWatchlistPencilIcon() {
         // The pencil icon is instance 15 on the Watchlist page

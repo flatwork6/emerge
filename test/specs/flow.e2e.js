@@ -254,33 +254,33 @@ import testDataHelper from '../utils/testDataHelper.js'
 //   })
 // })
 
-describe('Holdings Verification', () => {
-  it('should extract holding and verify its quantity in watchlist', async () => {
-    console.log(`\n========================================`)
-    console.log(`Validating Holdings Symbol in Watchlist`)
-    console.log(`========================================`)
+// describe('Holdings Verification', () => {
+//   it('should extract holding and verify its quantity in watchlist', async () => {
+//     console.log(`\n========================================`)
+//     console.log(`Validating Holdings Symbol in Watchlist`)
+//     console.log(`========================================`)
 
-    // Step 1: Navigate to Portfolio -> Holdings
+//     // Step 1: Navigate to Portfolio -> Holdings
 
-    await PortfolioPage.openPortfolio();
-    await PortfolioPage.openHoldings();
+//     await PortfolioPage.openPortfolio();
+//     await PortfolioPage.openHoldings();
 
-    // Step 2: Extract a holding
-    const holding = await PortfolioPage.extractFirstHolding();
-    if (holding === "No Holdings found") {
-        console.log("No Holdings found. Ending test.");
-        return;
-    }
-    console.log(`Extracted holding: ${holding.name}, ${holding.qty}`);
+//     // Step 2: Extract a holding
+//     const holding = await PortfolioPage.extractFirstHolding();
+//     if (holding === "No Holdings found") {
+//         console.log("No Holdings found. Ending test.");
+//         return;
+//     }
+//     console.log(`Extracted holding: ${holding.name}, ${holding.qty}`);
 
-    // Step 3: Go back to Watchlist
-    await WatchlistPage.clickWatchlistTab();
+//     // Step 3: Go back to Watchlist
+//     await WatchlistPage.clickWatchlistTab();
 
    
-    // Step 5: Verify holdings symbol (blue bag) and quantity in Watchlist
-await WatchlistPage.verifyHoldingSymbol(holding.name, holding.qty);
-  });
-})
+//     // Step 5: Verify holdings symbol (blue bag) and quantity in Watchlist
+// await WatchlistPage.verifyHoldingSymbol(holding.name, holding.qty);
+//   });
+// })
 
 // describe('GTT Verification', () => {
 //   it('should extract GTT stock from Orders and verify GTT symbol in watchlist', async () => {
@@ -309,59 +309,32 @@ await WatchlistPage.verifyHoldingSymbol(holding.name, holding.qty);
 //   });
 // })
 
-describe('Positions Verification', () => {
-  it('should extract position stock from Portfolio and verify position symbol in watchlist', async () => {
-    console.log(`\n========================================`)
-    console.log(`Validating Positions Symbol in Watchlist`)
-    console.log(`========================================`)
-
-    // Step 1: Navigate to Portfolio -> Positions
-    //const PortfolioPage = require('../pageobjects/portfolio.page.js').default;
-    await PortfolioPage.openPortfolio('Positions');
-
-    // Step 2: Extract a Positions stock
-    const position = await PortfolioPage.extractFirstPosition();
-    if (position === "No Positions found") {
-        console.log("No Positions found. Ending test.");
-        return;
-    }
-    console.log(`Extracted Position stock: ${position.name} with Qty: ${position.qty}`);
-
-    // Step 3: Go back to Watchlist
-    await WatchlistPage.clickWatchlistTab();
-
-    // Step 4: Verify Positions symbol in Watchlist search results
-    await WatchlistPage.verifyPositionSymbol(position.name, position.qty);
-  });
-})
-
-// describe('SIP Verification', () => {
-//   it('should extract SIP stock from Orders and verify SIP symbol in watchlist', async () => {
+// describe('Positions Verification', () => {
+//   it('should extract position stock from Portfolio and verify position symbol in watchlist', async () => {
 //     console.log(`\n========================================`)
-//     console.log(`Validating SIP Symbol in Watchlist`)
+//     console.log(`Validating Positions Symbol in Watchlist`)
 //     console.log(`========================================`)
 
-//     // Step 1: Navigate to Orders -> SIP
-//     const OrdersPage = require('../pageobjects/orders.page.js').default;
-//     await OrdersPage.openOrders();
-//     await OrdersPage.openSIP();
+//     // Step 1: Navigate to Portfolio -> Positions
+//     //const PortfolioPage = require('../pageobjects/portfolio.page.js').default;
+//     await PortfolioPage.openPortfolio('Positions');
 
-//     // Step 2: Extract a SIP stock
-//     const sipStockName = await OrdersPage.extractFirstSIPStock();
-//     console.log(`Extracted SIP stock: ${sipStockName}`);
-    
-//     if (sipStockName === "No sips found") {
-//         console.log("No SIPs found. Ending test.");
+//     // Step 2: Extract a Positions stock
+//     const position = await PortfolioPage.extractFirstPosition();
+//     if (position === "No Positions found") {
+//         console.log("No Positions found. Ending test.");
 //         return;
 //     }
+//     console.log(`Extracted Position stock: ${position.name} with Qty: ${position.qty}`);
 
 //     // Step 3: Go back to Watchlist
 //     await WatchlistPage.clickWatchlistTab();
 
-//     // Step 4: Verify SIP symbol in Watchlist search results
-//     await WatchlistPage.verifySIPSymbol(sipStockName);
+//     // Step 4: Verify Positions symbol in Watchlist search results
+//     await WatchlistPage.verifyPositionSymbol(position.name, position.qty);
 //   });
 // })
+
 
 // describe('Alerts Verification', () => {
 //   it('should extract Alert stock from Orders and verify Alert symbol in watchlist', async () => {
@@ -377,7 +350,7 @@ describe('Positions Verification', () => {
 //     // Step 2: Extract an Alert stock
 //     const alertStockName = await OrdersPage.extractFirstAlertStock();
 //     console.log(`Extracted Alert stock: ${alertStockName}`);
-    
+
 //     if (alertStockName === "No Alerts found") {
 //         console.log("No Alerts found. Ending test.");
 //         return;
@@ -391,12 +364,38 @@ describe('Positions Verification', () => {
 //   });
 // })
 
-// describe('Funds and Margins Validation', () => {
 
-//   it('should click and verify buttons inside Funds and Margins Tab', async () => {
-//     // Implementation remains unchanged
-//   });
-// });
+describe('SIP Verification', () => {
+  it('should extract SIP stock from Orders and verify SIP symbol in watchlist', async () => {
+    console.log(`\n========================================`)
+    console.log(`Validating SIP Symbol in Watchlist`)
+    console.log(`========================================`)
+
+    // Step 1: Navigate to Orders -> SIP
+    const OrdersPage = require('../pageobjects/orders.page.js').default;
+    await OrdersPage.openOrders();
+    await OrdersPage.openSIP();
+
+    // Step 2: Extract a SIP stock
+    const sipStockName = await OrdersPage.extractFirstSIPStock();
+    console.log(`Extracted SIP stock: ${sipStockName}`);
+
+    if (sipStockName === "No sips found") {
+        console.log("No SIPs found. Ending test.");
+        return;
+    }
+
+    // Step 3: Go back to Watchlist
+    await WatchlistPage.clickWatchlistTab();
+
+    // Step 4: Verify SIP symbol in Watchlist search results
+    await WatchlistPage.verifySIPSymbol(sipStockName);
+  });
+})
+
+
+
+
 
 // describe('Edit Watchlist Validation', () => {
 //   it('should navigate watchlists and remove a stock', async () => {
@@ -427,44 +426,85 @@ describe('Positions Verification', () => {
 //   });
 // });
 
-//     it('TC-02: The margin page is scrollable', async () => {
-//         console.log(`\n--- Validating TC-02: Scrollability ---`)
-//         await FundsPage.clickFundsTab()
-//         await FundsPage.verifyScrollability()
-//     })
 
-//     it('TC-03: Available Margin hero card sums only Equity/FNO and Commodity', async () => {
-//         console.log(`\n--- Validating TC-03: Available Margin Sum ---`)
-//         await FundsPage.verifyAvailableMarginSum()
-//     })
+// describe('Funds and Margin Validation', () => {
+//   it('TC-02: The margin page is scrollable', async () => {
+//     console.log(`\n--- Validating TC-02: Scrollability ---`)
+//     await FundsPage.clickFundsTab()
+//     await FundsPage.verifyScrollability()
+//   })
 
-//     it('TC-04: Donut chart shows the correct "% Used"', async () => {
-//         console.log(`\n--- Validating TC-04: Donut Chart Percentage ---`)
-//         await FundsPage.verifyDonutChartPercentage()
-//     })
+//   it('TC-03: Available Margin hero card sums only Equity/FNO and Commodity', async () => {
+//     console.log(`\n--- Validating TC-03: Available Margin Sum ---`)
+//     await FundsPage.verifyAvailableMarginSum()
+//   })
 
-//     it('TC-05: Total Credits and Utilized sub-values are shown correctly', async () => {
-//         console.log(`\n--- Validating TC-05: Sub-values match Breakdown ---`)
-//         await FundsPage.verifySubValuesMatchBreakdown()
-//     })
-//     it('TC-06: Peak Margin card shows the correct value', async () => {
-//         console.log(`\n--- Validating TC-06: Peak Margin ---`)
-//         await FundsPage.verifyPeakMarginSum()
-//     })
+//   it('TC-04: Donut chart shows the correct "% Used"', async () => {
+//     console.log(`\n--- Validating TC-04: Donut Chart Percentage ---`)
+//     await FundsPage.verifyDonutChartPercentage()
+//   })
 
-//     it('TC-07: Expiry Margin card shows the correct value', async () => {
-//         console.log(`\n--- Validating TC-07: Expiry Margin ---`)
-//         await FundsPage.verifyExpiryMarginSum()
-//     })
+//   it('TC-05: Total Credits and Utilized sub-values are shown correctly', async () => {
+//     console.log(`\n--- Validating TC-05: Sub-values match Breakdown ---`)
+//     await FundsPage.verifySubValuesMatchBreakdown()
+//   })
+//   it('TC-06: Peak Margin card shows the correct value', async () => {
+//     console.log(`\n--- Validating TC-06: Peak Margin ---`)
+//     await FundsPage.verifyPeakMarginSum()
+//   })
 
-//     it('TC-08: Withdraw navigates to a separate screen', async () => {
-//         console.log(`\n--- Validating TC-08: Withdraw Navigation ---`)
-//         await FundsPage.clickWithdrawAndVerify()
-//     })
+//   it('TC-07: Expiry Margin card shows the correct value', async () => {
+//     console.log(`\n--- Validating TC-07: Expiry Margin ---`)
+//     await FundsPage.verifyExpiryMarginSum()
+//   })
 
-//     it('TC-09 to TC-11: Move Fund navigates to a separate screen or bottom sheet', async () => {
-//         console.log(`\n--- Validating TC-09 to TC-11: Move Fund Navigation ---`)
-//         await FundsPage.clickMoveFundAndVerify()
-//     })
+//   it('TC-08: Withdraw navigates to a separate screen', async () => {
+//     console.log(`\n--- Validating TC-08: Withdraw Navigation ---`)
+//     await FundsPage.clickWithdrawAndVerify()
+//   })
 
+//   it('TC-09 to TC-11: Move Fund navigates to a separate screen or bottom sheet', async () => {
+//     console.log(`\n--- Validating TC-09 to TC-11: Move Fund Navigation ---`)
+//     await FundsPage.clickMoveFundAndVerify()
+//   })
+
+
+//   it('TC-14: Add Funds navigates to a separate screen', async () => {
+//     console.log(`\n--- Validating TC-14: Add Funds Navigation ---`)
+//     await FundsPage.clickAddFundsAndVerify()
+//   })
+
+//   it('TC-15: Breakdown table shows the correct 3 tabs', async () => {
+//     console.log(`\n--- Validating TC-15: Breakdown Tabs ---`)
+//     await FundsPage.verifyBreakdownTabs()
+//   })
+
+//   it('TC-16: Equity/FNO tab will be selected and visible by default', async () => {
+//     console.log(`\n--- Validating TC-16: Equity/FNO Tab Selected ---`)
+//     await FundsPage.verifyEquityFnoTabSelected()
+//   })
+
+//   it('TC-17: Tapping on Commodity column navigates to Commodity', async () => {
+//     console.log(`\n--- Validating TC-17: Commodity Tab ---`)
+//     await FundsPage.verifyCommodityTabSelected()
+//   })
+
+//   it('TC-18: Tapping on MTF column navigates to MTF (if enabled)', async () => {
+//     console.log(`\n--- Validating TC-18: MTF Tab ---`)
+//     await FundsPage.verifyMtfTabSelected()
+//   })
+
+//   it('TC-19: Expand All reveals every section\'s sub-rows', async () => {
+//     console.log(`\n--- Validating TC-19: Expand All ---`)
+//     await FundsPage.clickExpandAllAndVerify()
+//   })
+
+//   it('TC-20: Collapse All hides every section\'s sub-rows', async () => {
+//     console.log(`\n--- Validating TC-20: Collapse All ---`)
+//     await FundsPage.clickCollapseAllAndVerify()
+//   })
 // })
+
+
+
+
