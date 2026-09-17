@@ -91,3 +91,13 @@ gttStockRows,"android=new UiSelector().descriptionContains(""Qty"")"
 gttToggle,~Show GTT
 positionsTab,"android=new UiSelector().descriptionContains(""Positions"")"
 positionsToggle,~Show Position
+
+sipTab,"~SIP"
+sipStockRows,"android=new UiSelector().descriptionContains(""Instalments"")"
+viewSipBtn,"~View"
+sipScripRows,"android=new UiSelector().descriptionContains(""Qty:"")"
+showSipToggle,"~Show SIP"
+
+alertsTab,"~Alerts"
+alertStockRows,"android=new UiSelector().descriptionContains(""Pending"").or(new UiSelector().descriptionContains(""Triggered""))"
+showAlertsToggle,"~Show Alerts"

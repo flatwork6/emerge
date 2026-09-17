@@ -89,7 +89,7 @@ class ProfilePage {
                 currentPrivilege = 'Currency'
             } else if (lowerText.includes('commodity')) {
                 currentPrivilege = 'Commodity'
-            } else if (text === 'MTF' || text.includes('MTF\n') || text.includes('MTF ')) {
+            } else if (lowerText.includes('mtf') || lowerText.includes('margin trading')) {
                 currentPrivilege = 'MTF'
             }
 

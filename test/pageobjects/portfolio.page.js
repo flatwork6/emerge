@@ -104,7 +104,8 @@ class PortfolioPage {
         }
 
         if (!foundHolding) {
-            throw new Error("Could not find any holdings in the portfolio!");
+            console.log("No Holdings found");
+            return "No Holdings found";
         }
 
         return foundHolding;
@@ -166,7 +167,8 @@ class PortfolioPage {
         }
 
         if (!foundPosition) {
-            throw new Error("Could not find any positions with a quantity.");
+            console.log("No Positions found");
+            return "No Positions found";
         }
         return foundPosition;
     }

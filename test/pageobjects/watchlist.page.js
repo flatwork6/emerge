@@ -2012,6 +2012,12 @@ class WatchlistPage {
     get positionsToggle() {
         return $(locators.get('positionsToggle'))
     }
+    get showSipToggle() {
+        return $(locators.get('showSipToggle'))
+    }
+    get showAlertsToggle() {
+        return $(locators.get('showAlertsToggle'))
+    }
 
     async verifyPositionSymbol(stockName, quantity) {
         console.log(`Verifying positions toggle behavior for ${stockName} with qty ${quantity}...`);
@@ -2023,6 +2029,8 @@ class WatchlistPage {
             await this.clickSearchIcon();
             await this.enterScripName(stockName);
             await this.selectExchangeFilter('ALL');
+            await this.addFirstScripToWatchlist();
+
             await driver.pause(1500);
 
             const potentialElems = await $$(`android=new UiSelector().descriptionMatches(".*(NSE|BSE|CDS|MCX|NFO|BFO|EQ|FUT).*")`);
@@ -2114,6 +2122,201 @@ class WatchlistPage {
         allure.addStep(`✅ [TC VERIFIED]: Positions toggle successfully verified and reverted.`);
     }
 
+    async verifySIPSymbol(stockName) {
+        console.log(`Verifying SIP toggle behavior for ${stockName}...`);
+
+        const getSIPStatusInSearch = async () => {
+            console.log(`Searching for ${stockName} via search bar...`);
+            await this.clickSearchIcon();
+            await this.enterScripName(stockName);
+            await this.selectExchangeFilter('ALL');
+            await this.addFirstScripToWatchlist();
+
+            await driver.pause(1500);
+
+            const potentialElems = await $$(`android=new UiSelector().descriptionMatches(".*(NSE|BSE|CDS|MCX|NFO|BFO|EQ|FUT).*")`);
+            let isSIPVisible = false;
+
+            for (const elem of potentialElems) {
+                if (await elem.isDisplayed().catch(() => false)) {
+                    const desc = await elem.getAttribute("content-desc").catch(() => "");
+                    if (desc && (desc.includes('📅') || desc.includes('🗓') || desc.includes('🗓️'))) {
+                        isSIPVisible = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!isSIPVisible) {
+                console.log(`SIP symbol not found in search results.`);
+            }
+
+            await this.closeSearch();
+            return isSIPVisible;
+        };
+
+        const isInitiallyEnabled = await getSIPStatusInSearch();
+
+        console.log(`Initial state: SIP toggle appears to be ${isInitiallyEnabled ? 'ENABLED' : 'DISABLED'}.`);
+
+        const toggleSetting = async () => {
+            console.log(`Toggling SIP in Market Watch settings...`);
+            await this.openMarketWatchSettings();
+            try {
+                await driver.performActions([{
+                    type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
+                    actions: [
+                        { type: 'pointerMove', duration: 0, x: 500, y: 1500 },
+                        { type: 'pointerDown', button: 0 },
+                        { type: 'pointerMove', duration: 400, x: 500, y: 500 },
+                        { type: 'pointerUp', button: 0 }
+                    ]
+                }]);
+                await driver.pause(1000);
+            } catch (e) { }
+
+            await this.showSipToggle.waitForDisplayed({ timeout: 5000 });
+            await this.showSipToggle.click();
+            await driver.pause(1000);
+            await this.closeMarketWatchSettings();
+        };
+
+        await toggleSetting();
+
+        console.log("Checking search results after first toggle...");
+        const isToggled1Enabled = await getSIPStatusInSearch();
+
+        if (isInitiallyEnabled) {
+            if (isToggled1Enabled) {
+                throw new Error(`SIP symbol is still visible for ${stockName} after disabling the SIP toggle!`);
+            } else {
+                console.log(`✅ [TC VERIFIED]: SIP symbol correctly hidden after disabling toggle.`);
+            }
+        } else {
+            if (!isToggled1Enabled) {
+                throw new Error(`SIP symbol is NOT visible for ${stockName} after enabling the SIP toggle!`);
+            } else {
+                console.log(`✅ [TC VERIFIED]: SIP symbol correctly shown after enabling toggle.`);
+            }
+        }
+
+        console.log(`Reverting SIP toggle to original state...`);
+        await toggleSetting();
+
+        console.log("Checking search results after reverting toggle...");
+        const isToggled2Enabled = await getSIPStatusInSearch();
+
+        if (isInitiallyEnabled) {
+            if (!isToggled2Enabled) {
+                throw new Error(`Failed to revert: SIP symbol is NOT visible for ${stockName}.`);
+            }
+        } else {
+            if (isToggled2Enabled) {
+                throw new Error(`Failed to revert: SIP symbol is still visible for ${stockName}.`);
+            }
+        }
+
+        console.log(`✅ [TC VERIFIED]: SIP toggle successfully verified and reverted.`);
+        allure.addStep(`✅ [TC VERIFIED]: SIP toggle successfully verified and reverted.`);
+    }
+
+    async verifyAlertSymbol(stockName) {
+        console.log(`Verifying Alerts toggle behavior for ${stockName}...`);
+
+        const getAlertStatusInSearch = async () => {
+            console.log(`Searching for ${stockName} via search bar...`);
+            await this.clickSearchIcon();
+            await this.enterScripName(stockName);
+            await this.selectExchangeFilter('ALL');
+            await this.addFirstScripToWatchlist();
+            await driver.pause(1500);
+
+            const potentialElems = await $$(`android=new UiSelector().descriptionMatches(".*(NSE|BSE|CDS|MCX|NFO|BFO|EQ|FUT).*")`);
+            let isAlertVisible = false;
+
+            for (const elem of potentialElems) {
+                if (await elem.isDisplayed().catch(() => false)) {
+                    const desc = await elem.getAttribute("content-desc").catch(() => "");
+                    if (desc && (desc.includes('🔔'))) {
+                        isAlertVisible = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!isAlertVisible) {
+                console.log(`Alert symbol not found in search results.`);
+            }
+
+            await this.closeSearch();
+            return isAlertVisible;
+        };
+
+        const isInitiallyEnabled = await getAlertStatusInSearch();
+
+        console.log(`Initial state: Alerts toggle appears to be ${isInitiallyEnabled ? 'ENABLED' : 'DISABLED'}.`);
+
+        const toggleSetting = async () => {
+            console.log(`Toggling Alerts in Market Watch settings...`);
+            await this.openMarketWatchSettings();
+            try {
+                await driver.performActions([{
+                    type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
+                    actions: [
+                        { type: 'pointerMove', duration: 0, x: 500, y: 1500 },
+                        { type: 'pointerDown', button: 0 },
+                        { type: 'pointerMove', duration: 400, x: 500, y: 500 },
+                        { type: 'pointerUp', button: 0 }
+                    ]
+                }]);
+                await driver.pause(1000);
+            } catch (e) { }
+
+            await this.showAlertsToggle.waitForDisplayed({ timeout: 5000 });
+            await this.showAlertsToggle.click();
+            await driver.pause(1000);
+            await this.closeMarketWatchSettings();
+        };
+
+        await toggleSetting();
+
+        console.log("Checking search results after first toggle...");
+        const isToggled1Enabled = await getAlertStatusInSearch();
+
+        if (isInitiallyEnabled) {
+            if (isToggled1Enabled) {
+                throw new Error(`Alert symbol is still visible for ${stockName} after disabling the Alerts toggle!`);
+            } else {
+                console.log(`✅ [TC VERIFIED]: Alert symbol correctly hidden after disabling toggle.`);
+            }
+        } else {
+            if (!isToggled1Enabled) {
+                throw new Error(`Alert symbol is NOT visible for ${stockName} after enabling the Alerts toggle!`);
+            } else {
+                console.log(`✅ [TC VERIFIED]: Alert symbol correctly shown after enabling toggle.`);
+            }
+        }
+
+        console.log(`Reverting Alerts toggle to original state...`);
+        await toggleSetting();
+
+        console.log("Checking search results after reverting toggle...");
+        const isToggled2Enabled = await getAlertStatusInSearch();
+
+        if (isInitiallyEnabled) {
+            if (!isToggled2Enabled) {
+                throw new Error(`Failed to revert: Alert symbol is NOT visible for ${stockName}.`);
+            }
+        } else {
+            if (isToggled2Enabled) {
+                throw new Error(`Failed to revert: Alert symbol is still visible for ${stockName}.`);
+            }
+        }
+
+        console.log(`✅ [TC VERIFIED]: Alerts toggle successfully verified and reverted.`);
+        allure.addStep(`✅ [TC VERIFIED]: Alerts toggle successfully verified and reverted.`);
+    }
+
     get editWatchlistPencilIcon() {
         // The pencil icon is instance 15 on the Watchlist page
         return $(`android=new UiSelector().className("android.view.View").instance(15)`);
@@ -2128,7 +2331,7 @@ class WatchlistPage {
 
     async verifyAllWatchlistsByClickingTabs(expectedNames = []) {
         console.log("Verifying all watchlist tabs by clicking them in My Watchlists...");
-        
+
         if (!expectedNames || expectedNames.length === 0) {
             console.log("No expected names provided. Cannot verify tabs.");
             return;
@@ -2136,10 +2339,10 @@ class WatchlistPage {
 
         for (let i = 0; i < expectedNames.length; i++) {
             const expected = expectedNames[i];
-            
+
             // Use UiScrollable to automatically scroll horizontally until the tab is found
             let tab = $(`android=new UiScrollable(new UiSelector().className("android.widget.HorizontalScrollView")).setAsHorizontalList().scrollIntoView(new UiSelector().description("${expected}"))`);
-            
+
             if (await tab.isExisting()) {
                 console.log(`✅ Verified and found tab: ${expected}`);
                 await tab.click();
@@ -2148,7 +2351,7 @@ class WatchlistPage {
                 throw new Error(`Failed to find tab '${expected}' even after UiScrollable attempted to scroll!`);
             }
         }
-        
+
         console.log(`Successfully verified all ${expectedNames.length} watchlist tabs.`);
     }
 
@@ -2168,14 +2371,14 @@ class WatchlistPage {
         // Stock rows are located inside a ScrollView
         const row = $(`android=new UiSelector().className("android.widget.ScrollView").childSelector(new UiSelector().className("android.view.View").instance(${index}))`);
         await row.waitForDisplayed({ timeout: 5000 });
-        
+
         const desc = await row.getAttribute("content-desc").catch(() => "");
         console.log(`Stock to delete: ${desc.replace(/\n/g, ' ')}`);
 
         // Because the dustbin doesn't have a separate accessibility node, we tap the far right of the row bounds
         const location = await row.getLocation();
         const size = await row.getSize();
-        
+
         const clickX = location.x + size.width - 60; // Approx 60 pixels from the right edge
         const clickY = location.y + Math.floor(size.height / 2); // Center vertically
 
@@ -2191,7 +2394,7 @@ class WatchlistPage {
                 { type: 'pointerUp', button: 0 }
             ]
         }]);
-        
+
         console.log("Waiting 4 seconds to observe the deletion snackbar...");
         await driver.pause(4000); // Wait longer to observe deletion snackbar
     }
