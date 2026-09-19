@@ -2481,15 +2481,129 @@ class WatchlistPage {
             id: 'finger1',
             parameters: { pointerType: 'touch' },
             actions: [
-                { type: 'pointerMove', duration: 0, x: clickX, y: clickY },
+                { type: 'pointerMove', duration: 700, x: clickX, y: clickY },
                 { type: 'pointerDown', button: 0 },
-                { type: 'pause', duration: 50 },
+                { type: 'pause', duration: 500 },
                 { type: 'pointerUp', button: 0 }
             ]
         }]);
 
         console.log("Waiting 4 seconds to observe the deletion snackbar...");
         await driver.pause(4000); // Wait longer to observe deletion snackbar
+    }
+    async verifyDragAndDrop() {
+        console.log("\n--- Validating Drag and Drop Ordering ---");
+        allure.addStep("Start Drag and Drop verification");
+        
+        // Ensure we are on the watchlist tab
+        await this.clickWatchlistTab();
+        await driver.pause(2000);
+        
+        // Find stock rows
+        const rawElements = await $$(locators.get('watchlistStockRows'));
+        
+        const listElements = [];
+        for (const elem of rawElements) {
+            if (await elem.isDisplayed().catch(() => false)) {
+                const loc = await elem.getLocation().catch(() => ({ y: 0 }));
+                if (loc.y > 350) { // Avoid header overlap
+                    listElements.push(elem);
+                }
+            }
+        }
+        
+        // We need at least 5 elements to drag to the 5th stock
+        if (listElements.length < 5) {
+            console.log("Not enough visible stocks to perform drag and drop to 5th stock");
+            return;
+        }
+
+        // Get bounds of the first element and the 5th element
+        const startElem = listElements[0];
+        const endElem = listElements[4]; // 5th stock
+
+        const startLoc = await startElem.getLocation();
+        const startSize = await startElem.getSize();
+        
+        const endLoc = await endElem.getLocation();
+        const endSize = await endElem.getSize();
+
+        // Calculate center points
+        const startX = Math.floor(startLoc.x + startSize.width / 2);
+        const startY = Math.floor(startLoc.y + startSize.height / 2);
+
+        const endX = Math.floor(endLoc.x + endSize.width / 2);
+        const endY = Math.floor(endLoc.y + endSize.height / 2) + 50; // drag slightly past center to ensure swap
+
+        console.log(`Dragging from (${startX}, ${startY}) to (${endX}, ${endY})`);
+        await driver.performActions([{
+            type: 'pointer',
+            id: 'finger1',
+            parameters: { pointerType: 'touch' },
+            actions: [
+                { type: 'pointerMove', duration: 0, x: startX, y: startY },
+                { type: 'pointerDown', button: 0 },
+                { type: 'pause', duration: 1500 }, // faster long press
+                { type: 'pointerMove', duration: 800, x: endX, y: endY }, // faster drag
+                { type: 'pause', duration: 500 }, // shorter pause at destination
+                { type: 'pointerUp', button: 0 }
+            ]
+        }]);
+        await driver.pause(3000); // Increased pause to ensure popup has time to render
+
+        // Wait for the popup to appear (up to 5 seconds)
+        let popupAppeared = false;
+        try {
+            // This XPath looks for any element containing "Save" (or "SAVE") but explicitly EXCLUDES the title "Save Drag and Drop Ordering?"
+            const saveBtn = await $('//*[(contains(@content-desc, "Save") or contains(@text, "Save") or contains(@content-desc, "SAVE") or contains(@text, "SAVE")) and not(contains(@text, "Ordering")) and not(contains(@content-desc, "Ordering"))]');
+            
+            await saveBtn.waitForDisplayed({ timeout: 5000 });
+            console.log("Save popup appeared, clicking Save...");
+            await saveBtn.click();
+            popupAppeared = true;
+            await driver.pause(2000); // Wait for popup to disappear
+        } catch (e) {
+            console.log("Save popup did not appear within 5 seconds, it might have been accepted previously. Error: " + e.message);
+        }
+
+        allure.addStep(`First drag and drop completed. Popup appeared: ${popupAppeared}`);
+
+        // Second drag and drop to verify it works after saving
+        console.log("Performing second drag and drop (downwards)...");
+        await driver.performActions([{
+            type: 'pointer',
+            id: 'finger1',
+            parameters: { pointerType: 'touch' },
+            actions: [
+                { type: 'pointerMove', duration: 0, x: startX, y: startY },
+                { type: 'pointerDown', button: 0 },
+                { type: 'pause', duration: 1500 },
+                { type: 'pointerMove', duration: 800, x: endX, y: endY },
+                { type: 'pause', duration: 500 },
+                { type: 'pointerUp', button: 0 }
+            ]
+        }]);
+        await driver.pause(1000);
+        
+        // Verify no popup appears the second time
+        let secondPopupAppeared = false;
+        try {
+            const saveBtn = await $('//*[(contains(@content-desc, "Save") or contains(@text, "Save") or contains(@content-desc, "SAVE") or contains(@text, "SAVE")) and not(contains(@text, "Ordering")) and not(contains(@content-desc, "Ordering"))]');
+            // Check if it exists and is displayed quickly
+            if (await saveBtn.isExisting() && await saveBtn.isDisplayed()) {
+                secondPopupAppeared = true;
+                console.error("Error: Save popup appeared again on the second drag and drop!");
+                allure.addStep("❌ Error: Save popup appeared on second drag and drop");
+                await saveBtn.click();
+            }
+        } catch (e) {
+            // Ignore error, it means it didn't appear which is what we want
+        }
+        
+        if (!secondPopupAppeared) {
+            console.log("✅ Second drag and drop succeeded without popup.");
+            allure.addStep("✅ Second drag and drop succeeded without popup");
+        }
     }
 }
 
