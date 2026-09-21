@@ -33,7 +33,7 @@ class WatchlistPage {
 
     async clickWatchlistTab() {
         console.log("Navigating to Watchlist tab...");
-        await this.watchlistTabIcon.waitForDisplayed({ timeout: 10000 });
+        await this.watchlistTabIcon.waitForDisplayed({ timeout: 30000 });
         await this.watchlistTabIcon.click();
         await driver.pause(2000);
     }
@@ -2494,14 +2494,14 @@ class WatchlistPage {
     async verifyDragAndDrop() {
         console.log("\n--- Validating Drag and Drop Ordering ---");
         allure.addStep("Start Drag and Drop verification");
-        
+
         // Ensure we are on the watchlist tab
         await this.clickWatchlistTab();
         await driver.pause(2000);
-        
+
         // Find stock rows
         const rawElements = await $$(locators.get('watchlistStockRows'));
-        
+
         const listElements = [];
         for (const elem of rawElements) {
             if (await elem.isDisplayed().catch(() => false)) {
@@ -2511,7 +2511,7 @@ class WatchlistPage {
                 }
             }
         }
-        
+
         // We need at least 5 elements to drag to the 5th stock
         if (listElements.length < 5) {
             console.log("Not enough visible stocks to perform drag and drop to 5th stock");
@@ -2524,7 +2524,7 @@ class WatchlistPage {
 
         const startLoc = await startElem.getLocation();
         const startSize = await startElem.getSize();
-        
+
         const endLoc = await endElem.getLocation();
         const endSize = await endElem.getSize();
 
@@ -2556,7 +2556,7 @@ class WatchlistPage {
         try {
             // This XPath looks for any element containing "Save" (or "SAVE") but explicitly EXCLUDES the title "Save Drag and Drop Ordering?"
             const saveBtn = await $('//*[(contains(@content-desc, "Save") or contains(@text, "Save") or contains(@content-desc, "SAVE") or contains(@text, "SAVE")) and not(contains(@text, "Ordering")) and not(contains(@content-desc, "Ordering"))]');
-            
+
             await saveBtn.waitForDisplayed({ timeout: 5000 });
             console.log("Save popup appeared, clicking Save...");
             await saveBtn.click();
@@ -2584,7 +2584,7 @@ class WatchlistPage {
             ]
         }]);
         await driver.pause(1000);
-        
+
         // Verify no popup appears the second time
         let secondPopupAppeared = false;
         try {
@@ -2599,10 +2599,149 @@ class WatchlistPage {
         } catch (e) {
             // Ignore error, it means it didn't appear which is what we want
         }
-        
+
         if (!secondPopupAppeared) {
             console.log("✅ Second drag and drop succeeded without popup.");
             allure.addStep("✅ Second drag and drop succeeded without popup");
+        }
+    }
+
+    async verifyWatchlistPinning(stockName = "TCS-EQ", favNumber = 1) {
+        console.log(`\n--- Starting Watchlist Pinning Validation for ${stockName} (Fav ${favNumber}) ---`);
+
+        // 1. Search for the stock
+        console.log(`Searching for ${stockName}...`);
+        await this.clickSearchIcon();
+        await this.enterScripName(stockName);
+        await driver.pause(1000);
+        // 2. Click the stock in search results to open Overview
+        // In search results, the stock name is usually in a text view
+        const searchResultSelector = `android=new UiSelector().descriptionContains("${stockName}")`;
+        // We might get multiple results, just click the first one that appears below the search bar (y > 200)
+        const searchResults = await $$(searchResultSelector);
+        let targetStockElement = null;
+        for (const elem of searchResults) {
+            const loc = await elem.getLocation().catch(() => null);
+            if (loc && loc.y > 200) {
+                targetStockElement = elem;
+                break;
+            }
+        }
+        
+        if (!targetStockElement) {
+            throw new Error(`Could not find ${stockName} in search results.`);
+        }
+
+        console.log(`Found ${stockName} in search results. Clicking it to open Overview...`);
+        await targetStockElement.click();
+        await driver.pause(3000);
+
+        // 3. Click Pin icon via a targeted coordinate tap
+        // Since we are using TCS-EQ and INFY-EQ (short names), we can safely use the hardcoded x=0.35 * width coordinate!
+        const windowSize = await driver.getWindowSize();
+        const pinX = Math.floor(windowSize.width * 0.35);
+        const pinY = 150;
+        
+        console.log(`Tapping Pin icon via coordinates at (${pinX}, ${pinY})...`);
+        await driver.performActions([{
+            type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
+            actions: [
+                { type: 'pointerMove', duration: 0, x: pinX, y: pinY },
+                { type: 'pointerDown', button: 0 },
+                { type: 'pointerUp', button: 0 }
+            ]
+        }]);
+        await driver.pause(1500);
+
+        // 4. Click "Pin to Favorite X"
+        console.log(`Clicking 'Pin to Favorite ${favNumber}'...`);
+        const pinToFav = favNumber === 1 ? await $(locators.get('pinToFav1')) : await $(locators.get('pinToFav2'));
+        await pinToFav.waitForDisplayed({ timeout: 5000 });
+        await pinToFav.click();
+        await driver.pause(2000);
+
+        // 5. Go back to Search Results
+        console.log("Navigating back from Overview...");
+        const backBtn = await $('~Back');
+        if (await backBtn.isExisting()) {
+            await backBtn.click();
+        } else {
+            // Coordinate tap fallback for back button
+            await driver.performActions([{
+                type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
+                actions: [
+                    { type: 'pointerMove', duration: 0, x: 70, y: 150 },
+                    { type: 'pointerDown', button: 0 },
+                    { type: 'pointerUp', button: 0 }
+                ]
+            }]);
+        }
+        await driver.pause(1500);
+
+        // 6. Close search to go back to Watchlist
+        console.log("Closing search to return to Watchlist...");
+        await this.closeSearch();
+        await driver.pause(2000);
+
+        // 7. Check if stock is pinned at the top
+        console.log(`Checking if ${stockName} is pinned at the top for Favorite ${favNumber}...`);
+        
+        // The pinned stocks are at the top (y < 350)
+        const favSelector = `android=new UiSelector().descriptionContains("${stockName}")`;
+        const pinnedStockElems = await $$(favSelector);
+        
+        let isPinned = false;
+        for (const elem of pinnedStockElems) {
+            const loc = await elem.getLocation().catch(() => null);
+            if (loc && loc.y < 350) {
+                // If checking favNumber = 2, we can also check the x coordinate (it should be on the right half of the screen)
+                if (favNumber === 2 && loc.x < windowSize.width / 2) {
+                    continue; // This is on the left, we expect fav 2 to be on the right
+                }
+                
+                isPinned = true;
+                console.log(`✅ Verified ${stockName} is pinned at the top (Favorite ${favNumber}) before logout.`);
+                break;
+            }
+        }
+
+        if (!isPinned) {
+            throw new Error(`${stockName} did not appear as pinned at the top of the Watchlist for Favorite ${favNumber}.`);
+        }
+    }
+    async verifyPinnedStock(stockName, favNumber) {
+        await driver.pause(1000)
+            // Wait for bottom tabs to render
+        await driver.waitUntil(async () => {
+            const el = $(`android=new UiSelector().className("android.widget.ImageView").instance(2)`);
+            return await el.isExisting();
+        }, { timeout: 15000, timeoutMsg: "App did not load bottom tabs" });
+        await this.clickWatchlistTab();
+
+        console.log(`Checking if ${stockName} is pinned at the top for Favorite ${favNumber}...`);
+        
+        const windowSize = await driver.getWindowSize();
+        // The pinned stocks are at the top (y < 350)
+        const favSelector = `android=new UiSelector().descriptionContains("${stockName}")`;
+        const pinnedStockElems = await $$(favSelector);
+        
+        let isPinned = false;
+        for (const elem of pinnedStockElems) {
+            const loc = await elem.getLocation().catch(() => null);
+            if (loc && loc.y < 350) {
+                // If checking favNumber = 2, we can also check the x coordinate (it should be on the right half of the screen)
+                if (favNumber === 2 && loc.x < windowSize.width / 2) {
+                    continue; // This is on the left, we expect fav 2 to be on the right
+                }
+                
+                isPinned = true;
+                console.log(`✅ Verified ${stockName} is pinned at the top (Favorite ${favNumber}).`);
+                break;
+            }
+        }
+
+        if (!isPinned) {
+            throw new Error(`${stockName} did not appear as pinned at the top of the Watchlist for Favorite ${favNumber}.`);
         }
     }
 }

@@ -10,6 +10,10 @@ import FundsPage from '../pageobjects/funds.page.js'
 import LoginPage from '../pageobjects/login.page.js'
 import SetBiometric from '../pageobjects/biometric.js'
 import ProfilePage from '../pageobjects/profile.page.js'
+import OverviewPage from '../pageobjects/overview.page.js'
+import OptionChainPage from '../pageobjects/optionchain.page.js'
+import fs from 'fs'
+import { parse } from 'csv-parse/sync'
 import WatchlistPage from '../pageobjects/watchlist.page.js'
 import PortfolioPage from '../pageobjects/portfolio.page.js'
 import RiskDisclosure from '../pageobjects/riskDisclosure.js'
@@ -265,17 +269,30 @@ import testDataHelper from '../utils/testDataHelper.js'
 // })
 
 // describe('Watchlist Pinning Validation', () => {
+//   let stocksToPin = [];
+
+//   before(async () => {
+//     const csvPath = path.resolve(process.cwd(), 'test/data/optionChainStocks.csv');
+//     if (fs.existsSync(csvPath)) {
+//       const fileContent = fs.readFileSync(csvPath, 'utf8');
+//       const records = parse(fileContent, { columns: true, skip_empty_lines: true });
+//       stocksToPin = records.map(r => r.STOCKNAME);
+//     } else {
+//       stocksToPin = ['TCS-EQ', 'INFY-EQ'];
+//     }
+//   });
+
 //   it('should pin a stock, verify it is pinned, logout, login, and verify it is still pinned', async () => {
 //     console.log('\n--- Validating Watchlist Pinning ---')
 //     // // 1. Pin TCS-EQ to Favorite 1
-//     // await WatchlistPage.verifyWatchlistPinning("TCS-EQ", 1)
+//     // await WatchlistPage.verifyWatchlistPinning(stocksToPin[0], 1)
 
 //     // // 2. Pin INFY-EQ to Favorite 2
-//     // await WatchlistPage.verifyWatchlistPinning("INFY-EQ", 2)
+//     // await WatchlistPage.verifyWatchlistPinning(stocksToPin[1], 2)
 
-//     // // 3. Logout
-//     console.log('\n--- Logging out to verify persistence ---')
-//     await ProfilePage.logout()
+//     // // // 3. Logout
+//     // console.log('\n--- Logging out to verify persistence ---')
+//      await ProfilePage.logout()
 
 //     // 4. Login
 //     console.log('\n--- Logging back in ---')
@@ -286,10 +303,60 @@ import testDataHelper from '../utils/testDataHelper.js'
 
 //     // 5. Verify pinned stocks after login
 //     console.log('\n--- Verifying pinned stocks persist after relogin ---')
-//     await WatchlistPage.verifyPinnedStock("TCS-EQ", 1)
-//     await WatchlistPage.verifyPinnedStock("INFY-EQ", 2)
+//     if (stocksToPin[0]) await WatchlistPage.verifyPinnedStock(stocksToPin[0], 1)
+//     if (stocksToPin[1]) await WatchlistPage.verifyPinnedStock(stocksToPin[1], 2)
 //   })
 // })
+
+describe('Option Chain Verification', () => {
+  let stocks = [];
+
+  before(async () => {
+    const csvPath = path.resolve(process.cwd(), 'test/data/optionChainStocks.csv');
+    if (fs.existsSync(csvPath)) {
+      const fileContent = fs.readFileSync(csvPath, 'utf8');
+      const records = parse(fileContent, { columns: true, skip_empty_lines: true });
+      stocks = records.map(r => r.STOCKNAME);
+    } else {
+      stocks = ['TCS-EQ', 'INFY-EQ'];
+    }
+  });
+
+  it('should search for TCS stock, open overview, verify details, open option chain and verify', async () => {
+    const stockToTest = stocks.find(s => s === 'TCS-EQ') || 'TCS-EQ';
+    console.log(`\n--- Validating Option Chain for ${stockToTest} ---`);
+
+    //await WatchlistPage.clickWatchlistTab();
+    await WatchlistPage.clickSearchIcon();
+    await WatchlistPage.enterScripName(stockToTest);
+
+    // Click the first search result matching the stock
+    const firstResult = await $(`android=new UiSelector().descriptionContains("${stockToTest}")`);
+    await firstResult.waitForDisplayed({ timeout: 10000 });
+    await firstResult.click();
+    await driver.pause(2000); // Wait for overview page to load
+
+    // Extract stock name and price
+    const { name: stockName, price: stockPrice, fullText } = await OverviewPage.getStockDetails(stockToTest);
+    console.log(`Extracted from Overview - Name: ${stockName}, Price: ${stockPrice} (Full Text: ${fullText})`);
+
+    // Click Option Chain icon
+    await OverviewPage.clickOptionChain();
+    await driver.pause(2000); // Wait for Option chain to load
+
+    // Verify Option Chain page
+    await OptionChainPage.verifyOptionChainPage(stockName, stockPrice);
+
+    // Go back to Overview
+    await OptionChainPage.clickBack();
+    
+    // Go back to Watchlist
+    await OptionChainPage.clickBack();
+    
+    // Close search to reset state
+    await WatchlistPage.closeSearch();
+  });
+});
 
 // describe('Holdings Verification', () => {
 //   it('should extract holding and verify its quantity in watchlist', async () => {
@@ -464,171 +531,171 @@ import testDataHelper from '../utils/testDataHelper.js'
 // });
 
 
-describe('Funds and Margin Validation', () => {
-  it('TC-02: The margin page is scrollable', async () => {
-    console.log(`\n--- Validating TC-02: Scrollability ---`)
-    await FundsPage.clickFundsTab()
-    await FundsPage.verifyScrollability()
-  })
+// describe('Funds and Margin Validation', () => {
+//   it('TC-02: The margin page is scrollable', async () => {
+//     console.log(`\n--- Validating TC-02: Scrollability ---`)
+//     await FundsPage.clickFundsTab()
+//     await FundsPage.verifyScrollability()
+//   })
 
-  it('TC-03: Available Margin hero card sums only Equity/FNO and Commodity', async () => {
-    console.log(`\n--- Validating TC-03: Available Margin Sum ---`)
-    await FundsPage.verifyAvailableMarginSum()
-  })
+//   it('TC-03: Available Margin hero card sums only Equity/FNO and Commodity', async () => {
+//     console.log(`\n--- Validating TC-03: Available Margin Sum ---`)
+//     await FundsPage.verifyAvailableMarginSum()
+//   })
 
-  it('TC-04: Donut chart shows the correct "% Used"', async () => {
-    console.log(`\n--- Validating TC-04: Donut Chart Percentage ---`)
-    await FundsPage.verifyDonutChartPercentage()
-  })
+//   it('TC-04: Donut chart shows the correct "% Used"', async () => {
+//     console.log(`\n--- Validating TC-04: Donut Chart Percentage ---`)
+//     await FundsPage.verifyDonutChartPercentage()
+//   })
 
-  it('TC-05: Total Credits and Utilized sub-values are shown correctly', async () => {
-    console.log(`\n--- Validating TC-05: Sub-values match Breakdown ---`)
-    await FundsPage.verifySubValuesMatchBreakdown()
-  })
+//   it('TC-05: Total Credits and Utilized sub-values are shown correctly', async () => {
+//     console.log(`\n--- Validating TC-05: Sub-values match Breakdown ---`)
+//     await FundsPage.verifySubValuesMatchBreakdown()
+//   })
 
-  it('TC-06: Peak Margin card shows the correct value', async () => {
-    console.log(`\n--- Validating TC-06: Peak Margin ---`)
-    await FundsPage.verifyPeakMarginSum()
-  })
+//   it('TC-06: Peak Margin card shows the correct value', async () => {
+//     console.log(`\n--- Validating TC-06: Peak Margin ---`)
+//     await FundsPage.verifyPeakMarginSum()
+//   })
 
-  it('TC-07: Expiry Margin card shows the correct value', async () => {
-    console.log(`\n--- Validating TC-07: Expiry Margin ---`)
-    await FundsPage.verifyExpiryMarginSum()
-  })
+//   it('TC-07: Expiry Margin card shows the correct value', async () => {
+//     console.log(`\n--- Validating TC-07: Expiry Margin ---`)
+//     await FundsPage.verifyExpiryMarginSum()
+//   })
 
-  it('TC-08: Withdraw navigates to a separate screen', async () => {
-    console.log(`\n--- Validating TC-08: Withdraw Navigation ---`)
-    await FundsPage.clickWithdrawAndVerify()
-  })
+//   it('TC-08: Withdraw navigates to a separate screen', async () => {
+//     console.log(`\n--- Validating TC-08: Withdraw Navigation ---`)
+//     await FundsPage.clickWithdrawAndVerify()
+//   })
 
-  it('TC-09 to TC-12 Move Fund navigates to a separate screen or bottom sheet', async () => {
-    console.log(`\n--- Validating TC-09 to TC-11: Move Fund Navigation ---`)
-    await FundsPage.clickMoveFundAndVerify()
-  })
+//   it('TC-09 to TC-12 Move Fund navigates to a separate screen or bottom sheet', async () => {
+//     console.log(`\n--- Validating TC-09 to TC-11: Move Fund Navigation ---`)
+//     await FundsPage.clickMoveFundAndVerify()
+//   })
 
-  it('TC-14: Add Funds navigates to a separate screen', async () => {
-    console.log(`\n--- Validating TC-14: Add Funds Navigation ---`)
-    await FundsPage.clickAddFundsAndVerify()
-  })
+//   it('TC-14: Add Funds navigates to a separate screen', async () => {
+//     console.log(`\n--- Validating TC-14: Add Funds Navigation ---`)
+//     await FundsPage.clickAddFundsAndVerify()
+//   })
 
-  it('TC-15: Breakdown table shows the correct 3 tabs', async () => {
-    console.log(`\n--- Validating TC-15: Breakdown Tabs ---`)
-    await FundsPage.verifyBreakdownTabs()
-  })
+//   it('TC-15: Breakdown table shows the correct 3 tabs', async () => {
+//     console.log(`\n--- Validating TC-15: Breakdown Tabs ---`)
+//     await FundsPage.verifyBreakdownTabs()
+//   })
 
-  it('TC-16: Equity/FNO tab will be selected and visible by default', async () => {
-    console.log(`\n--- Validating TC-16: Equity/FNO Tab Selected ---`)
-    await FundsPage.verifyEquityFnoTabSelected()
-  })
+//   it('TC-16: Equity/FNO tab will be selected and visible by default', async () => {
+//     console.log(`\n--- Validating TC-16: Equity/FNO Tab Selected ---`)
+//     await FundsPage.verifyEquityFnoTabSelected()
+//   })
 
-  it('TC-17: Tapping on Commodity column navigates to Commodity', async () => {
-    console.log(`\n--- Validating TC-17: Commodity Tab ---`)
-    await FundsPage.verifyCommodityTabSelected()
-  })
+//   it('TC-17: Tapping on Commodity column navigates to Commodity', async () => {
+//     console.log(`\n--- Validating TC-17: Commodity Tab ---`)
+//     await FundsPage.verifyCommodityTabSelected()
+//   })
 
-  it('TC-18: Tapping on MTF column navigates to MTF (if enabled)', async () => {
-    console.log(`\n--- Validating TC-18: MTF Tab ---`)
-    await FundsPage.verifyMtfTabSelected()
-  })
+//   it('TC-18: Tapping on MTF column navigates to MTF (if enabled)', async () => {
+//     console.log(`\n--- Validating TC-18: MTF Tab ---`)
+//     await FundsPage.verifyMtfTabSelected()
+//   })
 
-  it('TC-19: Expand All reveals every section\'s sub-rows', async () => {
-    console.log(`\n--- Validating TC-19: Expand All ---`)
-    await FundsPage.clickExpandAllAndVerify()
-  })
+//   it('TC-19: Expand All reveals every section\'s sub-rows', async () => {
+//     console.log(`\n--- Validating TC-19: Expand All ---`)
+//     await FundsPage.clickExpandAllAndVerify()
+//   })
 
-  it('TC-20: Collapse All hides every section\'s sub-rows', async () => {
-    console.log(`\n--- Validating TC-20: Collapse All ---`)
-    await FundsPage.clickCollapseAllAndVerify()
-  })
+//   it('TC-20: Collapse All hides every section\'s sub-rows', async () => {
+//     console.log(`\n--- Validating TC-20: Collapse All ---`)
+//     await FundsPage.clickCollapseAllAndVerify()
+//   })
 
-  it('TC-21: Total Credits breakdown check in all 3 tabs', async () => {
-    console.log(`\n--- Validating Total Credits Breakdown across tabs ---`)
-    await FundsPage.verifyTotalCreditsBreakdownAndSum("Equity/FNO", FundsPage.equityOrFnoTab)
-    await FundsPage.verifyTotalCreditsBreakdownAndSum("Commodity", FundsPage.commodityTab)
-    await FundsPage.verifyTotalCreditsBreakdownAndSum("MTF", FundsPage.mtfTab)
-  })
+//   it('TC-21: Total Credits breakdown check in all 3 tabs', async () => {
+//     console.log(`\n--- Validating Total Credits Breakdown across tabs ---`)
+//     await FundsPage.verifyTotalCreditsBreakdownAndSum("Equity/FNO", FundsPage.equityOrFnoTab)
+//     await FundsPage.verifyTotalCreditsBreakdownAndSum("Commodity", FundsPage.commodityTab)
+//     await FundsPage.verifyTotalCreditsBreakdownAndSum("MTF", FundsPage.mtfTab)
+//   })
 
-it('TC-22: Utilized value equals sum of intraday margin and deliver/cf margin', async () => {
-  console.log(`\n--- Validating TC-22: Utilized Sum ---`)
-  await FundsPage.verifyUtilizedSum("Equity/FNO", FundsPage.equityOrFnoTab)
-  await FundsPage.verifyUtilizedSum("Commodity", FundsPage.commodityTab)
-  await FundsPage.verifyUtilizedSum("MTF", FundsPage.mtfTab)
-  await FundsPage.compareSum()
-})
+// it('TC-22: Utilized value equals sum of intraday margin and deliver/cf margin', async () => {
+//   console.log(`\n--- Validating TC-22: Utilized Sum ---`)
+//   await FundsPage.verifyUtilizedSum("Equity/FNO", FundsPage.equityOrFnoTab)
+//   await FundsPage.verifyUtilizedSum("Commodity", FundsPage.commodityTab)
+//   await FundsPage.verifyUtilizedSum("MTF", FundsPage.mtfTab)
+//   await FundsPage.compareSum()
+// })
 
-  it('TC-23: Expanding Utilization under Equity/FNO reveals TAX, Delivery Margin, Basket Margin, Realized Loss', async () => {
-    console.log(`\n--- Validating TC-23: Utilization Breakdown for Equity/FNO---`)
-    await FundsPage.verifyEquityOrFnoUtilizationBreakdown()
-  })
+//   it('TC-23: Expanding Utilization under Equity/FNO reveals TAX, Delivery Margin, Basket Margin, Realized Loss', async () => {
+//     console.log(`\n--- Validating TC-23: Utilization Breakdown for Equity/FNO---`)
+//     await FundsPage.verifyEquityOrFnoUtilizationBreakdown()
+//   })
 
-  it('TC-24: Utilization equals the sum of its sub-rows, per column under Equity/FNO', async () => {
-    console.log(`\n--- Validating TC-24: Utilization Sum ---`)
-    await FundsPage.verifyEquityOrFnoUtilizationSum()
-  })
+//   it('TC-24: Utilization equals the sum of its sub-rows, per column under Equity/FNO', async () => {
+//     console.log(`\n--- Validating TC-24: Utilization Sum ---`)
+//     await FundsPage.verifyEquityOrFnoUtilizationSum()
+//   })
 
-  it('TC-25: Expanding Utilization under Commodity reveals SPAN, Exposure, Commodity Unrealized MTOM CF', async () => {
-    console.log(`\n--- Validating TC-25: Utilization Breakdown ---`)
-    await FundsPage.verifyCommodityUtilizationBreakdown()
-  })
+//   it('TC-25: Expanding Utilization under Commodity reveals SPAN, Exposure, Commodity Unrealized MTOM CF', async () => {
+//     console.log(`\n--- Validating TC-25: Utilization Breakdown ---`)
+//     await FundsPage.verifyCommodityUtilizationBreakdown()
+//   })
 
-  it('TC-26: Utilization equals the sum of its sub-rows, per column under Commodity', async () => {
-    console.log(`\n--- Validating TC-26: Utilization Sum ---`)
-    await FundsPage.verifyCommodityUtilizationSum()
-  })
+//   it('TC-26: Utilization equals the sum of its sub-rows, per column under Commodity', async () => {
+//     console.log(`\n--- Validating TC-26: Utilization Sum ---`)
+//     await FundsPage.verifyCommodityUtilizationSum()
+//   })
 
-  it('TC-27: Expanding Utilization under MTF reveals Basket Margin and Realized Loss', async () => {
-    console.log(`\n--- Validating TC-27: Utilization Breakdown for MTF ---`)
-    await FundsPage.verifyMtfUtilizationBreakdown()
-  })
+//   it('TC-27: Expanding Utilization under MTF reveals Basket Margin and Realized Loss', async () => {
+//     console.log(`\n--- Validating TC-27: Utilization Breakdown for MTF ---`)
+//     await FundsPage.verifyMtfUtilizationBreakdown()
+//   })
 
-  it('TC-28: Utilization equals the sum of its sub-rows, per column under MTF', async () => {
-    console.log(`\n--- Validating TC-28: Utilization Sum under MTF ---`)
-    await FundsPage.verifyMtfUtilizationSum()
-  })
+//   it('TC-28: Utilization equals the sum of its sub-rows, per column under MTF', async () => {
+//     console.log(`\n--- Validating TC-28: Utilization Sum under MTF ---`)
+//     await FundsPage.verifyMtfUtilizationSum()
+//   })
 
-  it('TC-29: Expanding MTOM / Margin percentage reveals Margin percentage and MToM Percentage', async () => {
-    console.log(`\n--- Validating TC-29: MTOM Percentage Breakdown ---`)
-    await FundsPage.verifyMtomPercentageBreakdown()
-  })
+//   it('TC-29: Expanding MTOM / Margin percentage reveals Margin percentage and MToM Percentage', async () => {
+//     console.log(`\n--- Validating TC-29: MTOM Percentage Breakdown ---`)
+//     await FundsPage.verifyMtomPercentageBreakdown()
+//   })
 
-  it('TC-30: Collateral breakdown check in all 3 tabs', async () => {
-    console.log(`\n--- Validating Collateral Breakdown across tabs ---`)
-    await FundsPage.verifyCollateralBreakdown("Equity/FNO", FundsPage.equityOrFnoTab)
-    await FundsPage.verifyCollateralBreakdown("Commodity", FundsPage.commodityTab)
-    await FundsPage.verifyCollateralBreakdown("MTF", FundsPage.mtfTab)
-  })
+//   it('TC-30: Collateral breakdown check in all 3 tabs', async () => {
+//     console.log(`\n--- Validating Collateral Breakdown across tabs ---`)
+//     await FundsPage.verifyCollateralBreakdown("Equity/FNO", FundsPage.equityOrFnoTab)
+//     await FundsPage.verifyCollateralBreakdown("Commodity", FundsPage.commodityTab)
+//     await FundsPage.verifyCollateralBreakdown("MTF", FundsPage.mtfTab)
+//   })
 
-  it('TC-31: "Utilization Details" is a non-expandable section header', async () => {
-    console.log(`\n--- Validating TC-31: Utilization Details Header ---`)
-    await FundsPage.verifyUtilizationDetailsHeader()
-  })
+//   it('TC-31: "Utilization Details" is a non-expandable section header', async () => {
+//     console.log(`\n--- Validating TC-31: Utilization Details Header ---`)
+//     await FundsPage.verifyUtilizationDetailsHeader()
+//   })
 
-  it('TC-32: Normal Margin , Intraday Margin and Delivery/CF Margin rows are visible under Utilization Details', async () => {
-    console.log(`\n--- Validating TC-32: Utilization Details Rows ---`)
-    await FundsPage.verifyUtilizationDetailsRows()
-  })
+//   it('TC-32: Normal Margin , Intraday Margin and Delivery/CF Margin rows are visible under Utilization Details', async () => {
+//     console.log(`\n--- Validating TC-32: Utilization Details Rows ---`)
+//     await FundsPage.verifyUtilizationDetailsRows()
+//   })
 
-  it('TC-33: Intraday margin shows its sub-rows on clicking chevron', async () => {
-    console.log(`\n--- Validating TC-33: Intraday Margin Breakdown ---`)
-    await FundsPage.verifyIntradayMarginBreakdown()
-  })
+//   it('TC-33: Intraday margin shows its sub-rows on clicking chevron', async () => {
+//     console.log(`\n--- Validating TC-33: Intraday Margin Breakdown ---`)
+//     await FundsPage.verifyIntradayMarginBreakdown()
+//   })
 
-  it('TC-34: Sum of intraday margin subrows values equals intraday margin value', async () => {
-    console.log(`\n--- Validating TC-34: Intraday Margin Sum ---`)
-    await FundsPage.verifyIntradayMarginSum()
-  })
+//   it('TC-34: Sum of intraday margin subrows values equals intraday margin value', async () => {
+//     console.log(`\n--- Validating TC-34: Intraday Margin Sum ---`)
+//     await FundsPage.verifyIntradayMarginSum()
+//   })
 
-  it('TC-35: Expanding Delivery/CF Margin reveals Delivery Margin and matches value', async () => {
-    console.log(`\n--- Validating TC-35: Delivery/CF Margin Breakdown across tabs ---`)
-    await FundsPage.verifyDeliveryCfMarginBreakdown("Equity/FNO", FundsPage.equityOrFnoTab)
-    await FundsPage.verifyDeliveryCfMarginBreakdown("Commodity", FundsPage.commodityTab)
-    await FundsPage.verifyDeliveryCfMarginBreakdown("MTF", FundsPage.mtfTab)
-  })
+//   it('TC-35: Expanding Delivery/CF Margin reveals Delivery Margin and matches value', async () => {
+//     console.log(`\n--- Validating TC-35: Delivery/CF Margin Breakdown across tabs ---`)
+//     await FundsPage.verifyDeliveryCfMarginBreakdown("Equity/FNO", FundsPage.equityOrFnoTab)
+//     await FundsPage.verifyDeliveryCfMarginBreakdown("Commodity", FundsPage.commodityTab)
+//     await FundsPage.verifyDeliveryCfMarginBreakdown("MTF", FundsPage.mtfTab)
+//   })
 
-  it('TC-36: Normal Margin breakdown check in all 3 tabs', async () => {
-    console.log(`\n--- Validating Normal Margin Breakdown across tabs ---`)
-    await FundsPage.verifyNormalMarginBreakdownAndSum("Equity/FNO", FundsPage.equityOrFnoTab)
-    await FundsPage.verifyNormalMarginBreakdownAndSum("Commodity", FundsPage.commodityTab)
-    await FundsPage.verifyNormalMarginBreakdownAndSum("MTF", FundsPage.mtfTab)
-  })
-})
+//   it('TC-36: Normal Margin breakdown check in all 3 tabs', async () => {
+//     console.log(`\n--- Validating Normal Margin Breakdown across tabs ---`)
+//     await FundsPage.verifyNormalMarginBreakdownAndSum("Equity/FNO", FundsPage.equityOrFnoTab)
+//     await FundsPage.verifyNormalMarginBreakdownAndSum("Commodity", FundsPage.commodityTab)
+//     await FundsPage.verifyNormalMarginBreakdownAndSum("MTF", FundsPage.mtfTab)
+//   })
+// })

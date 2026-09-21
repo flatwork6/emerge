@@ -25,6 +25,15 @@ class ProfilePage {
         return $(locators.get('watchlistFooterIcon'))
     }
 
+    get logoutBtn() {
+        return $('~Logout')
+    }
+
+    get logoutConfirmBtn() {
+        return $('~LOGOUT')
+    }
+
+
 
     /**
      * Navigate to Profile -> Trading Privileges screen from Dashboard
@@ -124,6 +133,23 @@ class ProfilePage {
         //   await this.clickWatchlistFooterIcon.waitForDisplayed({ timeout: 10000 })
         await this.clickWatchlistFooterIcon.click()
         //await driver.pause(1000)
+    }
+
+    /**
+     * Logout from the application
+     */
+    async logout() {
+        await this.profileMenu.click()
+        
+        // Scroll down to ensure Logout button is visible
+        let i = 0;
+        while(!(await this.logoutBtn.isDisplayed()) && i < 3) {
+            await this.scrollDownScreen();
+            i++;
+        }
+        
+        await this.logoutBtn.click()
+        await this.logoutConfirmBtn.click()
     }
 
 }

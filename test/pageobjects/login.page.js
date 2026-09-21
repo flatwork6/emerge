@@ -46,20 +46,29 @@ class LoginPage {
     }
 
     async enterUserName(username) {
-        await this.username.waitForDisplayed({ timeout: 10000 })
-        await this.username.click()
-        await this.username.setValue(username)
+        let fields = await $$('android=new UiSelector().className("android.widget.EditText")');
+        let userField = fields.length > 0 ? fields[0] : this.username;
+        await userField.waitForDisplayed({ timeout: 10000 })
+        await userField.click()
+        await userField.setValue(username)
     }
+    
     async enterPassword(password) {
-        await this.password.waitForDisplayed({ timeout: 10000 })
-        await this.password.click()
-        await this.password.setValue(password)
+        let fields = await $$('android=new UiSelector().className("android.widget.EditText")');
+        // If there are 3 fields, password is index 1. If 2 fields, it's index 0.
+        let passField = fields.length === 2 ? fields[0] : (fields.length >= 3 ? fields[1] : this.password);
+        await passField.waitForDisplayed({ timeout: 10000 })
+        await passField.click()
+        await passField.setValue(password)
     }
 
     async enterTotp(totp) {
-        await this.totpOrOtp.waitForDisplayed({ timeout: 10000 })
-        await this.totpOrOtp.click()
-        await this.totpOrOtp.setValue(totp)
+        let fields = await $$('android=new UiSelector().className("android.widget.EditText")');
+        // If there are 3 fields, TOTP is index 2. If 2 fields, it's index 1.
+        let totpField = fields.length === 2 ? fields[1] : (fields.length >= 3 ? fields[2] : this.totpOrOtp);
+        await totpField.waitForDisplayed({ timeout: 10000 })
+        await totpField.click()
+        await totpField.setValue(totp)
     }
     async clickLogin() {
         await this.loginButton.click()

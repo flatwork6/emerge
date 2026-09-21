@@ -109,3 +109,9 @@ addFundsHeader,"~Add Funds"
 expandAllBtn,"~Expand All"
 collapseAllBtn,"~Collapse All"
 mtfCancel,"android=new UiSelector().descriptionContains(""Cancel"")"
+pinToFav1,"android=new UiSelector().description(""1
+Pin to Favorite 1"")"
+pinToFav2,"android=new UiSelector().description(""2
+Pin to Favorite 2"")"
+optionChain,"android=new UiSelector().className(""android.view.View"").instance(6)"
+optionChainHeader,"android=new UiSelector().description(""Option Chain"")"
