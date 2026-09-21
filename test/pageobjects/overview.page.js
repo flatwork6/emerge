@@ -22,10 +22,25 @@ class OverviewPage {
         
         // desc might be "TCS-EQ\n2133.20 +43.20 (2.07%)" or just "TCS-EQ"
         // Let's extract the first number as price if it exists
-        const match = desc.match(/\d+\.\d{2}/);
-        const price = match ? match[0] : "";
+        const priceMatch = desc.match(/\d+\.\d{2}/);
+        const price = priceMatch ? parseFloat(priceMatch[0]) : 0;
+
+        // Extract percentage inside parentheses, e.g. "(1.85%)" or "(-0.29%)"
+        const percMatch = desc.match(/\(([-+]?\d+\.\d+)%\)/);
+        const perc = percMatch ? parseFloat(percMatch[1]) : 0;
         
-        return { name: expectedStockName, price: price, fullText: desc };
+        return { name: expectedStockName, price: price, perc: perc, fullText: desc };
+    }
+
+    get alertsIcon() {
+        return $(locators.get('alertsIcon'));
+    }
+
+    async clickAlerts() {
+        console.log("Clicking Alerts icon...");
+        await this.alertsIcon.waitForDisplayed({ timeout: 5000 });
+        await this.alertsIcon.click();
+        await driver.pause(1000);
     }
 
     async clickOptionChain() {
@@ -39,6 +54,37 @@ class OverviewPage {
             console.error("Could not find Option Chain icon using locators.get('optionChain')");
             throw new Error("Could not find Option Chain icon.");
         }
+    }
+    async clickBSE() {
+        console.log("Clicking BSE toggle...");
+        const bseBtn = $('~BSE');
+        await bseBtn.waitForDisplayed({ timeout: 5000 });
+        await bseBtn.click();
+        await driver.pause(2000);
+    }
+
+    async clickNSE() {
+        console.log("Clicking NSE toggle...");
+        const nseBtn = $(locators.get('nseToggleBtn'));
+        await nseBtn.waitForDisplayed({ timeout: 5000 });
+        await nseBtn.click();
+        await driver.pause(2000);
+    }
+
+    async clickScalper() {
+        console.log("Clicking Scalper icon...");
+        const scalperBtn = $(locators.get('scalperIcon'));
+        await scalperBtn.waitForDisplayed({ timeout: 5000 });
+        await scalperBtn.click();
+        await driver.pause(2000);
+    }
+
+    async clickStrategyBuilder() {
+        console.log("Clicking Strategy Builder icon...");
+        const strategyBuilderBtn = $(locators.get('strategyBuilderIcon'));
+        await strategyBuilderBtn.waitForDisplayed({ timeout: 5000 });
+        await strategyBuilderBtn.click();
+        await driver.pause(2000);
     }
 }
 

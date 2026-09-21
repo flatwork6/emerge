@@ -1,7 +1,6 @@
 import allure from '@wdio/allure-reporter'
 import locators from '../utils/locatorHelper.js'
-import { permission } from 'process'
-import { asyncWrapProviders } from 'async_hooks'
+
 
 class FundsPage {
     get fundsTabIcon() {

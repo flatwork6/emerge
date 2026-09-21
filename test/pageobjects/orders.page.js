@@ -219,6 +219,21 @@ class OrdersPage {
 
         return foundStockName;
     }
+    async getAllAlerts() {
+        console.log("Extracting all alerts from Alerts tab...");
+        const potentialElems = await $$('//*');
+        let extractedAlerts = [];
+
+        for (const elem of potentialElems) {
+            const desc = await elem.getAttribute("content-desc").catch(() => "");
+            if (desc && (desc.includes("Pending") || desc.includes("Triggered"))) {
+                extractedAlerts.push(desc.trim());
+            }
+        }
+
+        console.log(`Found ${extractedAlerts.length} alerts on the Alerts Page.`);
+        return extractedAlerts;
+    }
 }
 
 export default new OrdersPage();
