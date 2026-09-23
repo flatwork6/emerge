@@ -121,6 +121,18 @@ import testDataHelper from '../utils/testDataHelper.js'
 //       console.log(hlSummary)
 //       allure.addStep(hlSummary)
 
+//       // Verify stock overview navigation from heatmap (only for one stock)
+//       const stockName = await WatchlistPage.clickFirstHeatmapStock();
+//       if (stockName) {
+//         const overviewTitle = await WatchlistPage.getStockOverviewTitle();
+//         if (!overviewTitle.toLowerCase().includes(stockName.toLowerCase())) {
+//           console.log(`Warning: Overview title ${overviewTitle} does not match stock ${stockName}`);
+//         }
+//         const overviewBackBtn = await WatchlistPage.stockOverviewBackButton;
+//         await overviewBackBtn.click();
+//         await driver.pause(1000);
+//       }
+//
 //       // Close Heatmap to return to Watchlist list view for the next iteration
 //       await WatchlistPage.clickHeatmapBackButton()
 //     }
@@ -286,26 +298,28 @@ describe('Market Watch Additional Scenarios', () => {
   //   await WatchlistPage.closeSearch();
   // });
 
-  // it('should verify segment chips and segments shown below scrip name for tcs', async () => {
-  //   await WatchlistPage.clickSearchIcon();
-  //   await WatchlistPage.enterScripName('tcs');
+  it('should verify segment chips and segments shown below scrip name for tcs', async () => {
+    await WatchlistPage.clickSearchIcon();
+    await WatchlistPage.enterScripName('tcs');
 
-  //   const segmentsToTest = ['NSE','BSE', 'NFO', 'BFO'];
-  //   for (const segment of segmentsToTest) {
-  //     await WatchlistPage.selectExchangeFilter(segment);
-  //     await driver.pause(1000);
+    const segmentsToTest = ['NSE','BSE', 'NFO', 'BFO'];
+    for (const segment of segmentsToTest) {
+      await WatchlistPage.selectExchangeFilter(segment);
+      await driver.pause(1000);
 
-  //     const results = await WatchlistPage.getAllSearchResults();
-  //     if (results.length === 0) {
-  //       throw new Error(`No search results found after selecting segment ${segment}`);
-  //     }
-  //     const desc = results[0];
-  //     if (!desc.includes(segment)) {
-  //       throw new Error(`Expected segment ${segment} not found in top card desc: ${desc}`);
-  //     }
-  //   }
-  //   await WatchlistPage.closeSearch();
-  // });
+      const results = await WatchlistPage.getAllSearchResults();
+      const tcsResults = results.filter(r => r.toUpperCase().startsWith('TCS'));
+      
+      if (tcsResults.length === 0) {
+        throw new Error(`No TCS search results found after selecting segment ${segment}`);
+      }
+      const desc = tcsResults[0];
+      if (!desc.includes(segment)) {
+        throw new Error(`Expected segment ${segment} not found in top card desc: ${desc}`);
+      }
+    }
+    await WatchlistPage.closeSearch();
+  });
 
   it('should verify dname format for BFO segment', async () => {
     await WatchlistPage.clickSearchIcon();
@@ -342,5 +356,4 @@ describe('Market Watch Additional Scenarios', () => {
 
     await WatchlistPage.closeSearch();
   });
-
 });
