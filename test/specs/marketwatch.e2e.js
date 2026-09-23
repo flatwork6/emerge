@@ -318,6 +318,8 @@ describe('Market Watch Additional Scenarios', () => {
       const desc = tcsResults[0];
       if (!desc.includes(segment)) {
         throw new Error(`Expected segment ${segment} not found in top card desc: ${desc}`);
+      }else{
+        allure.addStep("✅Successfull verification of scrip under all segments")
       }
     }
     await WatchlistPage.closeSearch();
