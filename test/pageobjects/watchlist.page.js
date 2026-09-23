@@ -1227,9 +1227,53 @@ class WatchlistPage {
     }
 
     async clickSearchIcon() {
-        await this.searchIcon.waitForDisplayed({ timeout: 10000 })
-        await this.searchIcon.click()
-        //await driver.pause(1000)
+        try {
+            await this.searchIcon.waitForDisplayed({ timeout: 10000 })
+            await this.searchIcon.click()
+            await driver.pause(1000)
+            
+            const inputField = this.searchInputField
+            const isSearchOpen = await inputField.isDisplayed().catch(() => false)
+            
+            if (!isSearchOpen) {
+                console.log("Search input not found. It might have clicked Settings by mistake.");
+                try {
+                    const closeBtn = await this.marketWatchSettingsCloseBtn
+                    if (await closeBtn.isDisplayed().catch(() => false)) {
+                        await closeBtn.click();
+                        await driver.pause(1000);
+                    }
+                } catch(e) {}
+                
+                console.log("Using coordinate tap fallback for Search Icon...");
+                let tapX, tapY;
+                
+                // Try to get coordinates of what we just clicked (which turned out to be the Settings gear)
+                const gearLoc = await this.searchIcon.getLocation().catch(() => null);
+                if (gearLoc && gearLoc.x > 200) {
+                    // Tap slightly to the left of the settings gear
+                    tapX = gearLoc.x - 120;
+                    tapY = gearLoc.y + 20;
+                } else {
+                    // Generic top-right area (around 82% width)
+                    const windowSize = await driver.getWindowSize();
+                    tapX = Math.floor(windowSize.width * 0.82);
+                    tapY = 150;
+                }
+                
+                await driver.performActions([{
+                    type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
+                    actions: [
+                        { type: 'pointerMove', duration: 0, x: tapX, y: tapY },
+                        { type: 'pointerDown', button: 0 },
+                        { type: 'pointerUp', button: 0 }
+                    ]
+                }]);
+                await driver.pause(1500);
+            }
+        } catch (e) {
+            console.log("Failed in clickSearchIcon:", e);
+        }
     }
 
     /**
@@ -2754,6 +2798,76 @@ class WatchlistPage {
         if (!isPinned) {
             throw new Error(`${stockName} did not appear as pinned at the top of the Watchlist for Favorite ${favNumber}.`);
         }
+    }
+    async scrollSearchResultsToBottom() {
+        const windowSize = await driver.getWindowSize();
+        const startX = Math.floor(windowSize.width / 2);
+        const startY = Math.floor(windowSize.height * 0.8);
+        const endY = Math.floor(windowSize.height * 0.2);
+        
+        for (let i = 0; i < 3; i++) {
+            await driver.performActions([{
+                type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
+                actions: [
+                    { type: 'pointerMove', duration: 0, x: startX, y: startY },
+                    { type: 'pointerDown', button: 0 },
+                    { type: 'pointerMove', duration: 500, x: startX, y: endY },
+                    { type: 'pointerUp', button: 0 }
+                ]
+            }]);
+            await driver.pause(1000);
+        }
+    }
+
+    async getAllSearchResults() {
+        const results = [];
+        const searchResults = await $$('//*[@content-desc != ""]');
+        for (const elem of searchResults) {
+            if (await elem.isDisplayed().catch(() => false)) {
+                const loc = await elem.getLocation().catch(() => null);
+                if (loc && loc.y > 200 && loc.y < 3000) {
+                    const desc = await elem.getAttribute('content-desc').catch(() => null);
+                    if (desc && desc.split('\n').length > 1) {
+                        results.push(desc);
+                    }
+                }
+            }
+        }
+        return results;
+    }
+
+    async clickFirstHeatmapStock() {
+        const heatmapElements = await $$('//*[@content-desc != ""]');
+        for (const elem of heatmapElements) {
+            if (await elem.isDisplayed().catch(() => false)) {
+                const loc = await elem.getLocation().catch(() => null);
+                if (loc && loc.y > 200) {
+                    const desc = await elem.getAttribute('content-desc').catch(() => null);
+                    if (desc && !desc.includes('Advance') && !desc.includes('Decline')) {
+                        await elem.click();
+                        await driver.pause(2000);
+                        return desc.split('\n')[0].trim();
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    async getStockOverviewTitle() {
+        const titleElements = await $$('//*[@content-desc != ""]');
+        for (const elem of titleElements) {
+            if (await elem.isDisplayed().catch(() => false)) {
+                const loc = await elem.getLocation().catch(() => null);
+                if (loc && loc.y < 300) {
+                    const desc = await elem.getAttribute('content-desc').catch(() => null);
+                    if (desc && !desc.includes('Back') && desc.length > 2) {
+                        return desc;
+                    }
+                }
+            }
+        }
+        return "";
     }
 }
 

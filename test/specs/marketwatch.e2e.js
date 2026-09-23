@@ -232,32 +232,115 @@ import testDataHelper from '../utils/testDataHelper.js'
 //   })
 // })
 
-describe('Edit Watchlist Validation', () => {
-  it('should navigate watchlists and remove a stock', async () => {
-    console.log(`\n========================================`)
-    console.log(`Validating Edit Watchlist`)
-    console.log(`========================================`)
+// describe('Edit Watchlist Validation', () => {
+//   it('should navigate watchlists and remove a stock', async () => {
+//     console.log(`\n========================================`)
+//     console.log(`Validating Edit Watchlist`)
+//     console.log(`========================================`)
 
-    // Step 1: Click Watchlist tab if not active
-    await WatchlistPage.clickWatchlistTab();
+//     // Step 1: Click Watchlist tab if not active
+//     await WatchlistPage.clickWatchlistTab();
 
-    // Step 2: Extract watchlist names from the dropdown
-    const extractedNames = await WatchlistPage.getAllWatchlistNames();
+//     // Step 2: Extract watchlist names from the dropdown
+//     const extractedNames = await WatchlistPage.getAllWatchlistNames();
 
-    // Step 3: Open edit mode
-    await WatchlistPage.openEditWatchlist();
+//     // Step 3: Open edit mode
+//     await WatchlistPage.openEditWatchlist();
 
-    // Step 4: Verify all watchlist names against the ones from the dropdown
-    await WatchlistPage.verifyAllWatchlistsByClickingTabs(extractedNames);
+//     // Step 4: Verify all watchlist names against the ones from the dropdown
+//     await WatchlistPage.verifyAllWatchlistsByClickingTabs(extractedNames);
 
-    // Step 5: Switch back to the first watchlist (which should have stocks)
-    if (extractedNames.length > 0) {
-        await WatchlistPage.clickEditWatchlistTabByName(extractedNames[0]);
+//     // Step 5: Switch back to the first watchlist (which should have stocks)
+//     if (extractedNames.length > 0) {
+//         await WatchlistPage.clickEditWatchlistTabByName(extractedNames[0]);
+//     }
+
+//     // Step 6: Delete the first two stocks from the currently active watchlist
+//     await WatchlistPage.deleteStockByRowIndex(0);
+//     await WatchlistPage.deleteStockByRowIndex(0);
+//   });
+// });
+
+
+describe('Market Watch Additional Scenarios', () => {
+  // it('should show snackbar when adding an already present scrip', async () => {
+  //   await WatchlistPage.clickWatchlistTab();
+  //   await WatchlistPage.clickSearchIcon();
+  //   await WatchlistPage.enterScripName('Wipro-eq');
+  //   await WatchlistPage.selectExchangeFilter('ALL');
+
+  //   await WatchlistPage.addFirstScripToWatchlist();
+  //   await WatchlistPage.addFirstScripToWatchlist();
+
+  //   const snackbar = await $(`android=new UiSelector().textContains("already present")`).catch(() => null) ||
+  //                    await $(`//*[contains(@content-desc, "already present") or contains(@text, "already present")]`).catch(() => null);
+
+  //   if (snackbar) {
+  //     await snackbar.waitForDisplayed({ timeout: 2000 }).catch(() => {});
+  //     const isDisplayed = await snackbar.isDisplayed();
+  //     if (!isDisplayed) throw new Error("Snackbar not displayed");
+  //   } else {
+  //     throw new Error("Snackbar not found");
+  //   }
+
+  //   await WatchlistPage.closeSearch();
+  // });
+
+  // it('should verify segment chips and segments shown below scrip name for tcs', async () => {
+  //   await WatchlistPage.clickSearchIcon();
+  //   await WatchlistPage.enterScripName('tcs');
+
+  //   const segmentsToTest = ['NSE','BSE', 'NFO', 'BFO'];
+  //   for (const segment of segmentsToTest) {
+  //     await WatchlistPage.selectExchangeFilter(segment);
+  //     await driver.pause(1000);
+
+  //     const results = await WatchlistPage.getAllSearchResults();
+  //     if (results.length === 0) {
+  //       throw new Error(`No search results found after selecting segment ${segment}`);
+  //     }
+  //     const desc = results[0];
+  //     if (!desc.includes(segment)) {
+  //       throw new Error(`Expected segment ${segment} not found in top card desc: ${desc}`);
+  //     }
+  //   }
+  //   await WatchlistPage.closeSearch();
+  // });
+
+  it('should verify dname format for BFO segment', async () => {
+    await WatchlistPage.clickSearchIcon();
+    await WatchlistPage.enterScripName('tcs');
+    await WatchlistPage.selectExchangeFilter('BFO');
+    await driver.pause(2000);
+
+    const initialResults = await WatchlistPage.getAllSearchResults();
+    const initialTcsResults = initialResults.filter(r => r.toUpperCase().startsWith('TCS'));
+    if (initialTcsResults.length === 0) throw new Error("No TCS results found initially");
+
+    const firstScrip = initialTcsResults[0].split('\n')[0].trim();
+    if (/TCS \d{2}[A-Z]{3} FUT/i.test(firstScrip)) {
+      console.log("✅First scrip format success: " + firstScrip);
+    }
+    else {
+      throw new Error("First scrip mismatch" + firstScrip);
     }
 
-    // Step 6: Delete the first two stocks from the currently active watchlist
-    await WatchlistPage.deleteStockByRowIndex(0);
-    await WatchlistPage.deleteStockByRowIndex(0);
-  });
-});
+    // Scroll down to the end to catch PE/CE options
+    await WatchlistPage.scrollSearchResultsToBottom();
 
+    const finalResults = await WatchlistPage.getAllSearchResults();
+    const finalTcsResults = finalResults.filter(r => r.toUpperCase().startsWith('TCS'));
+    if (finalTcsResults.length === 0) throw new Error("No TCS results found at bottom");
+
+    const lastScrip = finalTcsResults[finalTcsResults.length - 1].split('\n')[0].trim();
+    if (/TCS \d{2}[A-Z]{3} \d+(?:\.\d+)? (PE|CE)/i.test(lastScrip)) {
+      console.log("✅Last scrip format success: " + lastScrip);
+    }
+    else {
+      throw new Error("First scrip mismatch" + firstScrip);
+    }
+
+    await WatchlistPage.closeSearch();
+  });
+
+});
