@@ -1,9 +1,11 @@
+import locators from '../utils/locatorHelper.js'
 import 'dotenv/config'
 import path from 'path'
 import dotenv from 'dotenv'
 
 // Load environment variables from creds.env
 dotenv.config({ path: path.resolve(process.cwd(), 'creds.env') })
+dotenv.config({ path: path.resolve(process.cwd(), 'testdata.env') })
 
 import allure from '@wdio/allure-reporter'
 import LoginPage from '../pageobjects/login.page.js'
@@ -284,8 +286,8 @@ describe('Market Watch Additional Scenarios', () => {
   //   await WatchlistPage.addFirstScripToWatchlist();
   //   await WatchlistPage.addFirstScripToWatchlist();
 
-  //   const snackbar = await $(`android=new UiSelector().textContains("already present")`).catch(() => null) ||
-  //                    await $(`//*[contains(@content-desc, "already present") or contains(@text, "already present")]`).catch(() => null);
+  //   const snackbar = await $(locators.get('androidnewUiSelectortextContai_nh8f')).catch(() => null) ||
+  //                    await $(locators.get('containscontentdescalreadypres_2ixn')).catch(() => null);
 
   //   if (snackbar) {
   //     await snackbar.waitForDisplayed({ timeout: 2000 }).catch(() => {});
@@ -300,9 +302,9 @@ describe('Market Watch Additional Scenarios', () => {
 
   it('should verify segment chips and segments shown below scrip name for tcs', async () => {
     await WatchlistPage.clickSearchIcon();
-    await WatchlistPage.enterScripName('tcs');
+    await WatchlistPage.enterScripName(process.env.TEST_SCRIP_NAME_TCS);
 
-    const segmentsToTest = ['NSE','BSE', 'NFO', 'BFO'];
+    const segmentsToTest = [process.env.TEST_SEGMENT_NSE, process.env.TEST_SEGMENT_BSE, process.env.TEST_SEGMENT_NFO, process.env.TEST_SEGMENT_BFO];
     for (const segment of segmentsToTest) {
       await WatchlistPage.selectExchangeFilter(segment);
       await driver.pause(1000);
@@ -323,8 +325,8 @@ describe('Market Watch Additional Scenarios', () => {
 
   it('should verify dname format for BFO segment', async () => {
     await WatchlistPage.clickSearchIcon();
-    await WatchlistPage.enterScripName('tcs');
-    await WatchlistPage.selectExchangeFilter('BFO');
+    await WatchlistPage.enterScripName(process.env.TEST_SCRIP_NAME_TCS);
+    await WatchlistPage.selectExchangeFilter(process.env.TEST_SEGMENT_BFO);
     await driver.pause(2000);
 
     const initialResults = await WatchlistPage.getAllSearchResults();

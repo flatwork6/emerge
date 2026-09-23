@@ -26,11 +26,11 @@ class ProfilePage {
     }
 
     get logoutBtn() {
-        return $('~Logout')
+        return $(locators.get('Logout_0pgy'))
     }
 
     get logoutConfirmBtn() {
-        return $('~LOGOUT')
+        return $(locators.get('LOGOUT_xn3l'))
     }
 
 
@@ -77,7 +77,7 @@ class ProfilePage {
         // Scroll and scan multiple times to ensure we reach the bottom of the list
         for (let i = 0; i < 3; i++) {
             await this.scrollDownScreen()
-            const allElements = await $$('//*[@text or @content-desc]')
+            const allElements = await $$(locators.get('textorcontentdesc_yv1p'))
             
             let currentPrivilege = null
             for (const el of allElements) {

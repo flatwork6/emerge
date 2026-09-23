@@ -1,3 +1,4 @@
+import locators from '../utils/locatorHelper.js'
 const WatchlistPage = require('../pageobjects/watchlist.page.js').default || require('../pageobjects/watchlist.page.js');
 const OrdersPage = require('../pageobjects/orders.page.js').default;
 const fs = require('fs');
@@ -8,7 +9,7 @@ const fs = require('fs');
 //         await OrdersPage.openGTT();
 //         const gttStockName = await OrdersPage.extractFirstGTTStock();
         
-//         const icon = await $(`~Watchlist`);
+//         const icon = await $(locators.get('Watchlist_0mvg'));
 //         await icon.waitForDisplayed({ timeout: 5000 });
 //         await icon.click();
         

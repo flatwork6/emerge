@@ -1,3 +1,4 @@
+import locators from '../utils/locatorHelper.js'
 const { $ } = require('@wdio/globals')
 const Page = require('./page');
 
@@ -9,7 +10,7 @@ class SecurePage extends Page {
      * define selectors using getter methods
      */
     get flashAlert () {
-        return $('#flash');
+        return $(locators.get('flash_5s9g'));
     }
 }
 

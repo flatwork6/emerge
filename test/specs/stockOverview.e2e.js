@@ -1,3 +1,4 @@
+import locators from '../utils/locatorHelper.js'
 import 'dotenv/config'
 import path from 'path'
 import dotenv from 'dotenv'
@@ -38,7 +39,7 @@ describe('Option Chain Verification', () => {
     await WatchlistPage.enterScripName(stockToTest);
 
     // Click the first search result matching the stock
-    const firstResult = await $(`android=new UiSelector().descriptionContains("${stockToTest}")`);
+    const firstResult = await $(locators.get('androidnewUiSelectordescriptio_3a6i', stockToTest));
     await firstResult.waitForDisplayed({ timeout: 10000 });
     await firstResult.click();
     await driver.pause(2000); // Wait for overview page to load
@@ -87,7 +88,7 @@ describe('Option Chain Verification', () => {
     await WatchlistPage.enterScripName(stockToTest);
 
     // Click the first search result matching the stock
-    const firstResult = await $(`android=new UiSelector().descriptionContains("${stockToTest}")`);
+    const firstResult = await $(locators.get('androidnewUiSelectordescriptio_w0p7', stockToTest));
     await firstResult.waitForDisplayed({ timeout: 10000 });
     await firstResult.click();
     await driver.pause(2000); // Wait for overview page to load
@@ -147,8 +148,8 @@ describe('Option Chain Verification', () => {
     
     // Verify it was updated by opening alerts and checking for the new value
     await OverviewPage.clickAlerts();
-    const updatedValueEl = await $(`android=new UiSelector().descriptionContains("${newValue}")`);
-    const fallbackUpdatedValueEl = await $(`android=new UiSelector().textContains("${newValue}")`);
+    const updatedValueEl = await $(locators.get('androidnewUiSelectordescriptio_q1lu', newValue));
+    const fallbackUpdatedValueEl = await $(locators.get('androidnewUiSelectortextContai_1mew', newValue));
     if (!(await updatedValueEl.isExisting()) && !(await fallbackUpdatedValueEl.isExisting())) {
         throw new Error(`Failed to find updated alert with value ${newValue}`);
     }
@@ -235,7 +236,7 @@ describe('Marketwatch NSE/BSE Toggle Verification', () => {
             await WatchlistPage.enterScripName(stockToTest);
 
             // Click the first search result matching the stock
-            const firstResult = await $(`android=new UiSelector().descriptionContains("${stockToTest}")`);
+            const firstResult = await $(locators.get('androidnewUiSelectordescriptio_g77i', stockToTest));
             await firstResult.waitForDisplayed({ timeout: 10000 });
             await firstResult.click();
             await driver.pause(2000); // Wait for overview page to load

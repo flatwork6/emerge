@@ -46,7 +46,7 @@ class LoginPage {
     }
 
     async enterUserName(username) {
-        let fields = await $$('android=new UiSelector().className("android.widget.EditText")');
+        let fields = await $$(locators.get('androidnewUiSelectorclassNamea_m44z'));
         let userField = fields.length > 0 ? fields[0] : this.username;
         await userField.waitForDisplayed({ timeout: 10000 })
         await userField.click()
@@ -54,7 +54,7 @@ class LoginPage {
     }
     
     async enterPassword(password) {
-        let fields = await $$('android=new UiSelector().className("android.widget.EditText")');
+        let fields = await $$(locators.get('androidnewUiSelectorclassNamea_jmrw'));
         // If there are 3 fields, password is index 1. If 2 fields, it's index 0.
         let passField = fields.length === 2 ? fields[0] : (fields.length >= 3 ? fields[1] : this.password);
         await passField.waitForDisplayed({ timeout: 10000 })
@@ -63,7 +63,7 @@ class LoginPage {
     }
 
     async enterTotp(totp) {
-        let fields = await $$('android=new UiSelector().className("android.widget.EditText")');
+        let fields = await $$(locators.get('androidnewUiSelectorclassNamea_4xzo'));
         // If there are 3 fields, TOTP is index 2. If 2 fields, it's index 1.
         let totpField = fields.length === 2 ? fields[1] : (fields.length >= 3 ? fields[2] : this.totpOrOtp);
         await totpField.waitForDisplayed({ timeout: 10000 })

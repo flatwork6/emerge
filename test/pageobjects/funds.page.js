@@ -32,7 +32,7 @@ class FundsPage {
     // A helper to extract all text / descriptions from the current screen
     async getAllScreenText() {
         // Find all view elements that might have text or descriptions
-        const elements = await $$('android=new UiSelector().className("android.view.View")');
+        const elements = await $$(locators.get('androidnewUiSelectorclassNamea_n7ss'));
         const texts = [];
         for (const elem of elements) {
             const desc = await elem.getAttribute("content-desc").catch(() => null);
@@ -42,7 +42,7 @@ class FundsPage {
         }
 
         // Also look for specific text views
-        const textElements = await $$('android=new UiSelector().className("android.widget.TextView")');
+        const textElements = await $$(locators.get('androidnewUiSelectorclassNamea_qfyf'));
         for (const elem of textElements) {
             const text = await elem.getText().catch(() => null);
             if (text && text.trim()) texts.push(text.trim());
@@ -633,7 +633,7 @@ class FundsPage {
         // Wait a bit extra to ensure the tab switch transition is fully complete before finding elements.
 
         // Find the Total Credits row and click it to expand
-        const elements = await $$('android=new UiSelector().className("android.view.View")');
+        const elements = await $$(locators.get('androidnewUiSelectorclassNamea_n5n1'));
         let clicked = false;
         let clickedElem = null;
         for (const elem of elements) {
@@ -772,7 +772,7 @@ class FundsPage {
         }]);
 
         // Find the Utilization row and click it to expand
-        const elements = await $$('android=new UiSelector().className("android.view.View")');
+        const elements = await $$(locators.get('androidnewUiSelectorclassNamea_w9ot'));
         let clicked = false;
         let clickedElem = null;
         for (const elem of elements) {
@@ -812,7 +812,7 @@ class FundsPage {
         await driver.pause(2000);
 
         // Find the Utilization row and click it to expand
-        const elements = await $$('android=new UiSelector().className("android.view.View")');
+        const elements = await $$(locators.get('androidnewUiSelectorclassNamea_o9nd'));
         let clicked = false;
         let clickedElem = null;
         for (const elem of elements) {
@@ -890,7 +890,7 @@ class FundsPage {
         }]);
 
         // Find the Utilization row and click it to expand
-        const elements = await $$('android=new UiSelector().className("android.view.View")');
+        const elements = await $$(locators.get('androidnewUiSelectorclassNamea_x0oz'));
         let clicked = false;
         let clickedElem = null;
         for (const elem of elements) {
@@ -929,7 +929,7 @@ class FundsPage {
         await driver.pause(2000);
 
         // Find the Utilization row and click it to expand
-        const elements = await $$('android=new UiSelector().className("android.view.View")');
+        const elements = await $$(locators.get('androidnewUiSelectorclassNamea_9uqu'));
         let clicked = false;
         let clickedElem = null;
         for (const elem of elements) {
@@ -1001,7 +1001,7 @@ class FundsPage {
         await driver.pause(1000);
 
         // Find the Utilization row and click it to expand
-        const elements = await $$('android=new UiSelector().className("android.view.View")');
+        const elements = await $$(locators.get('androidnewUiSelectorclassNamea_dm9p'));
         let clicked = false;
         let clickedElem = null;
         for (const elem of elements) {
@@ -1051,7 +1051,7 @@ class FundsPage {
         }
 
         // Find the Utilization row and click it to expand
-        const elements = await $$('android=new UiSelector().className("android.view.View")');
+        const elements = await $$(locators.get('androidnewUiSelectorclassNamea_eq5u'));
         let clicked = false;
         let clickedElem = null;
         for (const elem of elements) {
@@ -1127,7 +1127,7 @@ class FundsPage {
             }]);
             await driver.pause(1000);
 
-            const elements = await $$('android=new UiSelector().className("android.view.View")');
+            const elements = await $$(locators.get('androidnewUiSelectorclassNamea_7dk1'));
             let clicked = false;
             let clickedElem = null;
             for (const elem of elements) {
@@ -1223,7 +1223,7 @@ class FundsPage {
 
 
 
-        const elements = await $$('android=new UiSelector().className("android.view.View")');
+        const elements = await $$(locators.get('androidnewUiSelectorclassNamea_xzlc'));
         let clicked = false;
         let clickedElem = null;
         for (const elem of elements) {
@@ -1324,7 +1324,7 @@ class FundsPage {
 
     async verifyIntradayMarginBreakdown() {
 
-        const elements = await $$('android=new UiSelector().className("android.view.View")');
+        const elements = await $$(locators.get('androidnewUiSelectorclassNamea_c4mo'));
         let clicked = false;
         let clickedElem = null;
         for (const elem of elements) {
@@ -1384,7 +1384,7 @@ class FundsPage {
             }]);
             await driver.pause(1000);
         }
-        const elements = await $$('android=new UiSelector().className("android.view.View")');
+        const elements = await $$(locators.get('androidnewUiSelectorclassNamea_xmkl'));
         let clicked = false;
         let clickedElem = null;
         for (const elem of elements) {
@@ -1455,7 +1455,7 @@ class FundsPage {
             await driver.pause(1000);
         }
 
-        const elements = await $$('android=new UiSelector().className("android.view.View")');
+        const elements = await $$(locators.get('androidnewUiSelectorclassNamea_j7mm'));
         let clicked = false;
         let clickedElem = null;
         for (const elem of elements) {
@@ -1547,7 +1547,7 @@ class FundsPage {
 
 
 
-        const elements = await $$('android=new UiSelector().className("android.view.View")');
+        const elements = await $$(locators.get('androidnewUiSelectorclassNamea_0t77'));
         let clicked = false;
         let clickedElem = null;
         for (const elem of elements) {

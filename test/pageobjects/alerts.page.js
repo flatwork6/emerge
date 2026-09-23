@@ -96,7 +96,7 @@ class AlertsPage {
     async getExistingAlerts() {
         console.log("Extracting existing alerts from bottom sheet...");
         // Assuming the alert text is inside a View's content-desc and contains 'NSE | '
-        const alertElements = await $$(`android=new UiSelector().descriptionContains("NSE | ")`);
+        const alertElements = await $$(locators.get('androidnewUiSelectordescriptio_3frn'));
         let extractedAlerts = [];
         for (let el of alertElements) {
             const desc = await el.getAttribute('content-desc');

@@ -119,7 +119,7 @@ class WatchlistPage {
 
         // Generic fallback: Look for any dropdown view in top header area (y between 180 and 320, x < 600)
         try {
-            const views = await $$('//*[@content-desc != ""]')
+            const views = await $$(locators.get('contentdesc_63t0'))
             for (const v of views) {
                 if (await v.isDisplayed().catch(() => false)) {
                     const loc = await v.getLocation()
@@ -152,7 +152,7 @@ class WatchlistPage {
 
         try {
             // Find all views with content-desc
-            const views = await $$('//*[@content-desc != ""]');
+            const views = await $$(locators.get('contentdesc_de7g'));
             for (const v of views) {
                 if (await v.isDisplayed().catch(() => false)) {
                     const desc = await v.getAttribute("content-desc").catch(() => "");
@@ -213,7 +213,7 @@ class WatchlistPage {
 
     async clickWatchlistByName(name) {
         try {
-            const item = $(`~${name}`)
+            const item = $(locators.get('name_4qlm', name))
             if (await item.isDisplayed().catch(() => false)) {
                 await item.click()
                 await driver.pause(1000)
@@ -231,7 +231,7 @@ class WatchlistPage {
         } catch (e) { }
 
         // Coordinate fallback if click command hangs on animated dropdown list item
-        const itemFallback = $(`~${name}`)
+        const itemFallback = $(locators.get('name_49yr', name))
         await itemFallback.waitForDisplayed({ timeout: 5000 })
         const loc = await itemFallback.getLocation()
         const sz = await itemFallback.getSize()
@@ -263,7 +263,7 @@ class WatchlistPage {
             // Step 1: Open Dropdown Box (Pink Box in UI Image)
             // Try explicit UiSelector for "Index\nNifty 50" or "Index\nSENSEX" or "Index"
             try {
-                const dropBtn = $(`android=new UiSelector().descriptionStartsWith("Index")`)
+                const dropBtn = $(locators.get('androidnewUiSelectordescriptio_5u3f'))
                 if (await dropBtn.isDisplayed().catch(() => false)) {
                     await dropBtn.click()
                     dropdownOpened = true
@@ -273,7 +273,7 @@ class WatchlistPage {
 
             if (!dropdownOpened) {
                 try {
-                    const dropBtn = $(`android=new UiSelector().descriptionContains("Nifty 50")`)
+                    const dropBtn = $(locators.get('androidnewUiSelectordescriptio_xhs7'))
                     if (await dropBtn.isDisplayed().catch(() => false)) {
                         await dropBtn.click()
                         dropdownOpened = true
@@ -304,7 +304,7 @@ class WatchlistPage {
 
             // Direct UiSelector search for exact content-desc "SENSEX" or "Nifty 50"
             try {
-                const itemElem = $(`android=new UiSelector().description("${targetLabel}")`)
+                const itemElem = $(locators.get('androidnewUiSelectordescriptio_fri4', targetLabel))
                 if (await itemElem.isDisplayed().catch(() => false)) {
                     await itemElem.click()
                     await driver.pause(1500)
@@ -314,7 +314,7 @@ class WatchlistPage {
             } catch (e) { }
 
             try {
-                const itemElem = $(`android=new UiSelector().descriptionContains("${targetLabel}")`)
+                const itemElem = $(locators.get('androidnewUiSelectordescriptio_8qg2', targetLabel))
                 if (await itemElem.isDisplayed().catch(() => false)) {
                     await itemElem.click()
                     await driver.pause(1500)
@@ -324,7 +324,7 @@ class WatchlistPage {
             } catch (e) { }
 
             // Scan visible views in overlay menu area (y between 120 and 320, x < 300)
-            const views = await $$('//*[@content-desc != ""]')
+            const views = await $$(locators.get('contentdesc_5m9c'))
             for (const v of views) {
                 if (await v.isDisplayed().catch(() => false)) {
                     const loc = await v.getLocation()
@@ -361,7 +361,7 @@ class WatchlistPage {
     async selectIndexTabDropdownOption(indexName) {
         try {
             // Try clicking Tab directly if available (e.g. ~SENSEX or ~NIFTY 50)
-            const tabBtn = $(`~${indexName}`)
+            const tabBtn = $(locators.get('indexName_pjka', indexName))
             if (await tabBtn.isDisplayed().catch(() => false)) {
                 await tabBtn.click()
                 await driver.pause(1000)
@@ -376,7 +376,7 @@ class WatchlistPage {
             if (await indexSubDropdown.isDisplayed().catch(() => false)) {
                 await indexSubDropdown.click()
                 await driver.pause(1000)
-                const opt = $(`~${indexName}`)
+                const opt = $(locators.get('indexName_or1s', indexName))
                 if (await opt.isDisplayed().catch(() => false)) {
                     await opt.click()
                     await driver.pause(1000)
@@ -397,7 +397,7 @@ class WatchlistPage {
 
             // 1. Try explicit UiSelector description search for SENSEX or Nifty 50
             try {
-                const targetElems = await $$(`android=new UiSelector().descriptionContains("${indexName}")`)
+                const targetElems = await $$(locators.get('androidnewUiSelectordescriptio_kjez', indexName))
                 for (const targetElem of targetElems) {
                     if (await targetElem.isDisplayed().catch(() => false)) {
                         const loc = await targetElem.getLocation()
@@ -429,7 +429,7 @@ class WatchlistPage {
 
             // 2. Fallback scan visible views
             for (let retry = 0; retry < 3; retry++) {
-                const views = await $$('//*[@content-desc != ""]')
+                const views = await $$(locators.get('contentdesc_ajh7'))
                 for (const v of views) {
                     if (await v.isDisplayed().catch(() => false)) {
                         const loc = await v.getLocation()
@@ -920,7 +920,7 @@ class WatchlistPage {
         };
 
         const getStockDesc = async () => {
-            const elem = await $(`android=new UiSelector().descriptionContains("${targetStockName}")`);
+            const elem = await $(locators.get('androidnewUiSelectordescriptio_vy5b', targetStockName));
             if (await elem.isDisplayed().catch(() => false)) {
                 return await elem.getAttribute("content-desc");
             }
@@ -971,7 +971,7 @@ class WatchlistPage {
 
             // In search results, the bag icon (if enabled) is next to the segment (e.g. NSE, BSE, etc.)
             // We search for elements containing the quantity, and verify it's the segment/bag element.
-            const potentialBagElems = await $$(`android=new UiSelector().descriptionContains("${qtyStr}")`);
+            const potentialBagElems = await $$(locators.get('androidnewUiSelectordescriptio_915e', qtyStr));
             let isBagVisible = false;
 
             for (const elem of potentialBagElems) {
@@ -1069,7 +1069,7 @@ class WatchlistPage {
             await driver.pause(1500);
 
             // In search results, the GTT icon (if enabled) appears next to the segment (e.g. NSE ⏩)
-            const potentialElems = await $$(`android=new UiSelector().descriptionMatches(".*(NSE|BSE|CDS|MCX|NFO|BFO|EQ|FUT).*")`);
+            const potentialElems = await $$(locators.get('androidnewUiSelectordescriptio_fch1'));
             let isGTTVisible = false;
 
             for (const elem of potentialElems) {
@@ -1303,7 +1303,7 @@ class WatchlistPage {
         const segUpper = segment ? segment.trim().toUpperCase() : 'ALL'
 
         // Direct fast UIAutomator / Accessibility ID lookup for segment filter chip (NSE, BSE, ALL, NFO, etc.)
-        const chip = $(`~${segUpper}`)
+        const chip = $(locators.get('segUpper_wk84', segUpper))
         try {
             if (await chip.isDisplayed().catch(() => false)) {
                 await chip.click()
@@ -1457,7 +1457,7 @@ class WatchlistPage {
 
                     // Method A: Look for explicit accessibility ID ~candidate
                     try {
-                        const targetRow = $(`~${candidate}`)
+                        const targetRow = $(locators.get('candidate_x0kj', candidate))
                         if (await targetRow.isDisplayed().catch(() => false)) {
                             const loc = await targetRow.getLocation()
                             const sz = await targetRow.getSize()
@@ -1510,7 +1510,7 @@ class WatchlistPage {
                 // Method C: Content description scan for bottom sheet rows (y > 1000)
                 if (!minusClicked) {
                     try {
-                        const views = await $$('//*[@content-desc != ""]')
+                        const views = await $$(locators.get('contentdesc_tsd4'))
                         for (const v of views) {
                             if (await v.isDisplayed().catch(() => false)) {
                                 const loc = await v.getLocation()
@@ -1980,7 +1980,7 @@ class WatchlistPage {
             // Fallback scan: inspect all displayed elements with non-empty content-desc if either is 0
             if (advanceCount === 0 || declineCount === 0) {
                 try {
-                    const views = await $$('//*[@content-desc != ""]')
+                    const views = await $$(locators.get('contentdesc_qrdp'))
                     for (const v of views) {
                         if (await v.isDisplayed().catch(() => false)) {
                             const desc = await v.getAttribute("content-desc").catch(() => "")
@@ -2072,7 +2072,7 @@ class WatchlistPage {
             await this.addFirstScripToWatchlist();
             await driver.pause(1500);
 
-            const potentialBagElems = await $$(`android=new UiSelector().descriptionContains("${qtyStr}")`);
+            const potentialBagElems = await $$(locators.get('androidnewUiSelectordescriptio_qu42', qtyStr));
             let isBagVisible = false;
 
             for (const elem of potentialBagElems) {
@@ -2174,7 +2174,7 @@ class WatchlistPage {
             await this.selectExchangeFilter('ALL');
             await driver.pause(4000);
 
-            const potentialElems = await $$('//*');
+            const potentialElems = await $$(locators.get('locator7406_gqgl'));
             let targetElemLoc = null;
             let targetElemSize = null;
 
@@ -2324,7 +2324,7 @@ class WatchlistPage {
             await this.selectExchangeFilter('ALL');
             await driver.pause(4000);
 
-            const potentialElems = await $$('//*');
+            const potentialElems = await $$(locators.get('locator8478_35qb'));
             let targetElemLoc = null;
             let targetElemSize = null;
 
@@ -2451,7 +2451,7 @@ class WatchlistPage {
 
     get editWatchlistPencilIcon() {
         // The pencil icon is instance 15 on the Watchlist page
-        return $(`android=new UiSelector().className("android.view.View").instance(15)`);
+        return $(locators.get('androidnewUiSelectorclassNamea_vx48'));
     }
 
     async openEditWatchlist() {
@@ -2473,7 +2473,7 @@ class WatchlistPage {
             const expected = expectedNames[i];
 
             // Use UiScrollable to automatically scroll horizontally until the tab is found
-            let tab = $(`android=new UiScrollable(new UiSelector().className("android.widget.HorizontalScrollView")).setAsHorizontalList().scrollIntoView(new UiSelector().description("${expected}"))`);
+            let tab = $(locators.get('androidnewUiScrollablenewUiSel_8xpp', expected));
 
             if (await tab.isExisting()) {
                 console.log(`✅ Verified and found tab: ${expected}`);
@@ -2489,7 +2489,7 @@ class WatchlistPage {
 
     async clickEditWatchlistTabByName(name) {
         console.log(`Switching back to watchlist tab: ${name}`);
-        let tab = $(`android=new UiScrollable(new UiSelector().className("android.widget.HorizontalScrollView")).setAsHorizontalList().scrollIntoView(new UiSelector().description("${name}"))`);
+        let tab = $(locators.get('androidnewUiScrollablenewUiSel_leeb', name));
         if (await tab.isExisting()) {
             await tab.click();
             await driver.pause(1500); // Wait for stocks to load
@@ -2502,7 +2502,7 @@ class WatchlistPage {
         console.log(`Attempting to delete stock at row index ${index}...`);
         
         // Find all elements that might be stocks
-        const potentialStocks = await $$(`android=new UiSelector().descriptionMatches(".*(NSE|BSE|CDS|MCX|NFO|BFO|EQ|FUT).*")`);
+        const potentialStocks = await $$(locators.get('androidnewUiSelectordescriptio_uady'));
         const stockRows = [];
         
         for (const elem of potentialStocks) {
@@ -2610,7 +2610,7 @@ class WatchlistPage {
         let popupAppeared = false;
         try {
             // This XPath looks for any element containing "Save" (or "SAVE") but explicitly EXCLUDES the title "Save Drag and Drop Ordering?"
-            const saveBtn = await $('//*[(contains(@content-desc, "Save") or contains(@text, "Save") or contains(@content-desc, "SAVE") or contains(@text, "SAVE")) and not(contains(@text, "Ordering")) and not(contains(@content-desc, "Ordering"))]');
+            const saveBtn = await $(locators.get('containscontentdescSaveorconta_enjh'));
 
             await saveBtn.waitForDisplayed({ timeout: 5000 });
             console.log("Save popup appeared, clicking Save...");
@@ -2643,7 +2643,7 @@ class WatchlistPage {
         // Verify no popup appears the second time
         let secondPopupAppeared = false;
         try {
-            const saveBtn = await $('//*[(contains(@content-desc, "Save") or contains(@text, "Save") or contains(@content-desc, "SAVE") or contains(@text, "SAVE")) and not(contains(@text, "Ordering")) and not(contains(@content-desc, "Ordering"))]');
+            const saveBtn = await $(locators.get('containscontentdescSaveorconta_hf28'));
             // Check if it exists and is displayed quickly
             if (await saveBtn.isExisting() && await saveBtn.isDisplayed()) {
                 secondPopupAppeared = true;
@@ -2717,7 +2717,7 @@ class WatchlistPage {
 
         // 5. Go back to Search Results
         console.log("Navigating back from Overview...");
-        const backBtn = await $('~Back');
+        const backBtn = await $(locators.get('Back_3gby'));
         if (await backBtn.isExisting()) {
             await backBtn.click();
         } else {
@@ -2768,7 +2768,7 @@ class WatchlistPage {
         await driver.pause(1000)
             // Wait for bottom tabs to render
         await driver.waitUntil(async () => {
-            const el = $(`android=new UiSelector().className("android.widget.ImageView").instance(2)`);
+            const el = $(locators.get('androidnewUiSelectorclassNamea_f3ig'));
             return await el.isExisting();
         }, { timeout: 15000, timeoutMsg: "App did not load bottom tabs" });
         await this.clickWatchlistTab();
@@ -2821,7 +2821,7 @@ class WatchlistPage {
 
     async getAllSearchResults() {
         const results = [];
-        const searchResults = await $$('//*[@content-desc != ""]');
+        const searchResults = await $$(locators.get('contentdesc_9cap'));
         for (const elem of searchResults) {
             if (await elem.isDisplayed().catch(() => false)) {
                 const loc = await elem.getLocation().catch(() => null);
@@ -2837,7 +2837,7 @@ class WatchlistPage {
     }
 
     async clickFirstHeatmapStock() {
-        const heatmapElements = await $$('//*[@content-desc != ""]');
+        const heatmapElements = await $$(locators.get('contentdesc_qnlr'));
         for (const elem of heatmapElements) {
             if (await elem.isDisplayed().catch(() => false)) {
                 const loc = await elem.getLocation().catch(() => null);
@@ -2855,7 +2855,7 @@ class WatchlistPage {
     }
 
     async getStockOverviewTitle() {
-        const titleElements = await $$('//*[@content-desc != ""]');
+        const titleElements = await $$(locators.get('contentdesc_pviq'));
         for (const elem of titleElements) {
             if (await elem.isDisplayed().catch(() => false)) {
                 const loc = await elem.getLocation().catch(() => null);

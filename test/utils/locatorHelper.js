@@ -31,11 +31,15 @@ class LocatorLoader {
         }
     }
 
-    get(key) {
+    get(key, ...args) {
         if (!this.locators[key]) {
             throw new Error(`Locator key "${key}" not found in locators.csv`)
         }
-        return this.locators[key]
+        let locator = this.locators[key]
+        args.forEach((arg, index) => {
+            locator = locator.replace(`{${index}}`, arg)
+        })
+        return locator
     }
 }
 

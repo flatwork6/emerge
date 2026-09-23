@@ -8,13 +8,13 @@ class OverviewPage {
 
     async getStockDetails(expectedStockName) {
         // In Flutter apps, text is often in content-desc. Let's find the element containing the stock name.
-        const el = await $(`android=new UiSelector().descriptionContains("${expectedStockName}")`);
+        const el = await $(locators.get('androidnewUiSelectordescriptio_rtwl', expectedStockName));
         let desc = expectedStockName;
         if (await el.isExisting()) {
             desc = await el.getAttribute("content-desc");
         } else {
             // fallback if it's actually text
-            const elText = await $(`android=new UiSelector().textContains("${expectedStockName}")`);
+            const elText = await $(locators.get('androidnewUiSelectortextContai_lrn5', expectedStockName));
             if (await elText.isExisting()) {
                 desc = await elText.getText();
             }
@@ -57,7 +57,7 @@ class OverviewPage {
     }
     async clickBSE() {
         console.log("Clicking BSE toggle...");
-        const bseBtn = $('~BSE');
+        const bseBtn = $(locators.get('BSE_tshb'));
         await bseBtn.waitForDisplayed({ timeout: 5000 });
         await bseBtn.click();
         await driver.pause(2000);
