@@ -217,9 +217,6 @@ class WatchlistPage {
             if (await item.isDisplayed().catch(() => false)) {
                 await item.click()
                 await driver.pause(1000)
-                if (name !== 'Index') {
-                    await this.pullDownToRefresh()
-                }
                 return
             }
         } catch (e) { }
@@ -229,10 +226,6 @@ class WatchlistPage {
             const itemUi = $(selector)
             if (await itemUi.isDisplayed().catch(() => false)) {
                 await itemUi.click()
-                await driver.pause(1000)
-                if (name !== 'Index') {
-                    await this.pullDownToRefresh()
-                }
                 return
             }
         } catch (e) { }
@@ -1483,7 +1476,7 @@ class WatchlistPage {
                                     const matches = possibleNames.some(name => desc === name || desc.startsWith(name + '\n') || desc.startsWith(name + ' ') || desc.includes(name))
                                     if (matches) {
                                         const sz = await v.getSize()
-                                        const tapX = Math.floor(loc.x + sz.width * 0.88)
+                                        const tapX = Math.floor(loc.x + sz.width * 0.94)
                                         const tapY = Math.floor(loc.y + sz.height / 2)
                                         await driver.performActions([{
                                             type: 'pointer',
@@ -1521,9 +1514,11 @@ class WatchlistPage {
 
                 // 3. Close bottom sheet and Stock Overview to return back to Watchlist tab main view
                 try {
-                    // Back #1: Close the 'Select Watchlist to Add' bottom sheet
-                    await driver.back()
-                    await driver.pause(1000)
+                    if (bookmarkClicked) {
+                        // Back #1: Close the 'Select Watchlist to Add' bottom sheet
+                        await driver.back()
+                        await driver.pause(1000)
+                    }
                     // Back #2: Close Stock Overview and return to active Watchlist tab
                     await driver.back()
                     await driver.pause(1500)
@@ -2461,8 +2456,24 @@ class WatchlistPage {
 
     async deleteStockByRowIndex(index) {
         console.log(`Attempting to delete stock at row index ${index}...`);
-        // Stock rows are located inside a ScrollView
-        const row = $(`android=new UiSelector().className("android.widget.ScrollView").childSelector(new UiSelector().className("android.view.View").instance(${index}))`);
+        
+        // Find all elements that might be stocks
+        const potentialStocks = await $$(`android=new UiSelector().descriptionMatches(".*(NSE|BSE|CDS|MCX|NFO|BFO|EQ|FUT).*")`);
+        const stockRows = [];
+        
+        for (const elem of potentialStocks) {
+            const desc = await elem.getAttribute("content-desc").catch(() => "");
+            // Filter out indices at the top (like SENSEX) which don't have exchange segments on a new line
+            if (desc && (desc.includes("\nNSE") || desc.includes("\nBSE") || desc.includes("\nCDS") || desc.includes("\nMCX") || desc.includes("\nNFO") || desc.includes("\nBFO") || desc.includes("-EQ"))) {
+                stockRows.push(elem);
+            }
+        }
+
+        if (stockRows.length <= index) {
+            throw new Error(`Cannot delete stock at index ${index}, only ${stockRows.length} valid stocks found.`);
+        }
+
+        const row = stockRows[index];
         await row.waitForDisplayed({ timeout: 5000 });
 
         const desc = await row.getAttribute("content-desc").catch(() => "");

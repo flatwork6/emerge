@@ -72,47 +72,43 @@ class ProfilePage {
     async extractActiveSegments() {
         console.log('Extracting Trading Privileges from UI...')
 
-        // Single scroll down to bring Trading Privileges into view
-        await this.scrollDownScreen()
-
         const activeSegments = []
 
-        // Single scan of visible elements on screen
-        const allElements = await $$('//*[@text or @content-desc]')
+        // Scroll and scan multiple times to ensure we reach the bottom of the list
+        for (let i = 0; i < 3; i++) {
+            await this.scrollDownScreen()
+            const allElements = await $$('//*[@text or @content-desc]')
+            
+            let currentPrivilege = null
+            for (const el of allElements) {
+                const text = ((await el.getText()) || (await el.getAttribute('content-desc')) || '').trim()
+                const lowerText = text.toLowerCase()
 
-
-        console.log("*****************************************************************")
-        console.log("Total Elements :" + allElements)
-        console.log("*****************************************************************")
-
-        let currentPrivilege = null
-        for (const el of allElements) {
-            const text = ((await el.getText()) || (await el.getAttribute('content-desc')) || '').trim()
-
-            const lowerText = text.toLowerCase()
-            if (lowerText.includes('equity cash')) {
-                currentPrivilege = 'Equity Cash'
-            } else if (lowerText.includes('derivatives')) {
-                currentPrivilege = 'Derivatives'
-            } else if (lowerText.includes('currency')) {
-                currentPrivilege = 'Currency'
-            } else if (lowerText.includes('commodity')) {
-                currentPrivilege = 'Commodity'
-            } else if (lowerText.includes('mtf') || lowerText.includes('margin trading')) {
-                currentPrivilege = 'MTF'
-            }
-
-            if (text === 'Active' && currentPrivilege) {
-                if (!activeSegments.includes(currentPrivilege)) {
-                    activeSegments.push(currentPrivilege)
+                if (lowerText.includes('equity cash')) {
+                    currentPrivilege = 'Equity Cash'
+                } else if (lowerText.includes('derivatives')) {
+                    currentPrivilege = 'Derivatives'
+                } else if (lowerText.includes('currency')) {
+                    currentPrivilege = 'Currency'
+                } else if (lowerText.includes('commodity')) {
+                    currentPrivilege = 'Commodity'
+                } else if (lowerText.includes('mtf') || lowerText.includes('margin trading')) {
+                    currentPrivilege = 'MTF'
                 }
-                currentPrivilege = null
-            } else if (text === 'Enable' && currentPrivilege) {
-                console.log(`Privilege '${currentPrivilege}' is INACTIVE/DISABLED.`)
-                currentPrivilege = null
+
+                if (text === 'Active' && currentPrivilege) {
+                    if (!activeSegments.includes(currentPrivilege)) {
+                        activeSegments.push(currentPrivilege)
+                    }
+                    currentPrivilege = null
+                } else if (text === 'Enable' && currentPrivilege) {
+                    console.log(`Privilege '${currentPrivilege}' is INACTIVE/DISABLED.`)
+                    currentPrivilege = null
+                }
             }
         }
-        //console.log('Active Trading Privileges Extracted:', activeSegments)
+        
+        console.log('Active Trading Privileges Extracted:', activeSegments)
         segmentGuard.setActivePrivileges(activeSegments)
         return activeSegments
     }
