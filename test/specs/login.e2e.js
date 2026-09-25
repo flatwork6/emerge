@@ -15,21 +15,103 @@ import testDataHelper from '../utils/testDataHelper.js'
 
 
 describe('Emerge Login & Segment Guard Validation', () => {
-  it('should login successfully', async () => {
+  it('TC-01: User ID field is present', async () => {
+    expect(await LoginPage.username.isDisplayed()).toBe(true);
+    allure.addStep('✅ Verified User ID field is displayed');
+  });
 
-    // await LoginPage.securityWarning();
+  it('TC-02: Password field is present', async () => {
+    expect(await LoginPage.password.isDisplayed()).toBe(true);
+    allure.addStep('✅ Verified Password field is displayed');
+  });
 
-    // await LoginPage.getNotification();
+  it('TC-03: TOTP/OTP/PAN field is present', async () => {
+    let fields = await $$('android=new UiSelector().className("android.widget.EditText")');
+    let isTotpDisplayed = fields.length >= 3 ? await fields[2].isDisplayed() : await LoginPage.totpOrOtp.isDisplayed();
+    expect(isTotpDisplayed).toBe(true);
+    allure.addStep('✅ Verified TOTP/OTP/PAN field is displayed');
+  });
 
-    // await LoginPage.clickUseAnotherAccount()
+  it('TC-05: LOGIN button is disabled by default', async () => {
+    // Clear fields to guarantee clean state if app was not restarted
+    let fields = await $$('android=new UiSelector().className("android.widget.EditText")');
+    for (let field of fields) {
+        if (await field.isDisplayed()) {
+            await field.clearValue();
+        }
+    }
+    expect(await LoginPage.loginButton.isEnabled()).toBe(false);
+    allure.addStep('✅ Verified LOGIN button is disabled by default');
+  });
 
-    await LoginPage.enterUserName(process.env.USER_ID)
+  it('TC-06: LOGIN button stays disabled after entering only User ID', async () => {
+    await LoginPage.enterUserName(process.env.USER_ID);
+    allure.addStep('Entered User ID');
+    expect(await LoginPage.loginButton.isEnabled()).toBe(false);
+    allure.addStep('✅ Verified LOGIN button remains disabled after entering only User ID');
+  });
 
-    await LoginPage.enterPassword(process.env.PASSWORD)
+  it('TC-07: LOGIN button stays disabled after entering User ID and Password', async () => {
+    await LoginPage.enterPassword(process.env.PASSWORD);
+    allure.addStep('Entered Password');
+    expect(await LoginPage.loginButton.isEnabled()).toBe(false);
+    allure.addStep('✅ Verified LOGIN button remains disabled after entering User ID and Password');
+  });
 
-    await LoginPage.enterTotp(process.env.TOTP)
+  it('TC-08: LOGIN button becomes enabled only after all three fields are filled', async () => {
+    await LoginPage.enterTotp('000000'); // Invalid TOTP initially
+    allure.addStep('Entered TOTP');
+    expect(await LoginPage.loginButton.isEnabled()).toBe(true);
+    allure.addStep('✅ Verified LOGIN button becomes enabled after filling all fields');
+  });
 
-    await LoginPage.clickLogin()
+  it('TC-10a: Wrong TOTP shows "Invalid totp" error', async () => {
+    allure.addStep('Fill correct username/password, wrong TOTP');
+    await LoginPage.enterUserName(process.env.USER_ID);
+    await LoginPage.enterPassword(process.env.PASSWORD);
+    await LoginPage.enterTotp('000000');
+    await LoginPage.clickLogin();
+    allure.addStep('Clicked LOGIN with incorrect TOTP');
+    const errorMsg = await $('//android.view.View[contains(@content-desc, "OTP") or contains(@text, "OTP") or contains(@content-desc, "otp") or contains(@text, "otp")]');
+    await errorMsg.waitForDisplayed({ timeout: 10000 });
+    expect(await errorMsg.isDisplayed()).toBe(true);
+    allure.addStep('✅ Verified "Invalid totp" error message is displayed');
+    await driver.pause(2000); // Wait for error to dismiss
+  });
+
+  it('TC-10b: Wrong password shows "invalid password" error', async () => {
+    allure.addStep('Fill correct username/TOTP, wrong password');
+    await LoginPage.enterUserName(process.env.USER_ID);
+    await LoginPage.enterPassword('wrongpass');
+    await LoginPage.enterTotp(process.env.TOTP);
+    await LoginPage.clickLogin();
+    allure.addStep('Clicked LOGIN with incorrect password');
+    const errorMsg = await $('//android.view.View[contains(@content-desc, "assword") or contains(@text, "assword")]');
+    await errorMsg.waitForDisplayed({ timeout: 10000 });
+    expect(await errorMsg.isDisplayed()).toBe(true);
+    allure.addStep('✅ Verified "invalid password" error message is displayed');
+    await driver.pause(2000); // Wait for error to dismiss
+  });
+
+  it('TC-10c: Wrong username shows "Invalid input : Invalid user" error', async () => {
+    allure.addStep('Fill correct password/TOTP, wrong username');
+    await LoginPage.enterUserName('wronguser');
+    await LoginPage.enterPassword(process.env.PASSWORD);
+    await LoginPage.enterTotp(process.env.TOTP);
+    await LoginPage.clickLogin();
+    allure.addStep('Clicked LOGIN with incorrect username');
+    const errorMsg = await $('//android.view.View[contains(@content-desc, "nvalid user") or contains(@text, "nvalid user") or contains(@content-desc, "nvalid User") or contains(@text, "nvalid User")]');
+    await errorMsg.waitForDisplayed({ timeout: 10000 });
+    expect(await errorMsg.isDisplayed()).toBe(true);
+    allure.addStep('✅ Verified "Invalid input : Invalid user" error message is displayed');
+    await driver.pause(2000); // Wait for error to dismiss
+  });
+
+  it('TC-09 & TC-04: Valid credentials log in and navigate to the Dashboard', async () => {
+    // Restore correct username for successful login
+    await LoginPage.enterUserName(process.env.USER_ID);
+    await LoginPage.clickLogin();
+    allure.addStep('Clicked LOGIN with valid credentials');
 
     // Wait dynamically for either Biometric Screen OR Risk Disclosure popup
     const detected = await driver.waitUntil(async () => {
@@ -55,6 +137,9 @@ describe('Emerge Login & Segment Guard Validation', () => {
         timeoutMsg: 'Biometric screen did not appear after Risk Disclosure within 2 minutes'
       });
     }
+
+    // TC-04: Biometric is shown if its enabled
+    expect(await SetBiometric.userChoice.isDisplayed()).toBe(true);
 
     await SetBiometric.chooseUserChoice();
 

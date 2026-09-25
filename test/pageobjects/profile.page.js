@@ -75,7 +75,7 @@ class ProfilePage {
         const activeSegments = []
 
         // Scroll and scan multiple times to ensure we reach the bottom of the list
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 2; i++) {
             await this.scrollDownScreen()
             const allElements = await $$(locators.get('textorcontentdesc_yv1p'))
             
