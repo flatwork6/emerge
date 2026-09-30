@@ -9,7 +9,7 @@ const fs = require('fs');
 //         await OrdersPage.openGTT();
 //         const gttStockName = await OrdersPage.extractFirstGTTStock();
         
-//         const icon = await $(locators.get('Watchlist_0mvg'));
+//         const icon = await $(locators.get("watchlistTabIcon"));
 //         await icon.waitForDisplayed({ timeout: 5000 });
 //         await icon.click();
         

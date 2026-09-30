@@ -3,11 +3,11 @@ import locators from '../utils/locatorHelper.js'
 
 class AlertsPage {
     get targetValueInput() {
-        return $(locators.get('targetValueInput'));
+        return $(locators.get("username"));
     }
 
     get tacticalNoteInput() {
-        return $(locators.get('tacticalNoteInput'));
+        return $(locators.get("password"));
     }
 
     get createAlertBtn() {
@@ -23,7 +23,7 @@ class AlertsPage {
     }
     
     get alertTypeDropdown() {
-        return $(locators.get('alertTypeDropdown'));
+        return $(locators.get("ltpSorting"));
     }
 
 
@@ -32,7 +32,7 @@ class AlertsPage {
     }
 
     get pencilIcon() {
-        return $(locators.get('pencilIcon'))
+        return $(locators.get("marketWatchSettingsGear"))
     }
 
     get dustbinIcon() {
@@ -96,7 +96,7 @@ class AlertsPage {
     async getExistingAlerts() {
         console.log("Extracting existing alerts from bottom sheet...");
         // Assuming the alert text is inside a View's content-desc and contains 'NSE | '
-        const alertElements = await $$(locators.get('androidnewUiSelectordescriptio_3frn'));
+        const alertElements = await $$(locators.get("nSE"));
         let extractedAlerts = [];
         for (let el of alertElements) {
             const desc = await el.getAttribute('content-desc');

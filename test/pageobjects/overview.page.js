@@ -3,18 +3,18 @@ import locators from '../utils/locatorHelper.js'
 
 class OverviewPage {
     get optionChainIcon() {
-        return $(locators.get('optionChain')); 
+        return $(locators.get("fundsTabIcon")); 
     }
 
     async getStockDetails(expectedStockName) {
         // In Flutter apps, text is often in content-desc. Let's find the element containing the stock name.
-        const el = await $(locators.get('androidnewUiSelectordescriptio_rtwl', expectedStockName));
+        const el = await $(locators.get('dynamicDesc', expectedStockName));
         let desc = expectedStockName;
         if (await el.isExisting()) {
             desc = await el.getAttribute("content-desc");
         } else {
             // fallback if it's actually text
-            const elText = await $(locators.get('androidnewUiSelectortextContai_lrn5', expectedStockName));
+            const elText = await $(locators.get('dynamicText', expectedStockName));
             if (await elText.isExisting()) {
                 desc = await elText.getText();
             }
@@ -33,7 +33,7 @@ class OverviewPage {
     }
 
     get alertsIcon() {
-        return $(locators.get('alertsIcon'));
+        return $(locators.get("profileMenuBtn"));
     }
 
     async clickAlerts() {
@@ -51,13 +51,13 @@ class OverviewPage {
             await this.optionChainIcon.waitForDisplayed({ timeout: 5000 });
             await this.optionChainIcon.click();
         } catch (e) {
-            console.error("Could not find Option Chain icon using locators.get('optionChain')");
+            console.error("Could not find Option Chain icon using locators.get("fundsTabIcon")");
             throw new Error("Could not find Option Chain icon.");
         }
     }
     async clickBSE() {
         console.log("Clicking BSE toggle...");
-        const bseBtn = $(locators.get('BSE_tshb'));
+        const bseBtn = $(locators.get("exchangeChipBSE"));
         await bseBtn.waitForDisplayed({ timeout: 5000 });
         await bseBtn.click();
         await driver.pause(2000);
@@ -65,7 +65,7 @@ class OverviewPage {
 
     async clickNSE() {
         console.log("Clicking NSE toggle...");
-        const nseBtn = $(locators.get('nseToggleBtn'));
+        const nseBtn = $(locators.get("exchangeChipNSE"));
         await nseBtn.waitForDisplayed({ timeout: 5000 });
         await nseBtn.click();
         await driver.pause(2000);

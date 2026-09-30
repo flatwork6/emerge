@@ -52,7 +52,7 @@ class WatchlistPage {
     }
 
     get selectWatchlist() {
-        return $(locators.get('selectWatchlist'))
+        return $(locators.get("watchlistTab3"))
     }
 
     get searchResultPlusIcons() {
@@ -2033,7 +2033,7 @@ class WatchlistPage {
      */
     async clickHeatmapBackButton() {
         try {
-            const backBtn = await $(locators.get('heatmapBackButton'))
+            const backBtn = await $(locators.get("stockOverviewBackButton"))
             if (await backBtn.isDisplayed().catch(() => false)) {
                 await backBtn.click()
                 await driver.pause(1000)

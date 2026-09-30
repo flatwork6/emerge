@@ -8,7 +8,7 @@ class PortfolioPage {
         console.log(`Navigating to Portfolio -> ${tab} tab...`);
         // Wait for bottom tabs to render
         // await driver.waitUntil(async () => {
-        //     const el = $(locators.get('androidnewUiSelectorclassNamea_phdz'));
+        //     const el = $(locators.get("watchlistFooterIcon"));
         //     return await el.isExisting();
         // }, { timeout: 15000, timeoutMsg: "App did not load bottom tabs" });
 
@@ -18,7 +18,7 @@ class PortfolioPage {
         // We prioritize index 3 since it's the most common location for the Portfolio tab
         const preferredIndices = [3, 4, 5, 6, 0, 1, 2];
         for (const i of preferredIndices) {
-            const icon = $(locators.get('androidnewUiSelectorclassNamea_byih', i));
+            const icon = $(locators.get('imageViewInst0', i));
             if (await icon.isExisting()) {
                 await icon.click();
                 try {
@@ -39,8 +39,8 @@ class PortfolioPage {
                         try {
                             await driver.waitUntil(async () => {
                                 const rowExists = await $(locators.get('portfolioStockRows')).isExisting();
-                                const emptyPositions = await $(locators.get('androidnewUiSelectortextContai_oepl')).isExisting();
-                                const emptyHoldings = await $(locators.get('androidnewUiSelectortextContai_u2g2')).isExisting();
+                                const emptyPositions = await $(locators.get("nopositionsavailable")).isExisting();
+                                const emptyHoldings = await $(locators.get("startYourInvestment")).isExisting();
                                 return rowExists || emptyPositions || emptyHoldings;
                             }, { timeout: 2500 });
                         } catch (e) {}
@@ -62,7 +62,7 @@ class PortfolioPage {
 
     async extractFirstHolding() {
         console.log("Extracting first holding...");
-        const emptyState = await $(locators.get('androidnewUiSelectortextContai_xwj2'));
+        const emptyState = await $(locators.get("startYourInvestment"));
         if (await emptyState.isExisting()) {
             console.log("Empty holdings state found: Start Your Investment");
             return "No Holdings found";
@@ -133,7 +133,7 @@ class PortfolioPage {
 
     async extractFirstPosition() {
         console.log("Extracting first position...");
-        const emptyState = await $(locators.get('androidnewUiSelectortextContai_2v1e'));
+        const emptyState = await $(locators.get("nopositionsavailable"));
         if (await emptyState.isExisting()) {
             console.log("Empty positions state found: No positions available");
             return "No Positions found";

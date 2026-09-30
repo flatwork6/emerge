@@ -33,13 +33,6 @@ describe('Emerge Login & Segment Guard Validation', () => {
   });
 
   it('TC-05: LOGIN button is disabled by default', async () => {
-    // Clear fields to guarantee clean state if app was not restarted
-    let fields = await $$('android=new UiSelector().className("android.widget.EditText")');
-    for (let field of fields) {
-        if (await field.isDisplayed()) {
-            await field.clearValue();
-        }
-    }
     expect(await LoginPage.loginButton.isEnabled()).toBe(false);
     allure.addStep('✅ Verified LOGIN button is disabled by default');
   });
@@ -59,13 +52,13 @@ describe('Emerge Login & Segment Guard Validation', () => {
   });
 
   it('TC-08: LOGIN button becomes enabled only after all three fields are filled', async () => {
-    await LoginPage.enterTotp('000000'); // Invalid TOTP initially
+    await LoginPage.enterTotp('000000'); // Invalid OTP initially
     allure.addStep('Entered TOTP');
     expect(await LoginPage.loginButton.isEnabled()).toBe(true);
     allure.addStep('✅ Verified LOGIN button becomes enabled after filling all fields');
   });
 
-  it('TC-10a: Wrong TOTP shows "Invalid totp" error', async () => {
+  it('TC-10a: Wrong TOTP shows "Invalid otp" error', async () => {
     allure.addStep('Fill correct username/password, wrong TOTP');
     await LoginPage.enterUserName(process.env.USER_ID);
     await LoginPage.enterPassword(process.env.PASSWORD);
@@ -76,7 +69,6 @@ describe('Emerge Login & Segment Guard Validation', () => {
     await errorMsg.waitForDisplayed({ timeout: 10000 });
     expect(await errorMsg.isDisplayed()).toBe(true);
     allure.addStep('✅ Verified "Invalid totp" error message is displayed');
-    await driver.pause(2000); // Wait for error to dismiss
   });
 
   it('TC-10b: Wrong password shows "invalid password" error', async () => {
@@ -86,11 +78,10 @@ describe('Emerge Login & Segment Guard Validation', () => {
     await LoginPage.enterTotp(process.env.TOTP);
     await LoginPage.clickLogin();
     allure.addStep('Clicked LOGIN with incorrect password');
-    const errorMsg = await $('//android.view.View[contains(@content-desc, "assword") or contains(@text, "assword")]');
+    const errorMsg = await $('//android.view.View[contains(@content-desc, "invalid password") or contains(@content-desc, "Invalid password") or contains(@text, "invalid password") or contains(@text, "Invalid password")]');
     await errorMsg.waitForDisplayed({ timeout: 10000 });
     expect(await errorMsg.isDisplayed()).toBe(true);
     allure.addStep('✅ Verified "invalid password" error message is displayed');
-    await driver.pause(2000); // Wait for error to dismiss
   });
 
   it('TC-10c: Wrong username shows "Invalid input : Invalid user" error', async () => {
@@ -100,11 +91,10 @@ describe('Emerge Login & Segment Guard Validation', () => {
     await LoginPage.enterTotp(process.env.TOTP);
     await LoginPage.clickLogin();
     allure.addStep('Clicked LOGIN with incorrect username');
-    const errorMsg = await $('//android.view.View[contains(@content-desc, "nvalid user") or contains(@text, "nvalid user") or contains(@content-desc, "nvalid User") or contains(@text, "nvalid User")]');
+    const errorMsg = await $('//android.view.View[contains(@content-desc, "Invalid input") or contains(@text, "Invalid input")]');
     await errorMsg.waitForDisplayed({ timeout: 10000 });
     expect(await errorMsg.isDisplayed()).toBe(true);
     allure.addStep('✅ Verified "Invalid input : Invalid user" error message is displayed');
-    await driver.pause(2000); // Wait for error to dismiss
   });
 
   it('TC-09 & TC-04: Valid credentials log in and navigate to the Dashboard', async () => {

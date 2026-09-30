@@ -10,7 +10,7 @@ class SecurePage extends Page {
      * define selectors using getter methods
      */
     get flashAlert () {
-        return $(locators.get('flash_5s9g'));
+        return $(locators.get("locatorGen"));
     }
 }
 

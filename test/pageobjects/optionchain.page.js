@@ -16,7 +16,7 @@ class OptionChainPage {
            console.log("*******************")
            console.log(isVisible)
         } catch (e) {
-            const fallbackHeader = await $(locators.get('androidnewUiSelectortextOption_41jn'));
+            const fallbackHeader = await $(locators.get("optionChain1"));
             if (await fallbackHeader.isExisting()) {
                 await fallbackHeader.waitForDisplayed({ timeout: 5000 });
             } else {
@@ -26,12 +26,12 @@ class OptionChainPage {
 
         // Verify stock name and price
         // Since we don't know the exact hierarchy, let's search for an element containing the stock name
-        const elName = await $(locators.get('androidnewUiSelectordescriptio_xvid', expectedStockName));
+        const elName = await $(locators.get('dynamicDesc', expectedStockName));
         let desc = "";
         if (await elName.isExisting()) {
             desc = await elName.getAttribute("content-desc");
         } else {
-            const fallbackName = await $(locators.get('androidnewUiSelectortextContai_rn7e', expectedStockName));
+            const fallbackName = await $(locators.get('dynamicText', expectedStockName));
             if (await fallbackName.isExisting()) {
                 desc = await fallbackName.getText();
             } else {
@@ -41,8 +41,8 @@ class OptionChainPage {
 
         if (expectedStockPrice && !desc.includes(expectedStockPrice)) {
             // Price might be in a separate element
-            const elPrice = await $(locators.get('androidnewUiSelectordescriptio_ezgk', expectedStockPrice));
-            const fallbackPrice = await $(locators.get('androidnewUiSelectortextContai_m0z2', expectedStockPrice));
+            const elPrice = await $(locators.get('dynamicDesc', expectedStockPrice));
+            const fallbackPrice = await $(locators.get('dynamicText', expectedStockPrice));
             if (!(await elPrice.isExisting()) && !(await fallbackPrice.isExisting())) {
                 console.warn(`Warning: Expected stock price ${expectedStockPrice} not explicitly found in description, but continuing.`);
             }

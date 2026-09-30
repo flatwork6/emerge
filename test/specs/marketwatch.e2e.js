@@ -286,8 +286,8 @@ describe('Market Watch Additional Scenarios', () => {
   //   await WatchlistPage.addFirstScripToWatchlist();
   //   await WatchlistPage.addFirstScripToWatchlist();
 
-  //   const snackbar = await $(locators.get('androidnewUiSelectortextContai_nh8f')).catch(() => null) ||
-  //                    await $(locators.get('containscontentdescalreadypres_2ixn')).catch(() => null);
+  //   const snackbar = await $(locators.get("alreadypresent")).catch(() => null) ||
+  //                    await $(locators.get("locatorGen8")).catch(() => null);
 
   //   if (snackbar) {
   //     await snackbar.waitForDisplayed({ timeout: 2000 }).catch(() => {});

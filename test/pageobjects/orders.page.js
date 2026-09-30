@@ -10,14 +10,14 @@ class OrdersPage {
         console.log("Navigating to Orders tab...");
         // Wait for bottom tabs to render
         await driver.waitUntil(async () => {
-            const el = $(locators.get('androidnewUiSelectorclassNamea_4idc'));
+            const el = $(locators.get("ordersTab"));
              return await el.isExisting();
         }, { timeout: 15000, timeoutMsg: "App did not load bottom tabs" });
 
         // Iterate through instances to find the Orders tab (usually instance 2 or 3)
         const preferredIndices = [2, 1, 3, 4, 0, 5];
         for (const i of preferredIndices) {
-            const icon = $(locators.get('androidnewUiSelectorclassNamea_z03r'));
+            const icon = $(locators.get("ordersTab"));
             if (await icon.isExisting()) {
                 await icon.click();
                 try {
@@ -42,7 +42,7 @@ class OrdersPage {
 
     async extractFirstGTTStock() {
         console.log("Extracting first GTT stock...");
-        const listElements = await $$(locators.get('gttStockRows'));
+        const listElements = await $$(locators.get("portfolioStockRows"));
         
         let foundStockName = null;
 
@@ -114,7 +114,7 @@ class OrdersPage {
 
         // Since the stock name and "Qty: 1" are separate widgets in Flutter,
         // we'll get all descriptions to find "Scrips in this SIP" and take the next text.
-        const allElements = await $$(locators.get('locator5382_vr41'));
+        const allElements = await $$(locators.get("anyElement"));
         let texts = [];
         for (const el of allElements) {
             let desc = await el.getAttribute("content-desc").catch(() => "");
@@ -189,7 +189,7 @@ class OrdersPage {
 
     async extractFirstAlertStock() {
         console.log("Extracting first Alert stock...");
-        const potentialElems = await $$(locators.get('locator6631_uv5l'));
+        const potentialElems = await $$(locators.get("anyElement"));
         let foundStockName = null;
 
         for (const elem of potentialElems) {
@@ -221,7 +221,7 @@ class OrdersPage {
     }
     async getAllAlerts() {
         console.log("Extracting all alerts from Alerts tab...");
-        const potentialElems = await $$(locators.get('locator6460_d8gs'));
+        const potentialElems = await $$(locators.get("anyElement"));
         let extractedAlerts = [];
 
         for (const elem of potentialElems) {
