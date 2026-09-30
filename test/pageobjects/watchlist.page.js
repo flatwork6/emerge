@@ -2,6 +2,26 @@ import allure from '@wdio/allure-reporter'
 import locators from '../utils/locatorHelper.js'
 
 class WatchlistPage {
+    async getFirstWatchlistStockName() {
+        const listElements = await $$(locators.get("watchlistStockRows"));
+        for (const elem of listElements) {
+            if (await elem.isDisplayed().catch(() => false)) {
+                const loc = await elem.getLocation().catch(() => ({ y: 0 }));
+                const desc = await elem.getAttribute("content-desc").catch(() => "");
+                if (loc.y > 200 && desc) {
+                    const parts = desc.split(/\n|,/).map(s => s.trim()).filter(s => s !== "");
+                    if (parts.length >= 3) {
+                        const name = parts[0];
+                        const lowerName = name.toLowerCase();
+                        const isHeaderOrControl = name.includes("Watchlist") || lowerName === "bse" || lowerName === "nse" || lowerName.includes("archive");
+                        if (!isHeaderOrControl) return name;
+                    }
+                }
+            }
+        }
+        return "TCS-EQ"; // fallback
+    }
+
 
     get searchIcon() {
         return $(locators.get('searchIcon'))
