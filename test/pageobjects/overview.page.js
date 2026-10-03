@@ -51,7 +51,7 @@ class OverviewPage {
             await this.optionChainIcon.waitForDisplayed({ timeout: 5000 });
             await this.optionChainIcon.click();
         } catch (e) {
-            console.error("Could not find Option Chain icon using locators.get("fundsTabIcon")");
+            console.error("Could not find Option Chain icon using locators.get(fundsTabIcon)");
             throw new Error("Could not find Option Chain icon.");
         }
     }
