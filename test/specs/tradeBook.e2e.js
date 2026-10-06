@@ -37,7 +37,7 @@ describe('TradeBook Automation', () => {
         console.log(`Expected trades count from heading: ${expectedCount}`);
 
         // Verify there is at least one trade row. Since Flutter combines elements, we'll look for "B" or "S" in content-desc.
-        let allScreenEls = await $$('//android.view.View[contains(@content-desc, "Qty:")]');
+        let allScreenEls = await $$(locators.get('tradeBookTradeRow'));
         let tradeRowsCount = 0;
 
         for (const el of allScreenEls) {
@@ -76,7 +76,7 @@ describe('TradeBook Automation', () => {
             }
         } else {
             console.log("No trade rows found. Verifying 'No Trades found' message...");
-            const noTradesMsg = await $('//*[contains(@content-desc, "No trades found") or contains(@text, "No trades found") or contains(@content-desc, "No Trades found") or contains(@text, "No Trades found")]');
+            const noTradesMsg = await $(locators.get('tradeBookNoTradesMsg'));
             if (await noTradesMsg.isExisting()) {
                 console.log("✅ 'No Trades found' message is correctly displayed.");
             } else {
@@ -96,7 +96,7 @@ describe('TradeBook Automation', () => {
             await searchIcon.click();
         } else {
             // fallback for search icon
-            const fallbackIcon = await $('android=new UiSelector().className("android.widget.ImageView").instance(0)');
+            const fallbackIcon = await $(locators.get('tradeBookFallbackIcon'));
             if (await fallbackIcon.isExisting()) await fallbackIcon.click();
         }
         await driver.pause(2000);
@@ -114,7 +114,7 @@ describe('TradeBook Automation', () => {
             await driver.pause(2000);
 
             // Verify stock is visible
-            let visibleStock = await $(`//android.view.View[contains(@content-desc, "${availableTradeStock}")]`);
+            let visibleStock = await $(locators.get('tradeBookDynamicStockRow', availableTradeStock));
             if (await visibleStock.isExisting()) {
                 console.log(`✅ Available stock ${availableTradeStock} is correctly displayed in search results.`);
             } else {
@@ -154,7 +154,7 @@ describe('TradeBook Automation', () => {
     it('TC-04: Tradebook should be scrollable', async () => {
         allureReporter.addStep('Verify the tradebook containing trades are scrollable');
 
-        let allScreenEls = await $$('//android.view.View[contains(@content-desc, "Qty:")]');
+        let allScreenEls = await $$(locators.get('tradeBookTradeRow'));
         let tradeRowsCount = 0;
 
         for (const el of allScreenEls) {
@@ -208,7 +208,7 @@ describe('TradeBook Automation', () => {
     it('TC-05: Only completed orders appear in TradeBook', async () => {
         allureReporter.addStep('Verify whether Completed status is only visible on all orders.');
 
-        let allScreenEls = await $$('//android.view.View[contains(@content-desc, "Qty:")]');
+        let allScreenEls = await $$(locators.get('tradeBookTradeRow'));
         let validTradeRowFound = false;
         let allAreCompleted = true;
 
@@ -242,15 +242,15 @@ describe('TradeBook Automation', () => {
 
     it('TC-06: Tapping a trade row opens a bottom sheet with Info, Chart, Create alert, Technicals', async () => {
         allureReporter.addStep('Tap a completed trade row and verify bottom sheet options.');
-        const tradeRow = await $('//android.view.View[contains(@content-desc, "Qty:")]');
+        const tradeRow = await $(locators.get('tradeBookTradeRow'));
         if (await tradeRow.isExisting()) {
             await tradeRow.click();
             await driver.pause(1500);
 
-            const infoOpt = await $('~Info');
-            const chartOpt = await $('~Chart');
-            const alertOpt = await $('~Create Alert');
-            const techOpt = await $('~Technicals');
+            const infoOpt = await $(locators.get('tradeBookInfoOpt'));
+            const chartOpt = await $(locators.get('tradeBookChartOpt'));
+            const alertOpt = await $(locators.get('tradeBookCreateAlertOpt'));
+            const techOpt = await $(locators.get('tradeBookTechnicalsOpt'));
 
             expect(await infoOpt.isExisting()).toBe(true);
             expect(await chartOpt.isExisting()).toBe(true);
@@ -266,23 +266,23 @@ describe('TradeBook Automation', () => {
 
     it('TC-07: "Info" shows the trade\'s detail dialog', async () => {
         allureReporter.addStep('click Info, scrip info page will appear, verify scrip info header appears. and click<-btn.');
-        const infoOpt = await $('~Info');
+        const infoOpt = await $(locators.get('tradeBookInfoOpt'));
         if (await infoOpt.isExisting()) {
             await infoOpt.click();
             await driver.pause(2000);
 
             // Verify scrip info header appears
-            const scripInfoHeader = await $('//*[contains(@content-desc, "Fundamentals") or contains(@content-desc, "Market Depth") or contains(@content-desc, "Scrip info")]');
+            const scripInfoHeader = await $(locators.get('tradeBookScripInfoHeader'));
             if (await scripInfoHeader.isExisting()) {
                 console.log("✅ Scrip info header appeared.");
             }
 
             // click <- btn
-            const backBtn = await $('~Back');
+            const backBtn = await $(locators.get('tradeBookBackBtn'));
             if (await backBtn.isExisting()) {
                 await backBtn.click();
             } else {
-                const fallbackBackBtn = await $('android=new UiSelector().className("android.widget.ImageView").instance(0)');
+                const fallbackBackBtn = await $(locators.get('tradeBookFallbackIcon'));
                 if (await fallbackBackBtn.isExisting()) await fallbackBackBtn.click();
             }
             await driver.pause(1500);
@@ -291,12 +291,12 @@ describe('TradeBook Automation', () => {
 
     it('TC-08: "Chart" navigates to the stock chart screen', async () => {
         allureReporter.addStep('Navigates to bottomsheet,click Chart, Overview page will appear. verify Overview header and scrip name appears on the page, come back');
-        const chartOpt = await $('~Chart');
+        const chartOpt = await $(locators.get('tradeBookChartOpt'));
         if (await chartOpt.isExisting()) {
             await chartOpt.click();
             await driver.pause(4000);
 
-            const overviewHeader = await $('//*[contains(@content-desc, "Overview") or contains(@content-desc, "Chart")]');
+            const overviewHeader = await $(locators.get('tradeBookOverviewHeader'));
             if (await overviewHeader.isExisting()) {
                 console.log("✅ Overview/Chart header appeared.");
             }
@@ -309,7 +309,7 @@ describe('TradeBook Automation', () => {
             }
 
             // come back
-            const backBtn = await $('~Back');
+            const backBtn = await $(locators.get('tradeBookBackBtn'));
             if (await backBtn.isExisting()) {
                 await backBtn.click();
             } else {
@@ -322,13 +322,13 @@ describe('TradeBook Automation', () => {
 
     it('TC-09: "Create alert" flow and verification in Alerts tab', async () => {
         allureReporter.addStep('click create alert, give target value > ltp and Create Alert. Check alert in Alerts tab.');
-        const alertOpt = await $('~Create Alert');
+        const alertOpt = await $(locators.get('tradeBookCreateAlertOpt'));
         if (await alertOpt.isExisting()) {
             await alertOpt.click();
             await driver.pause(2000);
 
             // Give target value (e.g. 1.0 or greater than LTP)
-            const targetValueInput = await $('android=new UiSelector().className("android.widget.EditText").instance(0)');
+            const targetValueInput = await $(locators.get('tradeBookAlertTargetInput'));
             const targetValue = 80.0;
             if (await targetValueInput.isExisting()) {
                 await targetValueInput.click();
@@ -339,7 +339,7 @@ describe('TradeBook Automation', () => {
             }
 
             // Click Create Alert btn
-            const createAlertBtn = await $('//*[contains(@content-desc, "Create Alert")]');
+            const createAlertBtn = await $(locators.get('tradeBookCreateAlertBtn'));
             if (await createAlertBtn.isExisting()) {
                 await createAlertBtn.click();
                 await driver.pause(2000);
@@ -353,13 +353,13 @@ describe('TradeBook Automation', () => {
 
 
             // Click Alerts on top
-            const alertsTab = await $('~Alerts');
+            const alertsTab = await $(locators.get('tradeBookAlertsTab'));
             if (await alertsTab.isExisting()) {
                 await alertsTab.click();
                 await driver.pause(2000);
 
                 // Verify scrip name and entered target value exists there
-                const alertItem = await $(`//*[contains(@content-desc, "${availableTradeStock}") and contains(@content-desc, "80")]`);
+                const alertItem = await $(locators.get('tradeBookDynamicAlertItem', availableTradeStock));
                 if (await alertItem.isExisting()) {
                     console.log(`✅ Alert for ${availableTradeStock} with target value ${targetValue} found in Alerts tab.`);
                 } else {
@@ -372,32 +372,32 @@ describe('TradeBook Automation', () => {
     it('TC-10: "Technicals" navigates to the technicals tab', async () => {
         allureReporter.addStep('Again come back to Tradebook and click first scrip and click Technicals and verify screen with Technicals header appear and come back.');
         // Click Tradebook tab
-        const tradeBookTab = await $('~Tradebook');
+        const tradeBookTab = await $(locators.get('tradeBookTab'));
         if (await tradeBookTab.isExisting()) {
             await tradeBookTab.click();
             await driver.pause(2000);
         }
 
         // click first scrip
-        const tradeRow = await $('//android.view.View[contains(@content-desc, "Qty:")]');
+        const tradeRow = await $(locators.get('tradeBookTradeRow'));
         if (await tradeRow.isExisting()) {
             await tradeRow.click();
             await driver.pause(1500);
 
             // click Technicals
-            const techOpt = await $('~Technicals');
+            const techOpt = await $(locators.get('tradeBookTechnicalsOpt'));
             if (await techOpt.isExisting()) {
                 await techOpt.click();
                 await driver.pause(3000);
 
                 // verify screen with Technicals header appear
-                const technicalsHeader = await $('//*[contains(@content-desc, "Technicals")]');
+                const technicalsHeader = await $(locators.get('tradeBookTechnicalsHeader'));
                 if (await technicalsHeader.isExisting()) {
                     console.log("✅ Technicals header appeared.");
                 }
 
                 // come back
-                const backBtn = await $('~Back');
+                const backBtn = await $(locators.get('tradeBookBackBtn'));
                 if (await backBtn.isExisting()) {
                     await backBtn.click();
                 } else {
@@ -418,13 +418,13 @@ describe('TradeBook Automation', () => {
             console.log("Checking Download CSV icon...");
             await driver.pause(2000);
             // Find download icon which is usually next to search (instance 19 or similar, but let's use a classname instance)
-            const downloadCsvIcon = await $('android=new UiSelector().className("android.view.View").instance(19)');
+            const downloadCsvIcon = await $(locators.get('tradeBookDownloadCsvIcon'));
             if (await downloadCsvIcon.isExisting()) {
                  await downloadCsvIcon.click();
                  await driver.pause(2000);
 
                  // Check if a bottom sheet with CSV file name or success message appears
-                 const csvDialog = await $('//*[contains(@content-desc, ".csv") or contains(@text, ".csv") or contains(@content-desc, "downloaded")]');
+                 const csvDialog = await $(locators.get('tradeBookCsvDialog'));
                  if (await csvDialog.isExisting()) {
                      console.log("✅ CSV download bottom sheet/toast showed up with file name.");
                      // Click anywhere to dismiss if it's a bottom sheet
@@ -441,7 +441,7 @@ describe('TradeBook Automation', () => {
         allureReporter.addStep('Extract all data from tradebook card and verify with trades bottomsheet');
         
         // 1. Get the first trade row's content-desc
-        const tradeRow = await $('//android.view.View[contains(@content-desc, "Qty:")]');
+        const tradeRow = await $(locators.get('tradeBookTradeRow'));
         if (!(await tradeRow.isExisting())) {
             console.log("⚠️ No trades found to extract.");
             return;
@@ -497,11 +497,11 @@ describe('TradeBook Automation', () => {
 
         console.log("Verifying details inside scrip info (bottom sheet)...");
         // Wait for Info to guarantee it opened successfully
-        const infoOpt = await $('~Info');
+        const infoOpt = await $(locators.get('tradeBookInfoOpt'));
         await infoOpt.waitForDisplayed({ timeout: 10000 }).catch(() => console.log("Bottom sheet did not open properly"));
         
         if (await infoOpt.isExisting()) {
-            let allElements = await $$('//*[@content-desc]');
+            let allElements = await $$(locators.get('tradeBookAllContentDescElements'));
             let bsDescArr = [];
             for (const el of allElements) {
                 const desc = await el.getAttribute("content-desc");
