@@ -1311,8 +1311,18 @@ class WatchlistPage {
             await inputField.clearValue()
         } catch (e) { }
 
-        await inputField.setValue(scripSymbol)
+        await inputField.addValue(scripSymbol)
         await driver.pause(1000) // Allow search results list to refresh
+        
+        // Check if value was actually entered (sometimes Appium addValue/setValue fails silently on React Native/Flutter)
+        const currentText = await inputField.getText()
+        if (!currentText || !currentText.includes(scripSymbol)) {
+            console.log("addValue failed, trying driver.keys fallback...")
+            await inputField.click()
+            await driver.pause(500)
+            await driver.keys(scripSymbol.split(''))
+            await driver.pause(1000)
+        }
     }
 
     /**
@@ -1352,7 +1362,7 @@ class WatchlistPage {
                     if (loc.y > 300 && loc.y < 1200 && loc.x > 700) {
                         await icon.click()
                         await driver.pause(1000)
-                        console.log(`Clicked plus icon element at (${loc.x}, ${loc.y})`)
+                        console.log(`Clicked bookmark icon element at (${loc.x}, ${loc.y})`)
                         return
                     }
                 }
