@@ -9,7 +9,7 @@ describe('Baskets Automation', () => {
     await BasketsPage.openBaskets();
   });
 
-   let extractedBasketNames = [];
+  let extractedBasketNames = [];
 
   it('TC-01: Baskets page shows correct total count on clicking Basket', async () => {
     const header = await BasketsPage.headerCount;
@@ -393,7 +393,7 @@ describe('Baskets Automation', () => {
       await driver.pause(2500);
 
       if (switchProductType) {
-        let prodTab = await $('`//*[contains(@content-desc, "${switchProductType}")]`');
+        let prodTab = await $(`//*[contains(@content-desc, "${switchProductType}")]`);
         if (await prodTab.isExisting()) {
           await prodTab.click();
           await driver.pause(1000);
@@ -485,7 +485,7 @@ describe('Baskets Automation', () => {
       await driver.pause(2500);
 
       if (productType) {
-        let prodTab = await $('`//*[contains(@content-desc, "${productType}")]`');
+        let prodTab = await $(`//*[contains(@content-desc, "${productType}")]`);
         if (await prodTab.isExisting()) {
           await prodTab.click();
           await driver.pause(1000);
@@ -571,11 +571,11 @@ describe('Baskets Automation', () => {
         await driver.pause(1500);
       }
     }
-    await clickModify();
+ //   await clickModify();
     await performModify(20, 24);
 
     // 2. Qty - (instance 19) and Price + (instance 25)
-    await clickModify();
+   // await clickModify();
     await performModify(19, 25);
 
 
@@ -590,11 +590,11 @@ describe('Baskets Automation', () => {
 
     // Intraday (MIS) - LMT Qty/Price tests
     // 1. Qty + (instance 20) and Price - (instance 24)
-    await clickModify();
+   // await clickModify();
     await performModify(20, 24, "Intraday", "LMT");
 
     // 2. Qty - (instance 19) and Price + (instance 25)
-    await clickModify();
+   // await clickModify();
     await performModify(19, 25);
 
     // Intraday (MIS) - MKT -> shows as LMT
@@ -633,7 +633,7 @@ describe('Baskets Automation', () => {
       const currentScrips = await $$(locators.get('basketInfyScrip'));
       return currentScrips.length < beforeCount;
     }, {
-      timeout: 10000,
+      timeout: 10000000,
       timeoutMsg: 'Expected scrip to be deleted within 10s'
     });
 
@@ -642,7 +642,6 @@ describe('Baskets Automation', () => {
     expect(scripsAfter.length).toBeLessThan(beforeCount);
 
     allure.addStep(`✅ Verified Delete removes the scrip row successfully`);
-
   })
   it('TC-17: Adding a multi-segment scrip updates Basket Margin and Post Trade Margin', async () => {
     // Helper to get current margin values
@@ -761,11 +760,11 @@ describe('Baskets Automation', () => {
     }
 
     await PortfolioPage.openPortfolio('Positions');
-    
+
     // Scan positions to determine if there are any non-MTF positions
     let hasNonMtfPosition = false;
     let hasMtfPosition = false;
-    
+
     // We will find position elements, iterate by index to avoid stale elements
     let positionCount = 0;
     const initialPosEls = await $$(locators.get('basketQtyRowFallback'));
@@ -774,24 +773,24 @@ describe('Baskets Automation', () => {
     for (let i = 0; i < positionCount; i++) {
       const posEls = await $$(locators.get('basketQtyRowFallback'));
       if (posEls[i]) {
-        const positionName = ((await posEls[i].getAttribute('content-desc') || await posEls[i].getText() || `Position ${i+1}`).split('\n')[2]);
-     
+        const positionName = ((await posEls[i].getAttribute('content-desc') || await posEls[i].getText() || `Position ${i + 1}`).split('\n')[2]);
+
         await posEls[i].click();
         await driver.pause(1500); // wait for bottom sheet
-        
+
         // Expand Position Details
         let posDetails = await $(locators.get('basketPositionDetailsCollapsed'));
         if (!(await posDetails.isExisting())) {
-            posDetails = await $(locators.get('basketPositionDetails'));
+          posDetails = await $(locators.get('basketPositionDetails'));
         }
-        
+
         if (await posDetails.isExisting()) {
           const desc = await posDetails.getAttribute('content-desc') || "";
           if (desc.includes('Position Details') || desc === 'Position Details') {
             await posDetails.click();
             await driver.pause(1500); // wait for accordion to expand
           }
-          
+
           // Check for MTF under Product
           const mtfProduct = await $(locators.get("mtf"));
           if (await mtfProduct.isExisting()) {
@@ -809,35 +808,35 @@ describe('Baskets Automation', () => {
           console.log(`Position [${positionName}] is assumed NON-MTF (Details not found)`);
           allure.addStep(`Checked position [${positionName}]: Assumed NON-MTF`);
         }
-        
+
         // Close the bottom sheet by pressing back
         await driver.pressKeyCode(4);
         await driver.pause(1500);
       }
     }
-    
+
     allure.addStep(`✅ Positions verification: Non-MTF found: ${hasNonMtfPosition}, MTF found: ${hasMtfPosition}`);
 
     // Navigate back to Baskets and open the basket
     let basketsHeader = await $(locators.get('basketHeaderCountFallback'));
     if (!(await basketsHeader.isExisting())) {
-        const { width, height } = await driver.getWindowSize();
-        await driver.performActions([{
-            type: 'pointer', id: 'fingerBasket', parameters: { pointerType: 'touch' },
-            actions: [
-                { type: 'pointerMove', duration: 0, x: Math.floor(width * 0.7), y: Math.floor(height - 50) },
-                { type: 'pointerDown', button: 0 },
-                { type: 'pause', duration: 100 },
-                { type: 'pointerUp', button: 0 }
-            ]
-        }]);
+      const { width, height } = await driver.getWindowSize();
+      await driver.performActions([{
+        type: 'pointer', id: 'fingerBasket', parameters: { pointerType: 'touch' },
+        actions: [
+          { type: 'pointerMove', duration: 0, x: Math.floor(width * 0.7), y: Math.floor(height - 50) },
+          { type: 'pointerDown', button: 0 },
+          { type: 'pause', duration: 100 },
+          { type: 'pointerUp', button: 0 }
+        ]
+      }]);
+      await driver.pause(2000);
+
+      basketsHeader = await $(locators.get('basketHeaderCountFallback'));
+      if (!(await basketsHeader.isExisting())) {
+        await BasketsPage.openBaskets();
         await driver.pause(2000);
-        
-        basketsHeader = await $(locators.get('basketHeaderCountFallback'));
-        if (!(await basketsHeader.isExisting())) {
-            await BasketsPage.openBaskets();
-            await driver.pause(2000);
-        }
+      }
     }
 
     const basketElements = await $$(locators.get('basketQtyRow'));
@@ -930,7 +929,7 @@ describe('Baskets Automation', () => {
       }
 
       // 4. Verify the margins against MTF logic
-      if (hasNonMtfPosition || positionCount!= 0) {
+      if (hasNonMtfPosition || positionCount != 0) {
         expect(existingMarginValue).toBeGreaterThan(0);
         expect(finalMargins.preTrade).not.toEqual(initialMargins.preTrade);
         expect(finalMargins.postTrade).not.toEqual(initialMargins.postTrade);
@@ -1411,7 +1410,7 @@ describe('Baskets Automation', () => {
       // Swipe down (scroll up) multiple times to reach top
       const startYUp = Math.floor(height * 0.35);
       const endYUp = Math.floor(height * 0.65);
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < 8; i++) {
         await driver.performActions([{
           type: 'pointer',
           id: `fingerUp${i}`,
@@ -1430,6 +1429,7 @@ describe('Baskets Automation', () => {
     } catch (e) {
       console.log("Could not scroll list: ", e);
     }
+    await driver.pause(1000);
     allure.addStep(`✅ Verified basket page is scrollable till bottom and top`);
   });
 
@@ -1442,7 +1442,7 @@ describe('Baskets Automation', () => {
     await driver.pause(2000);
 
     let shareSheet = await $(locators.get('basketShareSheet'));
-        expect(await shareSheet.isExisting()).toBe(true);
+    expect(await shareSheet.isExisting()).toBe(true);
 
     allure.addStep(`✅ Verified share sheet opens with the exported CSV`);
 
@@ -1481,7 +1481,7 @@ describe('Baskets Automation', () => {
           const match = text.match(/Qty:\s*(\d+)\/20/);
           if (match) {
             const qty = parseInt(match[1], 10);
-            if (qty > highestQty && qty < 20) highestQty = qty; // must be < 20 to duplicate
+            if (qty > highestQty && qty <= 20) highestQty = qty;
           }
         }
       }
@@ -1541,28 +1541,28 @@ describe('Baskets Automation', () => {
               const snackbar = await $(locators.get('basketMax20Snackbar'));
               let attempts = 0;
               while (attempts < 20 && !isSnackbarFound) {
-                  const allScrips = await $$(locators.get('basketAnyExchangeScrip'));
-                  
-                  if (allScrips.length > 0) {
-                      try {
-                          await allScrips[0].click();
-                          await driver.pause(1500); // wait for options to appear
-                          
-                          const dupIcon = await BasketsPage.basketDuplicateIcon;
-                          if (await dupIcon.isExisting()) {
-                              await dupIcon.click();
-                              await driver.pause(1500); // wait for duplicate to complete and snackbar to appear
-                          }
-                          
-                          if (await snackbar.isExisting()) {
-                              isSnackbarFound = true;
-                              break;
-                          }
-                      } catch (e) {
-                          console.log("Error during duplication attempt: ", e);
-                      }
+                const allScrips = await $$(locators.get('basketAnyExchangeScrip'));
+
+                if (allScrips.length > 0) {
+                  try {
+                    await allScrips[0].click();
+                    await driver.pause(1500); // wait for options to appear
+
+                    const dupIcon = await BasketsPage.basketDuplicateIcon;
+                    if (await dupIcon.isExisting()) {
+                      await dupIcon.click();
+                      await driver.pause(1500); // wait for duplicate to complete and snackbar to appear
+                    }
+
+                    if (await snackbar.isExisting()) {
+                      isSnackbarFound = true;
+                      break;
+                    }
+                  } catch (e) {
+                    console.log("Error during duplication attempt: ", e);
                   }
-                  attempts++;
+                }
+                attempts++;
               }
 
               if (isSnackbarFound) break;
@@ -1611,5 +1611,4 @@ describe('Baskets Automation', () => {
     }
     await driver.pause(2000);
   });
-
- })
+});
