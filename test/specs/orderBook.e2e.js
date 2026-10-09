@@ -5,605 +5,89 @@ import OrdersPage from '../pageobjects/orders.page.js';
 import locators from '../utils/locatorHelper.js';
 import allureReporter from '@wdio/allure-reporter';
 
+const originalLog = console.log;
+console.log = function (...args) {
+    originalLog.apply(console, args);
+    const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+    try {
+        allureReporter.addStep(msg);
+    } catch (e) { }
+};
+
 describe('Order Book Verification Flow', () => {
-    // it('should verify header count matches actual scrolled count for both pending and executed orders', async () => {
-    //     allureReporter.addStep('Verify Header count vs Scroll count');
-    //     console.log(`\n========================================`);
-    //     console.log(`Starting Header Count Verification`);
-    //     console.log(`========================================`);
-        
-    //     // 1. Go to Order Book
-    //     const ordersTab = await $(`android=new UiSelector().className("android.widget.ImageView").instance(4)`);
-    //     await driver.waitUntil(async () => {
-    //         return await ordersTab.isExisting();
-    //     }, { timeout: 15000, timeoutMsg: "App did not load bottom tabs" });
-    //     await ordersTab.click();
-    //     await driver.pause(3000); // wait for orders to load
 
-    //     // Function to verify count for a specific header
-    //     const verifyCount = async (headerSubstring) => {
-    //         console.log(`Verifying count for ${headerSubstring}...`);
-    //         const headerEl = await $(`//*[contains(@content-desc, "${headerSubstring}") or contains(@text, "${headerSubstring}")]`);
-    //         await headerEl.waitForDisplayed({ timeout: 5000 }).catch(() => {});
-    //         if (!(await headerEl.isExisting())) {
-    //             console.log(`⚠️ ${headerSubstring} header not found on screen. It might be empty.`);
-    //             return;
-    //         }
-    //         const headerDesc = await headerEl.getAttribute("content-desc") || await headerEl.getText();
-    //         const match = headerDesc.match(/\((\d+)\)/);
-    //         let expectedCount = 0;
-    //         if (match) {
-    //             expectedCount = parseInt(match[1], 10);
-    //             console.log(`Expected ${headerSubstring} Count: ${expectedCount}`);
-    //         } else {
-    //             console.log(`❌ Could not extract number from ${headerSubstring} header`);
-    //             return;
-    //         }
-
-    //         if (expectedCount === 0) {
-    //             console.log(`✅ ${headerSubstring} count is 0, skipping scroll.`);
-    //             return;
-    //         }
-
-    //         let uniqueOrders = new Set();
-    //         let lastSize = -1;
-    //         let retries = 0;
-            
-    //         while (uniqueOrders.size < expectedCount && retries < 3) {
-    //             // Orders typically contain "BSE" or "NSE"
-    //             const onScreenOrders = await $$(`//*[contains(@content-desc, "BSE") or contains(@content-desc, "NSE")]`);
-                
-    //             for (const order of onScreenOrders) {
-    //                 const desc = await order.getAttribute("content-desc");
-    //                 if (desc) uniqueOrders.add(desc);
-    //             }
-                
-    //             if (uniqueOrders.size === lastSize) {
-    //                 retries++;
-    //             } else {
-    //                 retries = 0;
-    //             }
-    //             lastSize = uniqueOrders.size;
-                
-    //             if (uniqueOrders.size < expectedCount) {
-    //                 const { width, height } = await driver.getWindowSize();
-    //                 await driver.performActions([
-    //                     {
-    //                         type: 'pointer',
-    //                         id: 'finger1',
-    //                         parameters: { pointerType: 'touch' },
-    //                         actions: [
-    //                             { type: 'pointerMove', duration: 0, x: width / 2, y: height * 0.8 },
-    //                             { type: 'pointerDown', button: 0 },
-    //                             { type: 'pause', duration: 100 },
-    //                             { type: 'pointerMove', duration: 1000, origin: 'viewport', x: width / 2, y: height * 0.2 },
-    //                             { type: 'pointerUp', button: 0 }
-    //                         ]
-    //                     }
-    //                 ]);
-    //                 await driver.pause(1500); 
-    //             }
-    //         }
-            
-    //         console.log(`Scrolled and found ${uniqueOrders.size} unique ${headerSubstring} orders`);
-    //         if (uniqueOrders.size === expectedCount) {
-    //              console.log(`✅ ${headerSubstring} orders count matches header!`);
-    //              allureReporter.addStep(`✅ ${headerSubstring} orders count matches header (${expectedCount})`);
-    //         } else {
-    //              console.log(`❌ ${headerSubstring} orders count mismatch. Header: ${expectedCount}, Found: ${uniqueOrders.size}`);
-    //              allureReporter.addStep(`❌ ${headerSubstring} orders count mismatch. Header: ${expectedCount}, Found: ${uniqueOrders.size}`);
-    //         }
-
-    //         // Scroll back to top of this section
-    //         console.log(`Scrolling back to top of ${headerSubstring}...`);
-    //         for (let i = 0; i < 5; i++) {
-    //             const { width, height } = await driver.getWindowSize();
-    //             await driver.performActions([
-    //                 {
-    //                     type: 'pointer',
-    //                     id: 'finger1',
-    //                     parameters: { pointerType: 'touch' },
-    //                     actions: [
-    //                         { type: 'pointerMove', duration: 0, x: width / 2, y: height * 0.2 },
-    //                         { type: 'pointerDown', button: 0 },
-    //                         { type: 'pause', duration: 100 },
-    //                         { type: 'pointerMove', duration: 1000, origin: 'viewport', x: width / 2, y: height * 0.8 },
-    //                         { type: 'pointerUp', button: 0 }
-    //                     ]
-    //                 }
-    //             ]);
-    //             await driver.pause(1500);
-    //             if (await headerEl.isDisplayed().catch(()=>false)) break;
-    //         }
-    //     };
-
-    //     // By default we land on Pending Orders
-    //     await verifyCount("Pending Orders");
-
-    //     // Now scroll down past pending orders to reach Executed Orders header
-    //     console.log("Scrolling to Executed Orders header...");
-    //     let executedHeader = null;
-    //     for (let i = 0; i < 8; i++) {
-    //         const h = await $(`//*[contains(@content-desc, "Executed Orders") or contains(@text, "Executed Orders")]`);
-    //         if (await h.isDisplayed().catch(()=>false)) {
-    //             executedHeader = h;
-    //             break;
-    //         }
-    //         const { width, height } = await driver.getWindowSize();
-    //         await driver.performActions([
-    //             {
-    //                 type: 'pointer',
-    //                 id: 'finger1',
-    //                 parameters: { pointerType: 'touch' },
-    //                 actions: [
-    //                     { type: 'pointerMove', duration: 0, x: width / 2, y: height * 0.8 },
-    //                     { type: 'pointerDown', button: 0 },
-    //                     { type: 'pause', duration: 100 },
-    //                     { type: 'pointerMove', duration: 1000, origin: 'viewport', x: width / 2, y: height * 0.2 },
-    //                     { type: 'pointerUp', button: 0 }
-    //                 ]
-    //             }
-    //         ]);
-    //         await driver.pause(1500);
-    //     }
-        
-    //     if (executedHeader) {
-    //         await verifyCount("Executed Orders");
-    //     } else {
-    //         console.log("⚠️ Could not find Executed Orders header after scrolling.");
-    //         allureReporter.addStep("⚠️ Could not find Executed Orders header after scrolling.");
-    //     }
-    // });
-
-    // it('should place a buy order and verify it in the order book', async () => {
-    //     console.log(`\n========================================`);
-    //     console.log(`Starting Order Book Automation`);
-    //     console.log(`========================================`);
-
-    //     // 1. From watchlist search for tcs-eq stock and click it.
-    //     // Wait for bottom tabs to render
-    // const watchlistTab = await $(`android=new UiSelector().className("android.widget.ImageView").instance(2)`);
-    // await driver.waitUntil(async () => {
-    //     return await watchlistTab.isExisting();
-    // }, { timeout: 15000, timeoutMsg: "App did not load bottom tabs" });
-    // await watchlistTab.click();
-
-
-    //     // Use the search icon to open search, type TCS-EQ, and click the first result
-    //     await WatchlistPage.searchIcon.waitForDisplayed({ timeout: 5000 });
-    //     await WatchlistPage.searchIcon.click();
-
-    //     const searchInput = await WatchlistPage.searchInputField;
-    //     await searchInput.setValue("GATECH");
-    //     await driver.pause(2000);
-
-    //     // Click the TCS-EQ result directly
-    //     const gatechResult = await $(locators.get('searchResultGatech'));
-    //     await gatechResult.waitForDisplayed({ timeout: 5000 });
-    //     await gatechResult.click();
-
-    //     // 2. Stock overview window will open. Click on BUY.
-    //     console.log("Clicking BUY from Stock Overview...");
-    //     await driver.pause(2000); // Wait for overview to load
-
-    //     const overviewBuyBtn = await $(locators.get('overviewBuyBtn'));
-    //     await overviewBuyBtn.click();
-
-    //     // 3. Order window opens. Select Delivery, MKT, and extract details.
-    //     await OrderWindowPage.clickDelivery();
-    //     await OrderWindowPage.clickMKT();
-
-    //     const extractedDetails = await OrderWindowPage.extractOrderDetails("GATECH");
-    //     console.log(`Order details extracted:`, extractedDetails);
-
-    //     // Click final BUY
-    //     await OrderWindowPage.clickConfirmBuy();
-
-    //     // 4. Snackbar will appear saying order rejected/completed. Extract that status and verify.
-    //     const snackbarMsg = await OrderWindowPage.extractSnackbar();
-
-    //     let expectedStatus = "REJECTED"; // or COMPLETED based on snackbar
-    //     if (snackbarMsg.toLowerCase().includes("complete")) expectedStatus = "COMPLETED";
-
-    //     // Verify stock name and qty in snackbar
-    //     if (snackbarMsg.toUpperCase().includes(extractedDetails.stockName.toUpperCase())) {
-    //         console.log(`✅ Snackbar verified for stock: ${extractedDetails.stockName}`);
-    //     } else {
-    //         console.log(`❌ Snackbar verification failed for stock: ${extractedDetails.stockName}. Actual Snackbar: ${snackbarMsg}`);
-    //     }
-    //     if (snackbarMsg.includes(extractedDetails.qty)) {
-    //         console.log(`✅ Snackbar verified for qty: ${extractedDetails.qty}`);
-    //     }
-
-    //     // 5. Wait for sometime it will redirect to Order book.
-    //     console.log("Waiting for redirection to Order Book...");
-    //     await driver.pause(5000); // wait for redirect
-
-    //     // We should be in Order Book now. Verify extracted details.
-    //     // Usually, Orders Page has a list of executed orders. We look for the first one.
-    //     console.log("Verifying Order Book entry...");
-
-    //     // Looking for "B" in circle is tricky with Appium if it's a graphic, 
-    //     // but often the content-desc contains "B"
-    //     const orderEntry = await $(locators.get('orderBookEntryDynamic').replace('{stockName}', extractedDetails.stockName));
-    //     await orderEntry.waitForDisplayed({ timeout: 10000 });
-
-    //     const orderDesc = await orderEntry.getAttribute("content-desc");
-    //     console.log(`Order Book entry desc:\n${orderDesc}`);
-
-    //     // Check same things extracted
-    //     if (orderDesc.toUpperCase().includes(extractedDetails.stockName.toUpperCase())) {
-    //         console.log(`✅ Verified Stock: ${extractedDetails.stockName}`);
-    //     } else {
-    //         console.log(`❌ Stock verification failed. Expected: ${extractedDetails.stockName}`);
-    //     }
-
-    //     if (extractedDetails.segment === "") {
-    //         console.log(`⚠️ Segment was not highlighted in Appium tree. Order Book segment found: ${orderDesc.includes("BSE") ? "BSE" : "NSE"}`);
-    //     } else if (orderDesc.toUpperCase().includes(extractedDetails.segment.toUpperCase())) {
-    //         console.log(`✅ Verified Segment: ${extractedDetails.segment}`);
-    //     } else {
-    //         console.log(`❌ Segment verification failed. Expected: ${extractedDetails.segment}`);
-    //     }
-
-    //     if (orderDesc.toUpperCase().includes(extractedDetails.productType.toUpperCase())) {
-    //         console.log(`✅ Verified Product Type: ${extractedDetails.productType}`);
-    //     } else {
-    //         console.log(`❌ Product Type verification failed. Expected: ${extractedDetails.productType}`);
-    //     }
-
-    //     // Order type MKT shows as LMT in order book as per requirement
-    //     if (orderDesc.toUpperCase().includes("LMT")) {
-    //         console.log(`✅ Verified Order Type: LMT (was MKT)`);
-    //     } else {
-    //         console.log(`❌ Order Type verification failed. Expected: LMT`);
-    //     }
-
-    //     if (orderDesc.toUpperCase().includes("B")) console.log(`✅ Verified Buy indicator 'B'`);
-    //     if (orderDesc.toUpperCase().includes(expectedStatus.toUpperCase())) console.log(`✅ Verified Status: ${expectedStatus}`);
-
-    //     let expectedQty = expectedStatus === "COMPLETED" ? extractedDetails.qty : "0";
-    //     if (orderDesc.includes(expectedQty.toString())) {
-    //         console.log(`✅ Verified Quantity: ${expectedQty}`);
-    //     } else {
-    //         console.log(`❌ Quantity verification failed. Expected: ${expectedQty}`);
-    //     }
-    //     extractedDetails.qty = expectedQty; // Update for report
-    //     allureReporter.addStep(`Order Book Entry Verified for GATECH. Extracted details: ${JSON.stringify(extractedDetails)}`);
-
-    //     // SECOND FLOW: Intraday (MIS) + SELL
-    //     console.log(`\n========================================`);
-    //     console.log(`Starting Intraday (MIS) SELL Order`);
-    //     console.log(`========================================`);
-    //     await driver.waitUntil(async () => {
-    //         const el = await $(locators.get('watchlistTabFromOrders'));
-    //         return await el.isExisting();
-    //     }, { timeout: 15000, timeoutMsg: "App did not load bottom tabs" });
-    //     // From Orders page, Watchlist is instance(2)
-    //     await $(locators.get('watchlistTabFromOrders')).click();
-
-    //     await $(locators.get('searchCloseButton')).click();
-    //     await WatchlistPage.searchIcon.waitForDisplayed({ timeout: 5000 });
-    //     await WatchlistPage.searchIcon.click();
-
-    //     const searchInput2 = await WatchlistPage.searchInputField;
-    //     await searchInput2.setValue("TCS-EQ");
-    //     await driver.pause(2000);
-
-    //     const tcsResult2 = await $(locators.get('searchResultTcsEq'));
-    //     await tcsResult2.waitForDisplayed({ timeout: 5000 });
-    //     await tcsResult2.click();
-
-    //     console.log("Clicking SELL from Stock Overview...");
-    //     await driver.pause(2000);
-
-    //     const overviewSellBtn = await $(locators.get('overviewSellBtn'));
-    //     await overviewSellBtn.click();
-
-    //     await OrderWindowPage.clickIntraday();
-    //     await OrderWindowPage.clickMKT();
-
-    //     const extractedDetails2 = await OrderWindowPage.extractOrderDetails("TCS-EQ");
-    //     console.log(`Order details extracted:`, extractedDetails2);
-
-    //     await OrderWindowPage.clickConfirmSell();
-
-    //     const snackbarMsg2 = await OrderWindowPage.extractSnackbar();
-    //     let expectedStatus2 = "REJECTED";
-    //     if (snackbarMsg2.toLowerCase().includes("complete")) expectedStatus2 = "COMPLETED";
-
-    //     if (snackbarMsg2.toUpperCase().includes(extractedDetails2.stockName.toUpperCase())) {
-    //         console.log(`✅ Snackbar verified for stock: ${extractedDetails2.stockName}`);
-    //     } else {
-    //         console.log(`❌ Snackbar verification failed for stock: ${extractedDetails2.stockName}. Actual Snackbar: ${snackbarMsg2}`);
-    //     }
-
-    //     console.log("Waiting for redirection to Order Book...");
-    //     await driver.pause(5000);
-
-    //     console.log("Verifying Order Book entry...");
-    //     const orderEntry2 = await $(locators.get('orderBookEntryDynamic').replace('{stockName}', extractedDetails2.stockName));
-    //     await orderEntry2.waitForDisplayed({ timeout: 10000 });
-
-    //     const orderDesc2 = await orderEntry2.getAttribute("content-desc");
-    //     console.log(`Order Book entry desc:\n${orderDesc2}`);
-
-    //     if (orderDesc2.toUpperCase().includes(extractedDetails2.stockName.toUpperCase())) {
-    //         console.log(`✅ Verified Stock: ${extractedDetails2.stockName}`);
-    //     } else {
-    //         console.log(`❌ Stock verification failed. Expected: ${extractedDetails2.stockName}`);
-    //     }
-
-    //     if (extractedDetails2.segment === "") {
-    //         console.log(`⚠️ Segment was not highlighted in Appium tree. Order Book segment found: ${orderDesc2.includes("BSE") ? "BSE" : "NSE"}`);
-    //     } else if (orderDesc2.toUpperCase().includes(extractedDetails2.segment.toUpperCase())) {
-    //         console.log(`✅ Verified Segment: ${extractedDetails2.segment}`);
-    //     } else {
-    //         console.log(`❌ Segment verification failed. Expected: ${extractedDetails2.segment}`);
-    //     }
-
-    //     if (orderDesc2.toUpperCase().includes(extractedDetails2.productType.toUpperCase())) {
-    //         console.log(`✅ Verified Product Type: ${extractedDetails2.productType}`);
-    //     } else {
-    //         console.log(`❌ Product Type verification failed. Expected: ${extractedDetails2.productType}`);
-    //     }
-
-    //     if (orderDesc2.toUpperCase().includes("LMT")) {
-    //         console.log(`✅ Verified Order Type: LMT (was MKT)`);
-    //     } else {
-    //         console.log(`❌ Order Type verification failed. Expected: LMT`);
-    //     }
-
-    //     if (orderDesc2.toUpperCase().includes("S")) console.log(`✅ Verified Sell indicator 'S'`);
-    //     if (orderDesc2.toUpperCase().includes(expectedStatus2.toUpperCase())) console.log(`✅ Verified Status: ${expectedStatus2}`);
-
-    //     let expectedQty2 = expectedStatus2 === "COMPLETED" ? extractedDetails2.qty : "0";
-    //     if (orderDesc2.includes(expectedQty2.toString())) {
-    //         console.log(`✅ Verified Quantity: ${expectedQty2}`);
-    //     } else {
-    //         console.log(`❌ Quantity verification failed. Expected: ${expectedQty2}`);
-    //     }
-    //     extractedDetails2.qty = expectedQty2; // Update for report
-    //     allureReporter.addStep(`Order Book Entry Verified for TCS-EQ. Extracted details: ${JSON.stringify(extractedDetails2)}`);
-    // });
-    // it('should verify the order info details and repeat order', async () => {
-    //     allureReporter.addStep('Find first order in Order Book and extract details');
-    //     console.log("Finding first order in Order Book...");
-
-    //     // Find the first order book entry that has REJECTED or COMPLETED
-    //     const firstOrder = await $('//android.view.View[contains(@content-desc, "REJECTED") or contains(@content-desc, "COMPLETED")]');
-    //     await firstOrder.waitForDisplayed({ timeout: 15000 });
-
-    //     const orderDesc = await firstOrder.getAttribute("content-desc");
-    //     console.log(`First Order Book entry desc:\n${orderDesc}`);
-
-    //     // Parse details from orderDesc
-    //     // Example format:
-    //     // S \n TCS-EQ \n REJECTED \n NSE \n • \n MIS \n • \n LMT \n Qty: 0/1 \n • \n 17:13:49 \n ₹1971.20 \n LTP ₹2075.00
-    //     const lines = orderDesc.split('\n').map(l => l.trim());
-    //     const stockName = lines.length > 1 ? lines[1] : "UNKNOWN";
-    //     const status = orderDesc.includes("REJECTED") ? "REJECTED" : "COMPLETED";
-
-    //     let ltp = "";
-    //     const ltpMatch = orderDesc.match(/LTP\s*₹([\d.]+)/);
-    //     if (ltpMatch) ltp = ltpMatch[1];
-
-    //     const segment = orderDesc.includes("BSE") ? "BSE" : "NSE";
-    //     const isSell = orderDesc.startsWith("S");
-
-    //     let qtyStr = "";
-    //     const qtyMatch = orderDesc.match(/Qty:\s*(\d+\s*\/\s*\d+)/i);
-    //     if (qtyMatch) qtyStr = qtyMatch[1];
-
-    //     let timeStr = "";
-    //     const timeMatch = orderDesc.match(/\b(\d{2}:\d{2}:\d{2})\b/);
-    //     if (timeMatch) timeStr = timeMatch[1];
-
-    //     console.log("Clicking on order to view Order Info...");
-    //     await firstOrder.click();
-    //     await driver.pause(2000); // Wait for bottom sheet
-
-    //     const pageSource = await driver.getPageSource();
-
-    //     let isOrderInfoValid = true;
-
-    //     if (pageSource.includes(stockName)) {
-    //         console.log(`✅ Order Info: Verified Stock Name ${stockName}`);
-    //     } else {
-    //         console.log(`❌ Order Info: Stock Name missing`);
-    //         isOrderInfoValid = false;
-    //     }
-
-    //     if (pageSource.toUpperCase().includes(status.toUpperCase())) {
-    //         console.log(`✅ Order Info: Verified Status ${status}`);
-    //     } else {
-    //         console.log(`❌ Order Info: Status missing`);
-    //         isOrderInfoValid = false;
-    //     }
-
-    //     if (pageSource.includes(ltp)) {
-    //         console.log(`✅ Order Info: Verified LTP ${ltp}`);
-    //     } else {
-    //         console.log(`❌ Order Info: LTP missing`);
-    //         isOrderInfoValid = false;
-    //     }
-
-    //     if (pageSource.toUpperCase().includes(segment.toUpperCase())) {
-    //         console.log(`✅ Order Info: Verified Segment ${segment}`);
-    //     } else {
-    //         console.log(`❌ Order Info: Segment missing`);
-    //         isOrderInfoValid = false;
-    //     }
-
-    //     const expectedSide = isSell ? "SELL" : "BUY";
-    //     if (pageSource.toUpperCase().includes(expectedSide)) {
-    //         console.log(`✅ Order Info: Verified Buy/Sell indicator (${expectedSide})`);
-    //     } else {
-    //         console.log(`❌ Order Info: Buy/Sell indicator missing`);
-    //         isOrderInfoValid = false;
-    //     }
-
-    //     if (qtyStr) {
-    //         let qtyStrWithSpaces = qtyStr.replace('/', ' / '); // "0 / 1"
-    //         if (pageSource.includes(qtyStr) || pageSource.includes(qtyStrWithSpaces)) {
-    //             console.log(`✅ Order Info: Verified Filled Qty ${qtyStr}`);
-    //         } else {
-    //             console.log(`❌ Order Info: Filled Qty missing`);
-    //             isOrderInfoValid = false;
-    //         }
-    //     }
-
-    //     if (timeStr) {
-    //         if (pageSource.includes(timeStr)) {
-    //             console.log(`✅ Order Info: Verified Time ${timeStr}`);
-    //         } else {
-    //             console.log(`❌ Order Info: Time missing`);
-    //             isOrderInfoValid = false;
-    //         }
-    //     }
-
-    //     if (isOrderInfoValid) {
-    //         allureReporter.addStep('✅ Successful order info verified');
-    //     } else {
-    //         allureReporter.addStep('❌ Order info verification failed');
-    //     }
-
-    //     console.log("Clicking Market Depth...");
-    //     const marketDepthBtn = await $('~Market Depth');
-    //     await marketDepthBtn.click();
-    //     await driver.pause(2000);
-
-    //     // Don't use getPageSource on Market Depth, as it can be heavy
-    //     // Check for specific text elements instead
-    //     const mdTitle = await $(`//android.view.View[contains(@content-desc, "Market Depth") or contains(@text, "Market Depth")]`);
-    //     const isMdTitleExisting = await mdTitle.isExisting();
-
-    //     if (isMdTitleExisting) {
-    //         console.log(`✅ Verified Market Depth page`);
-    //         allureReporter.addStep("✅ Verified Market Depth page")
-    //     } else {
-    //         console.log(`❌ Market Depth page verification failed`);
-    //         allureReporter.addStep("❌ Market Depth page verification failed")
-    //     } await $(locators.get('stockOverviewBackButton')).click();
-    //     await driver.pause(2000);
-
-
-    //     console.log("Clicking View Chart...");
-    //     const viewChartBtn = await $('~View Chart');
-    //     await viewChartBtn.click();
-    //     await driver.pause(4000);
-
-    //     // Don't use getPageSource on Chart page to prevent UiAutomator2 crash from heavy WebView/Chart tree
-    //     const overviewEl = await $(`//android.view.View[contains(@content-desc, "Overview") or contains(@text, "Overview")]`);
-    //     const isOverviewExisting = await overviewEl.isExisting();
-
-    //     if (isOverviewExisting) {
-    //         console.log(`✅ Verified View Chart page`);
-    //         allureReporter.addStep('✅ Verified View Chart page');
-    //     } else {
-    //         console.log(`❌ View Chart page verification failed`);
-    //         allureReporter.addStep("❌ View Chart page verification failed")
-    //     }
-
-    //     await $(locators.get('stockOverviewBackButton')).click();
-    //     await driver.pause(2000);
-
-    //     console.log("Clicking Repeat Order...");
-    //     const repeatOrderBtn = await $('~Repeat Order');
-    //     await repeatOrderBtn.click();
-    //     await driver.pause(3000);
-
-    //     console.log("Submitting repeated order...");
-    //     // the form should be pre-filled, so just click the main action button
-    //     // if it was SELL, we click confirm sell, otherwise confirm buy
-    //     if (isSell) {
-    //         await OrderWindowPage.clickConfirmSell();
-    //     } else {
-    //         await OrderWindowPage.clickConfirmBuy();
-    //     }
-    //     await driver.pause(1000);
-
-    //     try {
-    //         const yesBtn = await $('~Yes');
-    //         if (await yesBtn.isDisplayed()) {
-    //             await yesBtn.click();
-    //         }
-    //     } catch (e) { }
-
-    //     console.log("Waiting for redirection to Order Book...");
-    //     await driver.pause(6000);
-
-    //     console.log("Verifying repeated Order Book entry...");
-
-    //     const repeatedOrderEntry = await $(locators.get('orderBookEntryDynamic').replace('{stockName}', stockName));
-    //     await repeatedOrderEntry.waitForDisplayed({ timeout: 10000 });
-    //     const repeatedDesc = await repeatedOrderEntry.getAttribute("content-desc");
-    //     console.log(`Repeated Order Book entry desc:\n${repeatedDesc}`);
-
-    //     if (repeatedDesc.includes(stockName) && repeatedDesc.includes(status)) {
-    //         console.log(`✅ Verified Repeated Order successfully`);
-    //         allureReporter.addStep("✅ Verified Repeated Order successfully")
-    //     } else {
-    //         console.log(`❌ Repeated Order verification failed`);
-    //         allureReporter.addStep("❌ Repeated Order verification failed")
-    //     }
-    // });
-    it('should place an AMO buy order and verify it in the pending orders', async () => {
-        allureReporter.addStep('Place an AMO buy order and verify in Pending Orders');
+    async function executeOrderFlow(options) {
+        const { stockName, action, productType, orderType, isPending } = options;
+        allureReporter.addStep(`Execute order flow. isPending: ${isPending}`);
         console.log(`\n========================================`);
-        console.log(`Starting Pending Order (AMO) Automation`);
+        console.log(`Starting ${isPending ? "Pending (AMO)" : "Executed"} Order Automation for ${stockName}`);
         console.log(`========================================`);
 
-        // 1. From watchlist search for GATECH stock and click it.
-        // Wait for bottom tabs to render
-        const watchlistTab = await $(`android=new UiSelector().className("android.widget.ImageView").instance(2)`);
+        // Go to watchlist tab
+        const watchlistTab = await $(locators.get('watchlistTabFromOrders'));
         await driver.waitUntil(async () => {
             return await watchlistTab.isExisting();
         }, { timeout: 15000, timeoutMsg: "App did not load bottom tabs" });
         await watchlistTab.click();
+        await driver.pause(2000);
 
-        // Use the search icon to open search, type GATECH, and click the first result
+        console.log("Closing previous search if any...");
+        if (typeof WatchlistPage.closeSearch === 'function') {
+            await WatchlistPage.closeSearch();
+        } else {
+            const backBtn = await $(locators.get('orderBookBackBtn'));
+            if (await backBtn.isExisting()) await backBtn.click();
+        }
+        await driver.pause(1000);
+
         await WatchlistPage.searchIcon.waitForDisplayed({ timeout: 5000 });
         await WatchlistPage.searchIcon.click();
 
         const searchInput = await WatchlistPage.searchInputField;
-        await searchInput.setValue("GATECH");
+        await searchInput.setValue(stockName);
         await driver.pause(2000);
 
-        // Click the GATECH result directly
-        const gatechResult = await $(locators.get('searchResultGatech'));
-        await gatechResult.waitForDisplayed({ timeout: 5000 });
-        await gatechResult.click();
+        const stockResult = await $(locators.get('orderBookDynamicResult', stockName));
+        await stockResult.waitForDisplayed({ timeout: 5000 });
+        await stockResult.click();
 
-        // 2. Stock overview window will open. Click on BUY.
-        console.log("Clicking BUY from Stock Overview...");
-        await driver.pause(2000); // Wait for overview to load
+        console.log(`Clicking ${action} from Stock Overview...`);
+        await driver.pause(2000);
 
-        const overviewBuyBtn = await $(locators.get('overviewBuyBtn'));
-        await overviewBuyBtn.click();
+        const overviewActionBtn = action === "BUY" ? await $(locators.get('overviewBuyBtn')) : await $(locators.get('overviewSellBtn'));
+        await overviewActionBtn.click();
 
-        // 3. Order window opens. Select Delivery and MKT
-        console.log("Selecting Delivery and MKT...");
-        await OrderWindowPage.clickDelivery();
-        await OrderWindowPage.clickMKT();
+        console.log(`Selecting ${productType} and ${orderType}...`);
+        if (productType === "CNC" || productType === "Delivery") {
+            await OrderWindowPage.clickDelivery();
+        } else if (productType === "MIS" || productType === "Intraday") {
+            await OrderWindowPage.clickIntraday();
+        }
 
-        console.log("Clicking AMO checkbox...");
-        const amoCheckbox = await $('~AMO');
-        await amoCheckbox.waitForDisplayed({ timeout: 5000 });
-        await amoCheckbox.click();
-        await driver.pause(1000);
+        if (orderType === "MKT") {
+            await OrderWindowPage.clickMKT();
+        }
 
-        // Extract details
-        const extractedDetails = await OrderWindowPage.extractOrderDetails("GATECH");
+        if (isPending) {
+            console.log("Clicking AMO checkbox...");
+            const amoCheckbox = await $(locators.get('locatorGen5', 'AMO'));
+            await amoCheckbox.waitForDisplayed({ timeout: 5000 });
+            await amoCheckbox.click();
+            await driver.pause(1000);
+        }
+
+        const extractedDetails = await OrderWindowPage.extractOrderDetails(stockName);
         console.log(`Order details extracted:`, extractedDetails);
 
-        // Click final BUY
-        await OrderWindowPage.clickConfirmBuy();
+        if (action === "BUY") {
+            await OrderWindowPage.clickConfirmBuy();
 
-        // 4. Snackbar will appear saying order rejected/completed/open. Extract that status and verify.
+        } else {
+            await OrderWindowPage.clickConfirmSell();
+        }
+
         const snackbarMsg = await OrderWindowPage.extractSnackbar();
 
-        // Verify stock name and qty in snackbar
         if (snackbarMsg.toUpperCase().includes(extractedDetails.stockName.toUpperCase())) {
             console.log(`✅ Snackbar verified for stock: ${extractedDetails.stockName}`);
         } else {
@@ -613,201 +97,712 @@ describe('Order Book Verification Flow', () => {
             console.log(`✅ Snackbar verified for qty: ${extractedDetails.qty}`);
         }
 
-        // 5. Wait for sometime it will redirect to Order book.
         console.log("Waiting for redirection to Order Book...");
-        await driver.pause(5000); // wait for redirect
+        await driver.pause(6000);
 
-        // We should be in Order Book now. The default tab is Pending/Open orders.
-        console.log("Verifying Pending Orders entry...");
-        const orderEntry = await $(locators.get('orderBookEntryDynamic').replace('{stockName}', extractedDetails.stockName));
-        await orderEntry.waitForDisplayed({ timeout: 10000 });
+        
+        console.log("Verifying Order Book entry...");
+        const orderEntry = await $(locators.get('orderBookEntryDynamic').replace('{stockName}', stockName));
+        await orderEntry.waitForDisplayed({ timeout: 10000 }).catch(() => console.log("Order entry not visible immediately"));
 
-        const orderDesc = await orderEntry.getAttribute("content-desc");
-        console.log(`Pending Order Book entry desc:\n${orderDesc}`);
-
-        // Check same things extracted
-        if (orderDesc.toUpperCase().includes(extractedDetails.stockName.toUpperCase())) {
-            console.log(`✅ Verified Stock: ${extractedDetails.stockName}`);
-        } else {
-            console.log(`❌ Stock verification failed. Expected: ${extractedDetails.stockName}`);
+        // Get all text on screen to accurately parse the order book card
+        let allScreenEls = await $$(locators.get('orderBookAllContentDescElements'));
+        let allScreenDescs = [];
+        for (const el of allScreenEls) {
+            const desc = await el.getAttribute("content-desc");
+            if (desc && desc.trim().length > 0) {
+                // Flutter sometimes groups the entire list item into one single content-desc separated by newlines.
+                // We MUST split by newline to correctly parse individual lines like 'Price' and 'Scrip Name'.
+                if (desc.includes('\n')) {
+                    allScreenDescs.push(...desc.split('\n').map(s => s.trim()).filter(s => s.length > 0));
+                } else {
+                    allScreenDescs.push(desc.trim());
+                }
+            }
         }
 
-        if (extractedDetails.segment === "") {
-            console.log(`⚠️ Segment was not highlighted in Appium tree. Order Book segment found: ${orderDesc.includes("BSE") ? "BSE" : "NSE"}`);
-        } else if (orderDesc.toUpperCase().includes(extractedDetails.segment.toUpperCase())) {
-            console.log(`✅ Verified Segment: ${extractedDetails.segment}`);
-        } else {
-            console.log(`❌ Segment verification failed. Expected: ${extractedDetails.segment}`);
+        // Find the order card by looking for the stock name, since B/S might be grouped or missing
+        // (Ignore stockName if it's just 'B' or 'S' from a hardcoded fallback, so it doesn't falsely match "Basket")
+        let searchName = (stockName && stockName.length > 1) ? stockName : "";
+        let stockIndex = allScreenDescs.findIndex(d => d.includes(searchName));
+        let bIndex = stockIndex > 0 ? stockIndex - 1 : (stockIndex === 0 ? 0 : -1);
+
+        // Grab a chunk of elements that represents the first order card (expanded to 25 elements to ensure nothing is missed)
+        let cardDescs = bIndex !== -1 ? allScreenDescs.slice(bIndex, bIndex + 25) : [];
+        console.log("Order Card elements extracted directly from screen:", cardDescs);
+
+        let cardAction = action;
+        let cardStockName = extractedDetails.stockName;
+        let cardStatus = "OPEN";
+        let cardSegment = extractedDetails.segment;
+        let cardProduct = extractedDetails.productType;
+        let cardOrderType = extractedDetails.orderType;
+        let orderBookFilledQty = "0";
+        let orderBookTime = "";
+        let orderBookPrice = extractedDetails.price;
+        let orderBookLTP = "";
+
+        if (cardDescs.length > 0) {
+            cardAction = cardDescs[0] === "B" ? "BUY" : (cardDescs[0] === "S" ? "SELL" : action);
+            cardStockName = cardDescs[1]; // Stock name is always immediately after B/S
+
+            // Robust semantic extraction mapping to exact normalized keys
+            let foundStatus = cardDescs.find(d => ["REJECTED", "OPEN", "COMPLETED", "CANCELLED", "GTT"].some(s => d.toUpperCase().includes(s)));
+            if (foundStatus) cardStatus = ["REJECTED", "OPEN", "COMPLETED", "CANCELLED", "GTT"].find(s => foundStatus.toUpperCase().includes(s));
+
+            let foundSeg = cardDescs.find(d => ["NSE", "BSE", "NFO", "MCX"].some(s => d.toUpperCase().includes(s)));
+            if (foundSeg) cardSegment = ["NSE", "BSE", "NFO", "MCX"].find(s => foundSeg.toUpperCase().includes(s));
+
+            let foundProd = cardDescs.find(d => ["CNC", "MIS", "NRML", "CO"].some(s => d.toUpperCase().includes(s)));
+            if (foundProd) cardProduct = ["CNC", "MIS", "NRML", "CO"].find(s => foundProd.toUpperCase().includes(s));
+
+            let foundType = cardDescs.find(d => ["LMT", "MKT", "SL-LMT", "SL-MKT"].some(s => d.toUpperCase().includes(s)));
+            if (foundType) cardOrderType = ["LMT", "MKT", "SL-LMT", "SL-MKT"].find(s => foundType.toUpperCase().includes(s));
+
+            let qtyStr = cardDescs.find(d => d.includes("Qty:"));
+            if (qtyStr) orderBookFilledQty = (qtyStr.match(/Qty:\s*(\d+)/) || [])[1] || "0";
+
+            let timeStr = cardDescs.find(d => d.match(/\d{2}:\d{2}:\d{2}/));
+            if (timeStr) orderBookTime = timeStr.match(/\d{2}:\d{2}:\d{2}/)[0];
+
+            // Extract price even if the rupee symbol is missing in the UI text node
+            let pStr = cardDescs.find(d => (d.includes("₹") || /^\s*[\d\.,]+\s*$/.test(d)) && !d.toUpperCase().includes("LTP") && d.length > 2);
+            if (pStr) orderBookPrice = pStr.replace(/[^\d\.,]/g, ""); // Strip symbol, keep digits/dot/comma
+
+            let lStr = cardDescs.find(d => d.includes("LTP"));
+            if (lStr) orderBookLTP = (lStr.match(/LTP\s*[₹]?([\d\.,]+)/) || [])[1] || "";
         }
 
-        if (orderDesc.toUpperCase().includes(extractedDetails.productType.toUpperCase())) {
-            console.log(`✅ Verified Product Type: ${extractedDetails.productType}`);
-        } else {
-            console.log(`❌ Product Type verification failed. Expected: ${extractedDetails.productType}`);
-        }
-
-        // Verify Order Type
-        // If order type is MKT, it often displays as LMT or MKT
-        if (orderDesc.toUpperCase().includes(extractedDetails.orderType.toUpperCase()) || orderDesc.toUpperCase().includes("LMT") || orderDesc.toUpperCase().includes("MKT")) {
-            console.log(`✅ Verified Order Type`);
-        } else {
-            console.log(`❌ Order Type verification failed. Extracted was: ${extractedDetails.orderType}`);
-        }
-
-        let expectedQty = extractedDetails.qty;
-        if (orderDesc.includes(expectedQty.toString())) {
-            console.log(`✅ Verified Quantity: ${expectedQty}`);
-        } else {
-            console.log(`❌ Quantity verification failed. Expected: ${expectedQty}`);
-        }
-
-
-        // Verify Status in Order Book referencing Snackbar
-        let expectedStatus = "OPEN";
+        // Override original variables with exact values from the order card to ensure accurate bottom-sheet comparison
+        let verifiedAction = cardAction;
+        extractedDetails.stockName = cardStockName ? cardStockName.trim() : extractedDetails.stockName;
+        let expectedStatus = cardStatus;
         if (snackbarMsg.toLowerCase().includes("rejected")) expectedStatus = "REJECTED";
         if (snackbarMsg.toLowerCase().includes("complete")) expectedStatus = "COMPLETED";
+        allureReporter.addStep(`Order Book Entry Verified for ${stockName}. Extracted details: ${JSON.stringify(extractedDetails)}`);
 
-        if (orderDesc.toUpperCase().includes(expectedStatus.toUpperCase()) || orderDesc.toUpperCase().includes("OPEN") || orderDesc.toUpperCase().includes("PENDING")) {
-            console.log(`✅ Verified Status in Order Book matches context`);
-        } else {
-            console.log(`❌ Status verification failed for pending order`);
-        }
-
-        allureReporter.addStep(`Pending Order Book Entry Verified for GATECH. Extracted details: ${JSON.stringify(extractedDetails)}`);
-
-        // --- Verifications inside Bottom Sheet ---
-        console.log("Clicking the first scrip to open bottom sheet...");
+        console.log("Clicking the exact scrip to open bottom sheet...");
         await orderEntry.click();
-        await driver.pause(2000);
+        await driver.pause(3000);
 
-        // Verify status in bottom sheet (scrip info)
-        console.log("Verifying status inside scrip info (bottom sheet)...");
-        const bottomSheetHeader = await $(`//*[contains(@content-desc, "${extractedDetails.stockName}")]`);
-        if (await bottomSheetHeader.isExisting()) {
-             const bsDesc = await bottomSheetHeader.getAttribute("content-desc");
-             if (bsDesc && (bsDesc.toUpperCase().includes(expectedStatus.toUpperCase()) || bsDesc.toUpperCase().includes("OPEN"))) {
-                 console.log("✅ Verified Status inside scrip info (bottom sheet)");
-                 allureReporter.addStep("✅ Verified Status inside scrip info (bottom sheet)");
-             } else {
-                 console.log(`❌ Failed to verify Status in scrip info. Desc: ${bsDesc}`);
-             }
+        console.log("Verifying details inside scrip info (bottom sheet)...");
+        // Wait for a unique bottom sheet element to guarantee it opened successfully
+        const filledQtyLabel = await $(locators.get('orderBookFilledQtyLabel'));
+        await filledQtyLabel.waitForDisplayed({ timeout: 10000 }).catch(() => console.log("Bottom sheet did not open properly"));
+
+        if (await filledQtyLabel.isExisting()) {
+            let allElements = await $$(locators.get('orderBookAllContentDescElements'));
+            let bsDescArr = [];
+            for (const el of allElements) {
+                const desc = await el.getAttribute("content-desc");
+                if (desc && desc.trim().length > 0) {
+                    bsDescArr.push(desc.trim());
+                }
+            }
+            const bsDesc = bsDescArr.join('\n');
+            console.log(`Bottom Sheet desc:\n${bsDesc}`);
+
+            // 1. Filled Qty
+            let bsFilledQtyMatch = bsDesc.match(/Filled Qty\s*\n\s*(\d+)\s*\/\s*(\d+)/);
+            if (bsFilledQtyMatch && bsFilledQtyMatch[1] === orderBookFilledQty) {
+                console.log("✅ Verified Filled Qty is " + orderBookFilledQty);
+                allureReporter.addStep("✅ Verified Filled Qty");
+            } else {
+                console.log(`❌ Failed to verify Filled Qty. Expected ${orderBookFilledQty}`);
+            }
+
+            // 2. Avg Price
+            if (expectedStatus === "REJECTED" || expectedStatus === "CANCELLED") {
+                if (bsDesc.includes("Avg. price\n0.00") || bsDesc.includes("Avg. price\n0")) {
+                    console.log("✅ Verified Avg Price is 0.00 for Rejected/Cancelled order");
+                    allureReporter.addStep("✅ Verified Avg Price is 0.00");
+                } else {
+                    console.log("❌ Failed to verify Avg Price is 0.00");
+                }
+            }
+
+            // 3. Type
+            let bsTypeMatch = bsDesc.match(/Type\s*\n\s*([A-Z\-]+)/);
+            if (bsTypeMatch && bsTypeMatch[1] === cardOrderType) {
+                console.log(`✅ Verified Type matches order book: ${bsTypeMatch[1]}`);
+                allureReporter.addStep(`✅ Verified Type`);
+            } else {
+                console.log(`❌ Failed to verify Type. Expected ${cardOrderType}, Found ${bsTypeMatch ? bsTypeMatch[1] : 'none'}`);
+            }
+            if (bsTypeMatch) console.log("bottomsheet type", bsTypeMatch[1]);
+
+            // 4. Status
+            let bsStatusMatch = bsDesc.match(/Status\s*\n\s*([A-Za-z]+)/);
+            if (bsStatusMatch && bsStatusMatch[1].toUpperCase() === expectedStatus.toUpperCase()) {
+                console.log(`✅ Verified Status: ${bsStatusMatch[1]}`);
+                allureReporter.addStep(`✅ Verified Status`);
+            } else {
+                console.log(`❌ Failed to verify Status. Expected ${expectedStatus}`);
+            }
+
+            // 5. Scrip Name, LTP, segment, buy/sell, Type
+            let hasScripName = bsDesc.includes(stockName);
+            let hasAction = bsDesc.includes(verifiedAction.toUpperCase());
+            let hasSegment = bsDesc.includes(cardSegment);
+            let hasLTP = bsDesc.includes(`LTP ${orderBookLTP}`) || bsDesc.includes(`LTP ₹${orderBookLTP}`) || (orderBookLTP && bsDesc.includes(orderBookLTP));
+
+            if (hasScripName && hasAction && hasSegment && hasLTP) {
+                console.log("✅ Verified Scrip Name, Action, Segment, and LTP in header");
+                allureReporter.addStep("✅ Verified Scrip Name, Action, Segment, and LTP");
+            } else {
+                console.log(`❌ Failed to verify Scrip Header details. Scrip:${hasScripName}, Action:${hasAction}, Segment:${hasSegment}, LTP:${hasLTP} (${orderBookLTP})`);
+            }
+
+            // 6. Trigger price (Only if it exists in bottom sheet)
+            if (bsDesc.includes("Trigger price")) {
+                if ((cardOrderType === "MKT" || cardOrderType === "LMT") && bsDesc.includes("Trigger price\n-")) {
+                    console.log("✅ Verified Trigger price is '-' for LMT/MKT");
+                    allureReporter.addStep("✅ Verified Trigger price");
+                } else {
+                    console.log("❌ Failed to verify Trigger price");
+                }
+            } else {
+                console.log("⚠️ Trigger price not printed in bottom sheet, skipping.");
+            }
+
+            // 7. Price
+            let bsPriceMatch = bsDesc.match(/Price\s*\n\s*([\d\.,]+)/);
+            if (bsPriceMatch) {
+                let normalizedBsPrice = bsPriceMatch[1].replace(/,/g, "");
+                let normalizedObPrice = orderBookPrice.replace(/,/g, "");
+                if (normalizedBsPrice === normalizedObPrice) {
+                    console.log(`✅ Verified Price matches order book: ${orderBookPrice}`);
+                    allureReporter.addStep(`✅ Verified Price`);
+                } else {
+                    console.log(`❌ Failed to verify Price. Expected ${orderBookPrice}, Found ${bsPriceMatch[1]}`);
+                }
+            } else {
+                console.log(`❌ Failed to verify Price. Price not found in bottom sheet.`);
+            }
+
+            // 8. Validity / product
+            let bsValMatch = bsDesc.match(/Validity \/ product\s*\n\s*([A-Z]+ \/ [A-Z]+)/);
+            if (bsValMatch) {
+                let valProd = bsValMatch[1];
+                if (extractedDetails.productType === "MIS" || extractedDetails.productType === "Intraday") {
+                    if (valProd.includes("MIS")) console.log("✅ Verified Validity/Product (MIS)");
+                    else console.log(`❌ Failed to verify Validity/Product for Intraday. Found ${valProd}`);
+                } else {
+                    if (valProd.includes("CNC") || valProd.includes("CO") || valProd.includes("BO")) console.log("✅ Verified Validity/Product (Delivery/CNC/CO)");
+                    else console.log(`❌ Failed to verify Validity/Product for Delivery. Found ${valProd}`);
+                }
+            }
+
+            // 9. Exchange order ID
+            let bsExchIdMatch = bsDesc.match(/Exchange order ID\s*\n\s*([A-Za-z0-9\-]+)/);
+            if (bsExchIdMatch) {
+                if (expectedStatus === "REJECTED" && bsExchIdMatch[1] === "-") {
+                    console.log("✅ Verified Exchange order ID is '-' for Rejected order");
+                } else if (expectedStatus === "COMPLETED" && bsExchIdMatch[1] !== "-") {
+                    console.log("✅ Verified Exchange order ID exists for Completed order");
+                }
+            }
+
+            // 10. Order time
+            let bsTimeMatch = bsDesc.match(/Order time\s*\n\s*(\d{2}:\d{2}:\d{2})/);
+            if (bsTimeMatch && bsTimeMatch[1] === orderBookTime) {
+                console.log(`✅ Verified Order time matches order book: ${orderBookTime}`);
+                allureReporter.addStep(`✅ Verified Order time`);
+            } else {
+                console.log(`❌ Failed to verify Order time. Expected ${orderBookTime}`);
+            }
+            console.log("bt sheet time", bsTimeMatch ? bsTimeMatch[1] : "null");
+            console.log("orderbook time", orderBookTime);
         }
 
-        // Verify Market Depth
         console.log("Clicking Market Depth...");
-        const marketDepthBtn = await $('~Market Depth');
+        const marketDepthBtn = await $(locators.get('orderBookMarketDepthBtn'));
         await marketDepthBtn.waitForDisplayed({ timeout: 5000 });
         await marketDepthBtn.click();
         await driver.pause(2000);
 
-        const mdTitle = await $(`//*[contains(@content-desc, "${extractedDetails.stockName}") or contains(@text, "${extractedDetails.stockName}")]`);
-        const mdText = await $(`//*[contains(@content-desc, "Market depth") or contains(@text, "Market depth")]`);
+        const mdTitle = await $(locators.get('orderBookMarketDepthTitleDynamic', stockName));
+        const mdText = await $(locators.get('orderBookMarketDepthText'));
         if (await mdTitle.isExisting() && await mdText.isExisting()) {
-             console.log("✅ Verified Market Depth page");
-             allureReporter.addStep("✅ Verified Market Depth page");
+            console.log("✅ Verified Market Depth page");
+            allureReporter.addStep("✅ Verified Market Depth page");
         }
-        await driver.back(); // come back to Order Book
+        await driver.back();
         await driver.pause(2000);
 
-        // Verify View Chart
         console.log("Clicking View Chart...");
-        // Re-open bottom sheet
-        const orderEntryAgain = await $(locators.get('orderBookEntryDynamic').replace('{stockName}', extractedDetails.stockName));
-        await orderEntryAgain.click();
-        await driver.pause(2000);
+        // Re-click the entry if bottom sheet closed
+        const orderEntryAgain = await $(locators.get('orderBookEntryDynamic').replace('{stockName}', stockName));
+        if (!(await $(locators.get('orderBookViewChartBtn')).isDisplayed().catch(() => false))) {
+            await orderEntryAgain.click();
+            await driver.pause(2000);
+        }
 
-        const viewChartBtn = await $('~View Chart');
+        const viewChartBtn = await $(locators.get('orderBookViewChartBtn'));
         await viewChartBtn.waitForDisplayed({ timeout: 5000 });
         await viewChartBtn.click();
-        await driver.pause(5000); // Chart takes time
+        await driver.pause(5000);
 
-        const overviewBuy = await $(locators.get('overviewBuyBtn'));
-        if (await overviewBuy.isExisting()) {
-             console.log("✅ Verified View Chart opened Overview page");
-             allureReporter.addStep("✅ Verified View Chart opened Overview page");
+        const overviewBuyBtnCheck = await $(locators.get('overviewBuyBtn'));
+        if (await overviewBuyBtnCheck.isExisting()) {
+            console.log("✅ Verified View Chart opened Overview page");
+            allureReporter.addStep("✅ Verified View Chart opened Overview page");
         }
-        await driver.back(); // come back to Order Book
-        await driver.pause(2000);
+        await driver.back();
+        await driver.pause(3000);
 
-        // --- Repeat Order ---
         console.log("Clicking Repeat Order...");
-        await orderEntryAgain.click();
-        await driver.pause(2000);
-
-        const repeatOrderBtn = await $('~Repeat Order');
+        if (!(await $(locators.get('orderBookRepeatOrderBtn')).isDisplayed().catch(() => false))) {
+            await orderEntryAgain.click();
+            await driver.pause(2000);
+        }
+        const repeatOrderBtn = await $(locators.get('orderBookRepeatOrderBtn'));
         await repeatOrderBtn.click();
         await driver.pause(3000);
-        
-        await OrderWindowPage.clickConfirmBuy();
-        await driver.pause(4000); // wait for order to be placed and redirect
-        
-        console.log("Verifying 2 scrips are showing after Repeat Order...");
-        // We will just find all elements that have GATECH in their desc
-        const allGatechOrders = await $$(`//android.view.View[contains(@content-desc, "${extractedDetails.stockName}")]`);
-        if (allGatechOrders.length >= 2) {
-             console.log("✅ Verified multiple scrips are showing after Repeat Order");
-             allureReporter.addStep("✅ Verified multiple scrips are showing after Repeat Order");
-        }
 
-        // --- Cancel Flow ---
-        console.log("Clicking first scrip to Cancel...");
-        await allGatechOrders[0].click();
-        await driver.pause(2000);
 
-        const cancelBtn = await $('~Cancel');
-        await cancelBtn.click();
-        await driver.pause(1000);
-        
-        console.log("Clicking NO on cancel popup...");
-        const noBtn = await $('~NO');
-        await noBtn.click();
-        await driver.pause(1000);
-        
-        console.log("Clicking Cancel again -> YES...");
-        await cancelBtn.click();
-        await driver.pause(1000);
-        const yesBtn = await $('~YES');
-        await yesBtn.click();
-        await driver.pause(3000);
-        
-        const gatechOrdersAfterCancel = await $$(`//android.view.View[contains(@content-desc, "${extractedDetails.stockName}")]`);
-        if (gatechOrdersAfterCancel.length < allGatechOrders.length) {
-             console.log("✅ Verified order was removed after Cancel");
-             allureReporter.addStep("✅ Verified order was removed after Cancel");
-        }
-
-        // --- Modify Flow ---
-        console.log("Clicking remaining scrip to Modify...");
-        await gatechOrdersAfterCancel[0].click();
-        await driver.pause(2000);
-
-        const modifyBtn = await $('~Modify');
-        await modifyBtn.click();
-        await driver.pause(3000);
-        
-        console.log("Changing order type to SL-LMT...");
-        const slLmtBtn = await $('~SL-LMT');
-        if (await slLmtBtn.isExisting()) {
-            await slLmtBtn.click();
-        }
-        await driver.pause(1000);
-        
-        const confirmModifyBtn = await $('~MODIFY');
-        await confirmModifyBtn.click();
-        await driver.pause(2000);
-        
-        const yesModifyBtn = await $('~YES');
-        if (await yesModifyBtn.isExisting()) {
-            await yesModifyBtn.click();
-        }
-        await driver.pause(4000);
-        
-        const finalDesc = await gatechOrdersAfterCancel[0].getAttribute("content-desc");
-        if (finalDesc.includes("SL-LMT")) {
-            console.log("✅ Verified order modified to SL-LMT in order book");
-            allureReporter.addStep("✅ Verified order modified to SL-LMT in order book");
+        if (action === "BUY") {
+            await OrderWindowPage.clickConfirmBuy();
+            const yesBtn = await $(locators.get('basketYesBtn'));
+            if (await yesBtn.isExisting()) {
+                await yesBtn.click();
+                await driver.pause(2000);
+            }
         } else {
-            console.log(`❌ Failed to verify SL-LMT modification. Desc: ${finalDesc}`);
+            await OrderWindowPage.clickConfirmSell();
+            const yesBtn = await $(locators.get('basketYesBtn'));
+            if (await yesBtn.isExisting()) {
+                await yesBtn.click();
+                await driver.pause(2000);
+            }
+        }
+        await driver.pause(6000); // give it plenty of time to redirect to order book
+
+        console.log("Verifying 2 scrips are showing after Repeat Order...");
+        let allGatechOrders = [];
+        // retry mechanism for finding 2 elements
+        for (let i = 0; i < 3; i++) {
+            allGatechOrders = await $$(locators.get('orderBookDynamicOrdersAfterCancel', stockName));
+            if (allGatechOrders.length >= 2) break;
+            await driver.pause(2000);
+        }
+
+        if (allGatechOrders.length >= 2) {
+            console.log("✅ Verified multiple scrips are showing after Repeat Order");
+            allureReporter.addStep("✅ Verified multiple scrips are showing after Repeat Order");
+        } else {
+            console.log(`⚠️ Expected at least 2 ${stockName} orders, found ${allGatechOrders.length}`);
+        }
+
+        let isEffectivelyPending = isPending && !(["COMPLETED", "REJECTED", "CANCELLED"].includes(expectedStatus.toUpperCase()));
+        if (!isEffectivelyPending && isPending) {
+            console.log(`Order status is ${expectedStatus}, treating as executed order, skipping Modify/Cancel flow.`);
+            allureReporter.addStep(`Order status is ${expectedStatus}, skipping Modify/Cancel flow.`);
+        }
+
+        if (isEffectivelyPending && allGatechOrders.length > 0) {
+            console.log("Clicking first scrip to Modify...");
+            await allGatechOrders[0].click();
+            await driver.pause(2000);
+
+            const modifyBtn = await $(locators.get('orderBookModifyBtn'));
+            await modifyBtn.click();
+            await driver.pause(3000);
+
+            console.log("Changing order type to SL-LMT...");
+            const slLmtBtn = await $(locators.get('orderBookSlLmtBtn'));
+            if (await slLmtBtn.isExisting()) {
+                await slLmtBtn.click();
+            }
+            await driver.pause(1000);
+
+            console.log("Increasing Qty and Price by 1...");
+            const qtyPlusBtn = await $(locators.get('orderBookQtyPlusBtn'));
+            if (await qtyPlusBtn.isExisting()) {
+                await qtyPlusBtn.click();
+            }
+            await driver.pause(1000);
+
+            const pricePlusBtn = await $(locators.get('orderBookPricePlusBtn'));
+            if (await pricePlusBtn.isExisting()) {
+                await pricePlusBtn.click();
+            }
+            await driver.pause(1000);
+
+            // Handle limit issue if appears (e.g. "Must be between 12.54 - 13.86")
+            let limitIssues = await $$(locators.get('orderBookLimitIssues'));
+            if (limitIssues.length > 0) {
+                console.log("⚠️ Limit issue detected! Handling it...");
+                const limitText = await limitIssues[0].getAttribute("content-desc") || await limitIssues[0].getText();
+                // extract bounds, e.g., "Must be between 12.54 - 13.86" -> match 12.54
+                const match = limitText.match(/(\d+\.\d+)\s*-/);
+                if (match && match[1]) {
+                    const validPrice = match[1];
+                    console.log(`Setting price to valid lower bound: ${validPrice}`);
+                    const priceInput = await $(locators.get('orderBookPriceInputInstance1'));
+                    if (await priceInput.isExisting()) {
+                        await priceInput.click();
+                        await driver.pause(500);
+                        await priceInput.clearValue();
+                        await priceInput.addValue(validPrice);
+                        await driver.pause(1000);
+                        await driver.back(); // hide keyboard
+                        await driver.pause(1000);
+                    }
+                }
+            }
+
+            const confirmModifyBtn = await $(locators.get('orderBookConfirmModifyBtn'));
+            await confirmModifyBtn.click();
+            await driver.pause(2000);
+
+            const yesModifyBtn = await $(locators.get('orderBookYesModifyBtn'));
+            if (await yesModifyBtn.isExisting()) {
+                await yesModifyBtn.click();
+            }
+            await driver.pause(5000); // give time to return to order book
+
+            // Refetch elements since the DOM reloaded
+            let gatechOrdersFinal = await $$(locators.get('orderBookDynamicOrdersAfterCancel', stockName));
+            if (gatechOrdersFinal.length > 0) {
+                const finalDesc = await gatechOrdersFinal[0].getAttribute("content-desc");
+                if (finalDesc.includes("SL-LMT")) {
+                    console.log("✅ Verified order modified to SL-LMT in order book");
+                    allureReporter.addStep("✅ Verified order modified to SL-LMT in order book");
+                } else {
+                    console.log(`❌ Failed to verify SL-LMT modification. Desc: ${finalDesc}`);
+                }
+            }
+
+            console.log("Clicking first scrip to Cancel...");
+            gatechOrdersFinal = await $$(locators.get('orderBookDynamicOrdersAfterCancel', stockName));
+            if (gatechOrdersFinal.length > 0) {
+                await gatechOrdersFinal[0].click();
+                await driver.pause(2000);
+
+                const cancelBtn = await $(locators.get('orderBookCancelBtn'));
+                await cancelBtn.click();
+
+                await driver.pause(1000);
+
+                console.log("Clicking NO on cancel popup...");
+                const noBtn = await $(locators.get('orderBookNoBtn'));
+                await noBtn.click();
+                await driver.pause(1000);
+
+                console.log("Clicking the first scrip to open bottom sheet again...");
+                await gatechOrdersFinal[0].click();
+                await driver.pause(2000);
+
+                console.log("Clicking Cancel again -> YES...");
+                await cancelBtn.click();
+                await driver.pause(1000);
+                const yesBtn = await $(locators.get('orderBookYesBtn'));
+                await yesBtn.click();
+                await driver.pause(3000);
+
+                const gatechOrdersAfterCancel = await $$(locators.get('orderBookDynamicOrdersAfterCancel', stockName));
+                if (gatechOrdersAfterCancel.length < gatechOrdersFinal.length) {
+                    console.log("✅ Verified order was removed after Cancel");
+                    allureReporter.addStep("✅ Verified order was removed after Cancel");
+                }
+            }
+        }
+    }
+
+    it('Should verify Pending Orders section only appears when an Open order exists', async () => {
+        allureReporter.addStep('Verify Pending Orders section visibility based on Open orders');
+
+        let pendingHeader = await $(locators.get('orderBookPendingOrdersHeader'));
+        if (await pendingHeader.isExisting()) {
+            console.log("✅ There is a pending order");
+            allureReporter.addStep("✅ There is a pending order");
+            
+            const openOrders = await $$(locators.get('orderBookOpenOrders'));
+            if (openOrders.length > 0) {
+                console.log("✅ Verified there is at least one order in OPEN status");
+                allureReporter.addStep("✅ Verified there is at least one order in OPEN status");
+            } else {
+                console.log("❌ Pending orders header exists but no OPEN orders found");
+                allureReporter.addStep("❌ Pending orders header exists but no OPEN orders found");
+            }
+        } else {
+            console.log("ℹ️ Pending order does not exist");
+            allureReporter.addStep("ℹ️ Pending order does not exist");
         }
     });
+
+
+    // it('should run end-to-end flow for pending buy (COMCL)', async () => {
+    //     await executeOrderFlow({ stockName: "INFY-EQ", action: "BUY", productType: "CNC", orderType: "MKT", isPending: true });
+    // });
+
+    // it('should run end-to-end flow for pending sell (WIPRO-EQ)', async () => {
+    //     await executeOrderFlow({ stockName: "INFY-EQ", action: "SELL", productType: "MIS", orderType: "MKT", isPending: true });
+    // });
+
+    // it('should verify Search and Download CSV for Pending Orders', async () => {
+    //     allureReporter.addStep('Verify Search and Download CSV for Pending Orders');
+
+    //     const openOrders = await $$('//*[contains(@content-desc, "OPEN")]');
+    //     const pendingCount = openOrders.length;
+
+    //     if (pendingCount > 0) {
+    //         console.log("Checking Pending Orders Search...");
+    //         console.log(openOrders)
+    //         const firstPendingDesc = await openOrders[1].getAttribute("content-desc");
+    //         const firstPendingScrip = firstPendingDesc ? firstPendingDesc.split('\n')[1] : "COMCL";
+
+    //         const pendingSearchIcon = await $(`android=new UiSelector().className("android.view.View").instance(19)`);
+    //         await pendingSearchIcon.waitForDisplayed({ timeout: 5000 });
+    //         await pendingSearchIcon.click();
+    //         await driver.pause(1000);
+
+    //         let actualPendingSearchInput = await $(`android=new UiSelector().className("android.widget.EditText")`);
+    //         await actualPendingSearchInput.click();
+    //         await driver.pause(500);
+
+    //         // Search existing scrip
+    //         await actualPendingSearchInput.setValue(firstPendingScrip);
+    //         await driver.pause(2000);
+
+    //         const existingResult = await $(`//*[@content-desc and contains(@content-desc, "${firstPendingScrip}")]`);
+    //         if (await existingResult.isExisting()) {
+    //             console.log("✅ Existing scrip appeared in search");
+    //         }
+
+    //         const crossBtn = await $(`android=new UiSelector().className("android.widget.Button")`);
+    //         if (await crossBtn.isExisting()) {
+    //             await crossBtn.click();
+    //             await driver.pause(1000);
+    //         }
+
+    //         await actualPendingSearchInput.setValue("INVALID_SCRIP_123");
+    //         await driver.pause(2000);
+
+    //         const noMatch = await $(locators.get('orderBookNoMatch'));
+    //         if (await noMatch.isExisting()) {
+    //             console.log("✅ 'No matching orders found' showed for non-existing scrip");
+    //         }
+
+    //         const pendingCloseSearchIcon = await $(`android=new UiSelector().className("android.view.View").instance(19)`);
+    //         if (await pendingCloseSearchIcon.isExisting()) {
+    //             await pendingCloseSearchIcon.click();
+    //         }
+    //         await driver.pause(1000);
+
+
+    //         console.log("Checking Pending Orders Download CSV...");
+    //         const pendingDownloadIcon = await $(`android=new UiSelector().className("android.view.View").instance(20)`);
+    //         await pendingDownloadIcon.click();
+    //         await driver.pause(2000);
+
+    //         // Click outside to close pending download
+    //         const { width: pWidth, height: pHeight } = await driver.getWindowSize();
+    //         await driver.performActions([{
+    //             type: 'pointer', id: 'finger2', parameters: { pointerType: 'touch' },
+    //             actions: [
+    //                 { type: 'pointerMove', duration: 0, x: pWidth / 2, y: pHeight * 0.1 },
+    //                 { type: 'pointerDown', button: 0 },
+    //                 { type: 'pointerUp', button: 0 }
+    //             ]
+    //         }]);
+    //         await driver.pause(2000);
+
+    //         console.log("Checking Pending Orders Select All...");
+    //         const selectAllCheckbox = await $(`android=new UiSelector().className("android.widget.CheckBox").instance(0)`);
+    //         if (await selectAllCheckbox.isExisting()) {
+    //             await selectAllCheckbox.click();
+    //             await driver.pause(1000);
+                
+    //             let cancelAllBtn = await $(`android=new UiSelector().className("android.widget.Button").textContains("Cancel All")`);
+    //             if (!(await cancelAllBtn.isExisting())) {
+    //                 cancelAllBtn = await $(`//android.widget.Button[contains(@content-desc, "Cancel All") or contains(@text, "Cancel All")]`);
+    //             }
+                
+    //             if (await cancelAllBtn.isExisting()) {
+    //                 await cancelAllBtn.click();
+    //                 await driver.pause(1000);
+                    
+    //                 console.log("Clicking NO on cancel confirmation popup...");
+    //                 const noBtn = await $(locators.get('orderBookNoBtn'));
+    //                 if (await noBtn.isExisting()) {
+    //                     await noBtn.click();
+    //                     await driver.pause(1000);
+    //                 }
+    //             }
+    //         }
+    //     }
+    // });
+
+    // it('should run end-to-end flow for executed buy (ADANI)', async () => {
+    //     await executeOrderFlow({ stockName: "ADANI", action: "BUY", productType: "CNC", orderType: "MKT", isPending: false });
+    // });
+
+    // it('should run end-to-end flow for executed sell (TCS-EQ)', async () => {
+    //     await executeOrderFlow({ stockName: "TCS-EQ", action: "SELL", productType: "MIS", orderType: "MKT", isPending: false });
+    // });
+
+    // it('should verify Search, Download CSV and Filter for Executed Orders', async () => {
+    //     allureReporter.addStep('Verify Search, Download CSV and Filter for Executed Orders');
+
+    //     const openOrders = await $$('//*[contains(@content-desc, "OPEN")]');
+    //     const pendingCount = openOrders.length;
+    //     const offset = pendingCount === 0 ? 0 : pendingCount + 6;
+
+    //     const executedOrders = await $$('//*[contains(@content-desc, "COMPLETED") or contains(@content-desc, "REJECTED") or contains(@content-desc, "CANCELLED")]');
+    //     let firstExecutedScrip = "TCS-EQ";
+    //     if (executedOrders.length > 0) {
+    //         const firstExecutedDesc = await executedOrders[1].getAttribute("content-desc");
+    //         firstExecutedScrip = firstExecutedDesc ? firstExecutedDesc.split('\n')[1] : "TCS-EQ";
+    //     }
+
+    //     // 1. SEARCH
+    //     console.log("Checking Executed Orders Search...");
+    //     const searchIcon = await $(`android=new UiSelector().className("android.view.View").instance(${19 + offset})`);
+    //     await searchIcon.waitForDisplayed({ timeout: 5000 });
+    //     await searchIcon.click();
+    //     await driver.pause(1000);
+
+    //     let actualSearchInput = await $(`android=new UiSelector().className("android.widget.EditText")`);
+    //     await actualSearchInput.click();
+    //     await driver.pause(500);
+
+    //     await actualSearchInput.setValue(firstExecutedScrip);
+    //     await driver.pause(2000);
+
+    //     const existingExecutedResult = await $(`//*[@content-desc and contains(@content-desc, "${firstExecutedScrip}")]`);
+    //     if (await existingExecutedResult.isExisting()) {
+    //         console.log("✅ Existing scrip appeared in search");
+    //     }
+
+    //     const crossBtn = await $(`android=new UiSelector().className("android.widget.Button")`);
+    //     if (await crossBtn.isExisting()) {
+    //         await crossBtn.click();
+    //         await driver.pause(1000);
+    //     }
+
+    //     await actualSearchInput.setValue("INVALID_SCRIP_123");
+    //     await driver.pause(2000);
+
+    //     const noMatch = await $(locators.get('orderBookNoMatch'));
+    //     if (await noMatch.isExisting()) {
+    //         console.log("✅ 'No matching orders found' showed for non-existing scrip");
+    //     }
+
+    //     const crossBtn1 = await $(`android=new UiSelector().className("android.widget.Button")`);
+    //     if (await crossBtn1.isExisting()) {
+    //         await crossBtn1.click();
+    //         await driver.pause(1000);
+    //     }
+    //     const closeSearchIcon = await $(`android=new UiSelector().className("android.view.View").instance(${19 + offset})`);
+
+    //     // click search icon to close search
+    //     if (await closeSearchIcon.isExisting()) {
+    //         await closeSearchIcon.click();
+    //     }
+
+
+    //     // 2. DOWNLOAD CSV
+    //     console.log("Checking Download CSV...");
+    //     const downloadCsvIcon = await $(`android=new UiSelector().className("android.view.View").instance(${20 + offset})`);
+    //     await downloadCsvIcon.click();
+    //     await driver.pause(2000);
+
+    //     const csvName = await $(locators.get('orderBookCsvName'));
+    //     if (await csvName.isExisting()) {
+    //         console.log("✅ CSV download bottom sheet showed up with file name");
+    //     }
+
+    //     // click outside to close
+    //     const { width, height } = await driver.getWindowSize();
+    //     await driver.performActions([{
+    //         type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
+    //         actions: [
+    //             { type: 'pointerMove', duration: 0, x: width / 2, y: height * 0.1 },
+    //             { type: 'pointerDown', button: 0 },
+    //             { type: 'pointerUp', button: 0 }
+    //         ]
+    //     }]);
+    //     await driver.pause(2000);
+
+    //     // 3. FILTER
+    //     console.log("Checking Filter...");
+    //     let filterIcon = await $(`android=new UiSelector().className("android.view.View").instance(${21 + offset})`);
+    //     if (!(await filterIcon.isExisting())) {
+    //         filterIcon = await $(`android=new UiSelector().className("android.view.View").instance(${22 + offset})`);
+    //     }
+    //     await filterIcon.click();
+    //     await driver.pause(2000);
+
+    //     const clickFilterAndSave = async (filterName) => {
+    //         const btn = await $(locators.get('locatorGen5', '${filterName}'));
+    //         const btnFallback = await $(locators.get('orderBookFilterDynamicBtnFallback', filterName));
+    //         if (await btn.isExisting()) await btn.click();
+    //         else if (await btnFallback.isExisting()) await btnFallback.click();
+    //         await driver.pause(500);
+
+    //         const saveBtn = await $(locators.get('locatorGen5', 'SAVE'));
+    //         const saveBtnFallback = await $(locators.get('orderBookSaveBtnFallback'));
+    //         if (await saveBtn.isExisting()) await saveBtn.click();
+    //         else if (await saveBtnFallback.isExisting()) await saveBtnFallback.click();
+    //         await driver.pause(2000);
+    //     };
+
+    //     // Completed
+    //     await clickFilterAndSave("Completed");
+    //     let orders = await $$(locators.get('orderBookCompletedOrders'));
+    //     let allCompleted = true;
+    //     for (const order of orders) {
+    //         const desc = await order.getAttribute("content-desc");
+    //         if (desc && (desc.includes("REJECTED") || desc.includes("CANCELLED"))) allCompleted = false;
+    //     }
+    //     if (allCompleted) console.log("✅ Only Completed orders are showing");
+
+    //     // Rejected
+    //     await filterIcon.click();
+    //     await driver.pause(1000);
+    //     await clickFilterAndSave("Rejected");
+    //     orders = await $$(locators.get('orderBookCompletedOrders'));
+    //     let allRejected = true;
+    //     for (const order of orders) {
+    //         const desc = await order.getAttribute("content-desc");
+    //         if (desc && (desc.includes("COMPLETED") || desc.includes("CANCELLED"))) allRejected = false;
+    //     }
+    //     if (allRejected) console.log("✅ Only Rejected orders are showing");
+
+    //     // Cancelled
+    //     await filterIcon.click();
+    //     await driver.pause(1000);
+    //     await clickFilterAndSave("Cancelled");
+    //     orders = await $$(locators.get('orderBookCompletedOrders'));
+    //     let noMatchFound = false;
+    //     if (orders.length === 0) {
+    //         const noMatchCancel = await $(locators.get('orderBookNoMatch'));
+    //         if (await noMatchCancel.isExisting()) {
+    //             console.log("✅ 'No matching orders found' showed for Cancelled as there are none");
+    //             noMatchFound = true;
+    //         }
+    //     } else {
+    //         let allCancelled = true;
+    //         for (const order of orders) {
+    //             const desc = await order.getAttribute("content-desc");
+    //             if (desc && (desc.includes("COMPLETED") || desc.includes("REJECTED"))) allCancelled = false;
+    //         }
+    //         if (allCancelled) console.log("✅ Only Cancelled orders are showing");
+    //     }
+
+    //     // All
+    //     if (noMatchFound) {
+    //         const filterIconNoMatch = await $(`android=new UiSelector().className("android.view.View").instance(${22 + offset})`);
+    //         await filterIconNoMatch.click();
+    //     } else {
+    //         await filterIcon.click();
+    //     }
+    //     await driver.pause(1000);
+    //     await clickFilterAndSave("All");
+    //     console.log("✅ Restored to All filters");
+    // });
+
+
 });

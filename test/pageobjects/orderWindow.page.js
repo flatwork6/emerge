@@ -52,6 +52,7 @@ class OrderWindowPage {
         let orderType = this.selectedOrderType || "";
         let qty = "1";
         let ltp = "0.00";
+        let price = "0.00";
 
         const allElements = await $$('//*[@content-desc != ""]');
         for (const el of allElements) {
@@ -75,8 +76,8 @@ class OrderWindowPage {
 
             // Check selected state for toggles and tabs
             const isSelected = await el.getAttribute("selected") === "true";
-            const isChecked = await el.getAttribute("checked") === "true"; 
-            
+            const isChecked = await el.getAttribute("checked") === "true";
+
             // Flutter workaround: The highlighted/selected segment might have clickable=false 
             // since you can't click the tab you are already on.
             const isClickable = await el.getAttribute("clickable") === "true";
@@ -109,8 +110,9 @@ class OrderWindowPage {
         if (!segment) segment = "";
         if (!productType) productType = "";
         if (!orderType) orderType = "";
+        if (!price) price = "";
 
-        console.log(`Extracted: ${stockName}, ${segment}, ${productType}, ${orderType}, Qty:${qty}, LTP:${ltp}`);
+        console.log(`Extracted: ${stockName}, ${segment}, ${productType}, ${orderType}, Qty:${qty}, LTP:${ltp}, Price:${price}`);
 
         return {
             stockName,
@@ -118,6 +120,7 @@ class OrderWindowPage {
             productType,
             orderType,
             qty,
+            price,
             ltp
         };
     }
@@ -129,7 +132,15 @@ class OrderWindowPage {
         await buyBtn.waitForDisplayed({ timeout: 5000 });
         await buyBtn.click();
         await driver.pause(2000);
+
+        const proceedBtn = await $('//*[contains(@content-desc, "Proceed") or contains(@text, "Proceed")]');
+        if (await proceedBtn.isExisting()) {
+            console.log("⚠️ Proceed popup appeared. Clicking Proceed...");
+            await proceedBtn.click();
+            await driver.pause(2000);
+        }
     }
+
 
     async clickConfirmSell() {
         console.log("Clicking final SELL button...");
@@ -138,6 +149,13 @@ class OrderWindowPage {
         await sellBtn.waitForDisplayed({ timeout: 5000 });
         await sellBtn.click();
         await driver.pause(2000);
+
+        const proceedBtn = await $('//*[contains(@content-desc, "Proceed") or contains(@text, "Proceed")]');
+        if (await proceedBtn.isExisting()) {
+            console.log("⚠️ Proceed popup appeared. Clicking Proceed...");
+            await proceedBtn.click();
+            await driver.pause(2000);
+        }
     }
 
     async extractSnackbar() {
