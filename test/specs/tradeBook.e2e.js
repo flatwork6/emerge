@@ -13,6 +13,14 @@ console.log = function (...args) {
 
 describe('TradeBook Automation', () => {
     let availableTradeStock = null;
+    let skipRest = false;
+
+    beforeEach(function() {
+        if (skipRest) {
+            console.log("Skipping due to no trades found...");
+            this.skip();
+        }
+    });
 
     it('TC-01: Navigating to TradeBook shows the TradeBook screen', async () => {
         allureReporter.addStep('Tap the TradeBook tab/section from Orders navigation.');
@@ -35,6 +43,12 @@ describe('TradeBook Automation', () => {
         let headingCountMatch = desc ? desc.match(/\((\d+)\)/) : null;
         let expectedCount = headingCountMatch ? parseInt(headingCountMatch[1], 10) : 0;
         console.log(`Expected trades count from heading: ${expectedCount}`);
+
+        if (expectedCount === 0) {
+            console.log("No trades found. Stopping the entire suite.");
+            skipRest = true;
+            return;
+        }
 
         // Verify there is at least one trade row. Since Flutter combines elements, we'll look for "B" or "S" in content-desc.
         let allScreenEls = await $$(locators.get('tradeBookTradeRow'));
