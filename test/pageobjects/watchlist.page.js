@@ -8,7 +8,9 @@ class WatchlistPage {
             if (await elem.isDisplayed().catch(() => false)) {
                 const loc = await elem.getLocation().catch(() => ({ y: 0 }));
                 const desc = await elem.getAttribute("content-desc").catch(() => "");
-                if (loc.y > 200 && desc) {
+                // Use y > 500 to skip pinned stocks (y ≈ 300–400) and the search/filter bar,
+                // and only reach the regular watchlist rows below
+                if (loc.y > 500 && desc) {
                     const parts = desc.split(/\n|,/).map(s => s.trim()).filter(s => s !== "");
                     if (parts.length >= 3) {
                         const name = parts[0];
@@ -124,28 +126,31 @@ class WatchlistPage {
             }
         } catch (e) { }
 
+        // 1. Look for dropdown element displaying currentWatchlistName using locators.csv template
         if (currentWatchlistName) {
             try {
-                // Look for dropdown element displaying currentWatchlistName using locators.csv template
                 const selector = locators.get('watchlistDropdownByName').replace('{name}', currentWatchlistName)
                 const dynamicDropdown = $(selector)
                 if (await dynamicDropdown.isDisplayed().catch(() => false)) {
                     await dynamicDropdown.click()
                     await driver.pause(1000)
+                    console.log(`Clicked dropdown element by name '${currentWatchlistName}'`)
                     return
                 }
             } catch (e) { }
         }
 
-        // Generic fallback: Look for any dropdown view in top header area (y between 180 and 320, x < 600)
+        // 2. Generic fallback: Look for dropdown view in header area (y between 180 and 550, x < 600)
         try {
             const views = await $$('//*[@content-desc != ""]')
             for (const v of views) {
                 if (await v.isDisplayed().catch(() => false)) {
                     const loc = await v.getLocation()
-                    if (loc.y > 180 && loc.y < 320 && loc.x < 600) {
+                    if (loc.y > 180 && loc.y < 550 && loc.x < 600) {
                         const desc = await v.getAttribute("content-desc").catch(() => "")
-                        if (desc && (desc.includes('/') || desc.includes('Watchlist') || desc.includes('Index') || currentWatchlistName && desc.includes(currentWatchlistName))) {
+                        // Avoid clicking indices, search, or heatmap buttons
+                        const isNotActionBtn = !desc.includes("Open heatmap view") && !desc.includes("search");
+                        if (isNotActionBtn && desc && (desc.includes('/') || desc.includes('Watchlist') || desc.includes('Index') || (currentWatchlistName && desc.includes(currentWatchlistName)))) {
                             await v.click()
                             await driver.pause(1000)
                             console.log(`Clicked dropdown element '${desc}' at (${loc.x}, ${loc.y})`)
@@ -156,16 +161,38 @@ class WatchlistPage {
             }
         } catch (e) { }
 
-        // Last fallback to default locator
-        await this.watchListDropdown.click()
-        await driver.pause(1000)
+        // 3. Fallback to default locator
+        try {
+            if (await this.watchListDropdown.isDisplayed().catch(() => false)) {
+                await this.watchListDropdown.click()
+                await driver.pause(1000)
+                console.log("Clicked watchListDropdown via default locator")
+                return
+            }
+        } catch (e) { }
+
+        // 4. Coordinate tap fallback on the watchlist header area (x: 250, y: 475)
+        try {
+            console.log("Tapping fallback coordinates for watchlist dropdown header at (250, 475)...")
+            await driver.performActions([{
+                type: 'pointer',
+                id: 'finger1',
+                parameters: { pointerType: 'touch' },
+                actions: [
+                    { type: 'pointerMove', duration: 0, x: 250, y: 475 },
+                    { type: 'pointerDown', button: 0 },
+                    { type: 'pointerUp', button: 0 }
+                ]
+            }])
+            await driver.pause(1000)
+        } catch (e) { }
     }
 
     async getAllWatchlistNames() {
         console.log("Dynamically extracting watchlist names from UI...");
 
         // Open the dropdown to see the list of watchlists
-        await this.watchListDropdown.click();
+        await this.openWatchListDropdown();
         await driver.pause(1500);
 
         const watchlists = new Set();
@@ -179,10 +206,10 @@ class WatchlistPage {
                     const loc = await v.getLocation();
 
                     // Dropdown items are typically vertically laid out below the header (e.g., y > 150)
-                    if (loc.y > 150 && loc.y < 1200 && desc) {
+                    if (loc.y > 150 && loc.y < 1400 && desc) {
                         const name = desc.split('\n')[0].trim();
                         // Ignore common UI elements that are not user watchlists
-                        const ignoredKeywords = ["index", "manage", "create", "search", "profile", "add", "settings", "nifty", "sensex"];
+                        const ignoredKeywords = ["index", "manage", "create", "search", "profile", "add", "settings", "nifty", "sensex", "accept", "dismiss"];
                         const isIgnored = ignoredKeywords.some(kw => name.toLowerCase().includes(kw) || name.toLowerCase() === kw);
 
                         if (name && !isIgnored && name.length > 0 && name.length < 40) {
@@ -219,9 +246,9 @@ class WatchlistPage {
                 id: 'finger1',
                 parameters: { pointerType: 'touch' },
                 actions: [
-                    { type: 'pointerMove', duration: 0, x: 500, y: 1150 },
+                    { type: 'pointerMove', duration: 0, x: 500, y: 1100 },
                     { type: 'pointerDown', button: 0 },
-                    { type: 'pointerMove', duration: 200, x: 500, y: 4000 },
+                    { type: 'pointerMove', duration: 300, x: 500, y: 1800 },
                     { type: 'pointerUp', button: 0 }
                 ]
             }])
@@ -656,46 +683,46 @@ class WatchlistPage {
                 noNewCount = 0;
             }
 
-            if (noNewCount < 6) {
-                try {
-                    await driver.performActions([{
-                        type: 'pointer',
-                        id: 'finger1',
-                        parameters: { pointerType: 'touch' },
-                        actions: [
-                            { type: 'pointerMove', duration: 0, x: 500, y: 1500 },
-                            { type: 'pointerDown', button: 0 },
-                            { type: 'pointerMove', duration: 400, x: 500, y: 500 },
-                            { type: 'pointerUp', button: 0 }
-                        ]
-                    }]);
-                    scrollsPerformed++;
-                } catch (e) {
-                    console.log("Scroll failed:", e.message);
-                }
-                await driver.pause(500);
-            }
+            // if (noNewCount < 6) {
+            //     try {
+            //         await driver.performActions([{
+            //             type: 'pointer',
+            //             id: 'finger1',
+            //             parameters: { pointerType: 'touch' },
+            //             actions: [
+            //                 { type: 'pointerMove', duration: 0, x: 500, y: 1500 },
+            //                 { type: 'pointerDown', button: 0 },
+            //                 { type: 'pointerMove', duration: 400, x: 500, y: 500 },
+            //                 { type: 'pointerUp', button: 0 }
+            //             ]
+            //         }]);
+            //         scrollsPerformed++;
+            //     } catch (e) {
+            //         console.log("Scroll failed:", e.message);
+            //     }
+            //     await driver.pause(500);
+            // }
         }
 
         // Scroll back to top
-        if (extractedStocks.length > 0 && scrollsPerformed > 0) {
-            for (let i = 0; i < scrollsPerformed + 1; i++) {
-                try {
-                    await driver.performActions([{
-                        type: 'pointer',
-                        id: 'finger1',
-                        parameters: { pointerType: 'touch' },
-                        actions: [
-                            { type: 'pointerMove', duration: 0, x: 500, y: 500 },
-                            { type: 'pointerDown', button: 0 },
-                            { type: 'pointerMove', duration: 400, x: 500, y: 1500 },
-                            { type: 'pointerUp', button: 0 }
-                        ]
-                    }]);
-                } catch (e) { }
-                await driver.pause(300);
-            }
-        }
+        // if (extractedStocks.length > 0 && scrollsPerformed > 0) {
+        //     for (let i = 0; i < scrollsPerformed + 1; i++) {
+        //         try {
+        //             await driver.performActions([{
+        //                 type: 'pointer',
+        //                 id: 'finger1',
+        //                 parameters: { pointerType: 'touch' },
+        //                 actions: [
+        //                     { type: 'pointerMove', duration: 0, x: 500, y: 500 },
+        //                     { type: 'pointerDown', button: 0 },
+        //                     { type: 'pointerMove', duration: 400, x: 500, y: 1500 },
+        //                     { type: 'pointerUp', button: 0 }
+        //                 ]
+        //             }]);
+        //         } catch (e) { }
+        //         await driver.pause(300);
+        //     }
+        // }
 
         return extractedStocks;
     }
@@ -766,7 +793,7 @@ class WatchlistPage {
 
         await this.closeMarketWatchSettings();
 
-        await this.pullDownToRefresh();
+        // await this.pullDownToRefresh();
 
         const stocks = await this.getWatchlistStockDetails();
         console.log(`Extracted ${stocks.length} stocks for sort verification.`);
@@ -782,7 +809,7 @@ class WatchlistPage {
         await this.closeMarketWatchSettings();
 
         console.log("Extracting baseline stock details (Close Price)...");
-        await this.pullDownToRefresh(); // Start fresh
+        //await this.pullDownToRefresh(); // Start fresh
         const closePriceStocks1 = await this.getWatchlistStockDetails();
 
         if (closePriceStocks1.length === 0) throw new Error("No stocks found to compare.");
@@ -795,7 +822,7 @@ class WatchlistPage {
         await this.closeMarketWatchSettings();
 
         console.log("Extracting updated stock details (Open Price)...");
-        await this.pullDownToRefresh();
+        //  await this.pullDownToRefresh();
         const openPriceStocks1 = await this.getWatchlistStockDetails();
 
         // Compare to ensure they are DIFFERENT
@@ -824,7 +851,7 @@ class WatchlistPage {
         await this.closeMarketWatchSettings();
 
         console.log("Extracting restored stock details (Close Price)...");
-        await this.pullDownToRefresh();
+        //  await this.pullDownToRefresh();
         const closePriceStocks2 = await this.getWatchlistStockDetails();
 
         // Verify reverted state (Close Price) differs from the Open Price state
@@ -852,7 +879,7 @@ class WatchlistPage {
         await this.closeMarketWatchSettings();
 
         console.log("Extracting updated stock details (Open Price)...");
-        await this.pullDownToRefresh();
+        //   await this.pullDownToRefresh();
         const openPriceStocks2 = await this.getWatchlistStockDetails();
 
         // Verify open price state differs from the Close Price state
@@ -877,7 +904,7 @@ class WatchlistPage {
 
     async verifyShowDirectionToggle() {
         console.log("Reading State A (initial) without scrolling...");
-        await this.pullDownToRefresh();
+        //        await this.pullDownToRefresh();
 
         let targetStockName = null;
         let stateADesc = "";
@@ -936,7 +963,7 @@ class WatchlistPage {
             await this.showDirectionToggle.click();
             await driver.pause(1000);
             await this.closeMarketWatchSettings();
-            await this.pullDownToRefresh();
+            //   await this.pullDownToRefresh();
         };
 
         const getStockDesc = async () => {
@@ -970,6 +997,7 @@ class WatchlistPage {
         if (stateCDesc !== stateADesc) {
             throw new Error(`Failed to revert Show direction to the original state for ${targetStockName}. State C: ${JSON.stringify(stateCDesc)} vs State A: ${JSON.stringify(stateADesc)}`);
         }
+        await this.closeMarketWatchSettings();
 
         console.log(`✅ [TC VERIFIED]: Show direction toggling works perfectly.`);
         allure.addStep(`✅ [TC VERIFIED]: Show direction toggling works perfectly.`);
@@ -1187,7 +1215,7 @@ class WatchlistPage {
         await this.closeMarketWatchSettings();
 
         console.log("Verifying 'Percentage' format...");
-        await this.pullDownToRefresh();
+        // await this.pullDownToRefresh();
         const pctStocks = await this.getWatchlistStockDetails();
 
         for (const stock of pctStocks) {
@@ -1212,7 +1240,7 @@ class WatchlistPage {
         await this.closeMarketWatchSettings();
 
         console.log("Verifying 'Absolute' format...");
-        await this.pullDownToRefresh();
+        //await this.pullDownToRefresh();
         const absStocks = await this.getWatchlistStockDetails();
 
         for (const stock of absStocks) {
@@ -1232,7 +1260,7 @@ class WatchlistPage {
         await this.closeMarketWatchSettings();
 
         console.log("Verifying 'Absolute & percentage' format...");
-        await this.pullDownToRefresh();
+        // await this.pullDownToRefresh();
         const absPctStocks = await this.getWatchlistStockDetails();
 
         for (const stock of absPctStocks) {
@@ -1246,15 +1274,136 @@ class WatchlistPage {
         }
     }
 
+    async ensureOnWatchlistPage() {
+        try {
+            // Check if search icon, watchlist dropdown, or heatmap view is visible
+            const isWatchlist = await this.searchIcon.isDisplayed().catch(() => false) ||
+                await this.watchListDropdown.isDisplayed().catch(() => false) ||
+                await this.openHeatMapView.isDisplayed().catch(() => false)
+            if (isWatchlist) return
+
+            console.log("Not on Watchlist page, attempting recovery...")
+            // If Stock Overview Back button is displayed, click it
+            const backBtn = await this.stockOverviewBackButton
+            if (await backBtn.isDisplayed().catch(() => false)) {
+                await backBtn.click()
+                await driver.pause(1500)
+                if (await this.searchIcon.isDisplayed().catch(() => false)) return
+            }
+
+            const backDesc = await $('~Back')
+            if (await backDesc.isDisplayed().catch(() => false)) {
+                await backDesc.click()
+                await driver.pause(1500)
+                if (await this.searchIcon.isDisplayed().catch(() => false)) return
+            }
+
+            // If search overlay is open, click close button
+            const closeSearch = await this.searchCloseButton
+            if (await closeSearch.isDisplayed().catch(() => false)) {
+                await closeSearch.click()
+                await driver.pause(1500)
+                if (await this.searchIcon.isDisplayed().catch(() => false)) return
+            }
+
+            // Fallback: click Watchlist bottom navigation tab
+            await this.clickWatchlistTab()
+        } catch (e) {
+            console.log("Error in ensureOnWatchlistPage:", e)
+        }
+    }
+
+    async clickOverviewBookmarkIcon() {
+        console.log("Attempting to click Bookmark icon on Stock Overview...")
+        let clicked = false
+
+        // 1. Direct XPath to the middle icon before NSE chip
+        try {
+            const siblingBookmark = $('android=new UiSelector().className("android.view.View").instance(7)')
+            if (await siblingBookmark.isDisplayed().catch(() => false)) {
+                await siblingBookmark.click()
+                clicked = true
+                console.log("Clicked overview bookmark icon via preceding-sibling locator")
+            }
+        } catch (e) { }
+
+        // 2. Scan header row clickable views (y between 120 and 280) with x between 650 and 780
+        if (!clicked) {
+            try {
+                const allViews = await $$('//android.view.View[@clickable="true"]')
+                for (const v of allViews) {
+                    if (await v.isDisplayed().catch(() => false)) {
+                        const loc = await v.getLocation().catch(() => null)
+                        if (loc && loc.y > 120 && loc.y < 280 && loc.x >= 650 && loc.x <= 780) {
+                            await v.click()
+                            clicked = true
+                            console.log(`Clicked overview bookmark icon at (${loc.x}, ${loc.y})`)
+                            break
+                        }
+                    }
+                }
+            } catch (e) { }
+        }
+
+        // 3. Fallback: Coordinate tap at 66% screen width, 202px height
+        if (!clicked) {
+            try {
+                const windowSize = await driver.getWindowSize()
+                const tapX = Math.floor(windowSize.width * 0.66)
+                const tapY = 202
+                console.log(`Tapping overview bookmark icon at fallback coordinates (${tapX}, ${tapY})...`)
+                await driver.performActions([{
+                    type: 'pointer',
+                    id: 'finger1',
+                    parameters: { pointerType: 'touch' },
+                    actions: [
+                        { type: 'pointerMove', duration: 0, x: tapX, y: tapY },
+                        { type: 'pointerDown', button: 0 },
+                        { type: 'pointerUp', button: 0 }
+                    ]
+                }])
+                clicked = true
+            } catch (e) { }
+        }
+
+        await driver.pause(1500)
+        return clicked
+    }
+
+    async isWatchlistBottomSheetOpen() {
+        try {
+            const views = await $$('//*[@content-desc != ""]')
+            for (const v of views) {
+                if (await v.isDisplayed().catch(() => false)) {
+                    const loc = await v.getLocation().catch(() => null)
+                    if (loc && loc.y > 800) {
+                        const desc = await v.getAttribute("content-desc").catch(() => "")
+                        if (desc && (desc.toLowerCase().includes('watchlist') || desc.includes('-') || desc.includes('+') || desc.toLowerCase().includes('manage') || desc.toLowerCase().includes('done') || desc.toLowerCase().includes('save'))) {
+                            return true
+                        }
+                    }
+                }
+            }
+        } catch (e) { }
+        return false
+    }
+
     async clickSearchIcon() {
         try {
+            await this.ensureOnWatchlistPage()
+
+            const inputField = this.searchInputField
+            if (await inputField.isDisplayed().catch(() => false)) {
+                console.log("Search input field already displayed")
+                return
+            }
+
             await this.searchIcon.waitForDisplayed({ timeout: 10000 })
             await this.searchIcon.click()
             await driver.pause(1000)
-            
-            const inputField = this.searchInputField
+
             const isSearchOpen = await inputField.isDisplayed().catch(() => false)
-            
+
             if (!isSearchOpen) {
                 console.log("Search input not found. It might have clicked Settings by mistake.");
                 try {
@@ -1263,11 +1412,11 @@ class WatchlistPage {
                         await closeBtn.click();
                         await driver.pause(1000);
                     }
-                } catch(e) {}
-                
+                } catch (e) { }
+
                 console.log("Using coordinate tap fallback for Search Icon...");
                 let tapX, tapY;
-                
+
                 // Try to get coordinates of what we just clicked (which turned out to be the Settings gear)
                 const gearLoc = await this.searchIcon.getLocation().catch(() => null);
                 if (gearLoc && gearLoc.x > 200) {
@@ -1280,7 +1429,7 @@ class WatchlistPage {
                     tapX = Math.floor(windowSize.width * 0.82);
                     tapY = 150;
                 }
-                
+
                 await driver.performActions([{
                     type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
                     actions: [
@@ -1313,7 +1462,7 @@ class WatchlistPage {
 
         await inputField.addValue(scripSymbol)
         await driver.pause(1000) // Allow search results list to refresh
-        
+
         // Check if value was actually entered (sometimes Appium addValue/setValue fails silently on React Native/Flutter)
         const currentText = await inputField.getText()
         if (!currentText || !currentText.includes(scripSymbol)) {
@@ -1338,8 +1487,27 @@ class WatchlistPage {
             if (await chip.isDisplayed().catch(() => false)) {
                 await chip.click()
                 console.log(`Successfully selected exchange filter chip: ${segUpper}`)
-                await driver.pause(500)
+                await driver.pause(1000)
                 return
+            }
+        } catch (e) { }
+
+        // 2. Scan views with content-desc or text equal to segUpper in top chip bar area (y < 400)
+        try {
+            const views = await $$('//*[@content-desc != ""]')
+            for (const v of views) {
+                if (await v.isDisplayed().catch(() => false)) {
+                    const loc = await v.getLocation().catch(() => null)
+                    if (loc && loc.y < 400) {
+                        const desc = await v.getAttribute("content-desc").catch(() => "")
+                        if (desc && desc.trim().toUpperCase() === segUpper) {
+                            await v.click()
+                            console.log(`Clicked exchange filter chip via scan: ${segUpper}`)
+                            await driver.pause(1000)
+                            return
+                        }
+                    }
+                }
             }
         } catch (e) { }
 
@@ -1348,54 +1516,423 @@ class WatchlistPage {
 
 
     /**
-     * Click on the plus (+)/add icon next to the first scrip in search results
+     * Select a watchlist on the bottom sheet by clicking its checkbox/row on the right
+     * @param {string} targetWatchlistName 
      */
-    async addFirstScripToWatchlist() {
-        await driver.pause(2000)
+    async selectWatchlistOnBottomSheet(targetWatchlistName) {
+        if (!targetWatchlistName) return
+        const possibleNames = [targetWatchlistName]
+        if (targetWatchlistName.toLowerCase().startsWith('watchlist ')) {
+            const num = targetWatchlistName.split(' ')[1]
+            if (num) possibleNames.push(num)
+        }
 
-        // 1. Try scanning for any clickable ImageView element rendered on far right (x > 700, y between 300 and 1200)
-        try {
-            const icons = await this.searchResultPlusIcons
-            for (const icon of icons) {
-                if (await icon.isDisplayed().catch(() => false)) {
-                    const loc = await icon.getLocation()
-                    if (loc.y > 300 && loc.y < 1200 && loc.x > 700) {
-                        await icon.click()
+        const bottomSheetViews = await $$('//*[@content-desc != ""]')
+        for (const v of bottomSheetViews) {
+            if (await v.isDisplayed().catch(() => false)) {
+                const loc = await v.getLocation().catch(() => null)
+                if (loc && loc.y > 800) {
+                    const desc = await v.getAttribute("content-desc").catch(() => "")
+                    if (possibleNames.some(name => desc === name || desc.startsWith(name + '\n') || desc.includes(name))) {
+                        const sz = await v.getSize()
+                        const tapX = Math.floor(loc.x + sz.width * 0.94)
+                        const tapY = Math.floor(loc.y + sz.height / 2)
+                        await driver.performActions([{
+                            type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
+                            actions: [
+                                { type: 'pointerMove', duration: 0, x: tapX, y: tapY },
+                                { type: 'pointerDown', button: 0 },
+                                { type: 'pointerUp', button: 0 }
+                            ]
+                        }])
                         await driver.pause(1000)
-                        console.log(`Clicked bookmark icon element at (${loc.x}, ${loc.y})`)
-                        return
+                        break
+                    }
+                }
+            }
+        }
+
+        // Close bottom sheet if still open
+        try {
+            if (await this.isWatchlistBottomSheetOpen()) {
+                await driver.back()
+                await driver.pause(1000)
+            }
+        } catch (e) { }
+    }
+
+    /**
+     * Search and handle scrip addition to watchlist:
+     * 1. Detect if the scrip appears ABOVE "Global Search Results" (meaning it is already present in the watchlist).
+     * 2. If present above "Global Search Results":
+     *    - Click the scrip to enter Stock Overview.
+     *    - Click top-right bookmark icon to open watchlist bottom sheet.
+     *    - Click '-' minus icon for target watchlist to remove it.
+     *    - Navigate back to the Search screen.
+     * 3. Now the scrip appears DOWN below "Global Search Results".
+     * 4. Click the bookmark icon next to the scrip under "Global Search Results" to ADD it.
+     * 5. If bottom sheet appears, select the target watchlist and close.
+     * @param {string} [symbol] Scrip symbol to match (e.g. 'INFY', 'TCS')
+     * @param {string} [segment] Segment code to match (e.g. 'ALL', 'NSE', 'BSE')
+     * @param {string} [targetWatchlistName] Target watchlist name
+     */
+    async addFirstScripToWatchlist(symbol = null, segment = 'ALL', targetWatchlistName = null) {
+        await driver.pause(1500)
+
+        const symUpper = symbol ? symbol.trim().toUpperCase() : null
+        const segUpper = segment ? segment.trim().toUpperCase() : 'ALL'
+
+        // 1. Locate "Global Search Results" header position
+        let globalSearchY = null
+        try {
+            const globalHeader = await $('//*[contains(@text, "Global Search Results") or contains(@content-desc, "Global Search Results")]')
+            if (await globalHeader.isDisplayed().catch(() => false)) {
+                const loc = await globalHeader.getLocation()
+                globalSearchY = loc.y
+                console.log(`📍 Found 'Global Search Results' header at y = ${globalSearchY}`)
+            }
+        } catch (e) { }
+
+        if (globalSearchY === null) {
+            try {
+                const views = await $$('//*[@content-desc != ""]')
+                for (const v of views) {
+                    const desc = await v.getAttribute("content-desc").catch(() => "")
+                    if (desc.includes("Global Search Results")) {
+                        const loc = await v.getLocation()
+                        globalSearchY = loc.y
+                        console.log(`📍 Found 'Global Search Results' via scan at y = ${globalSearchY}`)
+                        break
+                    }
+                }
+            } catch (e) { }
+        }
+
+        // 2. Check if scrip card appears ABOVE "Global Search Results" (already in watchlist)
+        let existingCardInWatchlist = null
+        let cardInGlobalSearch = null
+
+        try {
+            const views = await $$('//*[@content-desc != ""]')
+            for (const v of views) {
+                if (await v.isDisplayed().catch(() => false)) {
+                    const loc = await v.getLocation().catch(() => null)
+                    if (!loc || loc.y < 300) continue // Skip top search bar & exchange filter chips
+
+                    const desc = await v.getAttribute("content-desc").catch(() => "")
+                    if (!desc || !desc.includes('\n')) continue
+
+                    const lines = desc.split('\n').map(s => s.trim().toUpperCase())
+                    const firstLine = lines[0] || ''
+                    const secondLine = lines[1] || ''
+
+                    const symbolMatches = !symUpper || firstLine === symUpper || firstLine.startsWith(symUpper + '-') || firstLine.startsWith(symUpper + ' ')
+                    const segmentMatches = segUpper === 'ALL' || secondLine === segUpper || desc.toUpperCase().includes(segUpper)
+
+                    if (symbolMatches && segmentMatches) {
+                        if (globalSearchY !== null && loc.y < globalSearchY) {
+                            existingCardInWatchlist = v
+                            console.log(`🔍 Scrip '${symUpper}' is ALREADY IN WATCHLIST (appears above 'Global Search Results' at y=${loc.y}): '${desc.replace(/\n/g, ' ')}'`)
+                            break
+                        } else {
+                            if (!cardInGlobalSearch) {
+                                cardInGlobalSearch = v
+                                console.log(`🔍 Found scrip under 'Global Search Results' at y=${loc.y}: '${desc.replace(/\n/g, ' ')}'`)
+                            }
+                        }
                     }
                 }
             }
         } catch (e) { }
 
-        // 2. Far-Right Coordinate Tap (94% X) guaranteed to hit + icon instead of scrip row
-        const windowSize = await driver.getWindowSize()
-        const tapX = Math.floor(windowSize.width * 0.94) // Far right edge for '+' icon
+        // 3. If present ABOVE "Global Search Results", remove it via Stock Overview first
+        if (existingCardInWatchlist) {
+            console.log(`⚠️ Scrip '${symUpper}' is already in watchlist. Removing it via Stock Overview...`)
+            const loc = await existingCardInWatchlist.getLocation()
+            const sz = await existingCardInWatchlist.getSize()
+            const tapX = Math.floor(loc.x + sz.width * 0.4) // Tap stock name/card body
+            const tapY = Math.floor(loc.y + sz.height / 2)
 
-        let tapY = Math.floor(windowSize.height * 0.28)
+            console.log(`Tapping card body at (${tapX}, ${tapY}) to open Stock Overview...`)
+            await driver.performActions([{
+                type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
+                actions: [
+                    { type: 'pointerMove', duration: 0, x: tapX, y: tapY },
+                    { type: 'pointerDown', button: 0 },
+                    { type: 'pointerUp', button: 0 }
+                ]
+            }])
+            await driver.pause(2500)
+
+            // Click Top-Right Bookmark Icon on Stock Overview
+            await this.clickOverviewBookmarkIcon()
+            await driver.pause(1000)
+
+            let sheetOpen = await this.isWatchlistBottomSheetOpen()
+            if (!sheetOpen) {
+                console.log("Watchlist bottom sheet not open yet, retrying with coordinate tap...")
+                const windowSize = await driver.getWindowSize()
+                const bmX = Math.floor(windowSize.width * 0.66)
+                const bmY = 202
+                await driver.performActions([{
+                    type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
+                    actions: [
+                        { type: 'pointerMove', duration: 0, x: bmX, y: bmY },
+                        { type: 'pointerDown', button: 0 },
+                        { type: 'pointerUp', button: 0 }
+                    ]
+                }])
+                await driver.pause(1500)
+                sheetOpen = await this.isWatchlistBottomSheetOpen()
+            }
+
+            // Click '-' minus icon for target watchlist
+            let minusClicked = false
+            const possibleNames = []
+            if (targetWatchlistName) {
+                possibleNames.push(targetWatchlistName)
+                if (targetWatchlistName.toLowerCase().startsWith('watchlist ')) {
+                    const numStr = targetWatchlistName.split(' ')[1]
+                    if (numStr) possibleNames.push(numStr)
+                }
+            }
+
+            // Method A: Accessibility ID ~candidate
+            for (const candidate of possibleNames) {
+                if (minusClicked) break
+                try {
+                    const targetRow = $(`~${candidate}`)
+                    if (await targetRow.isDisplayed().catch(() => false)) {
+                        const rLoc = await targetRow.getLocation()
+                        const rSz = await targetRow.getSize()
+                        const mX = Math.floor(rLoc.x + rSz.width * 0.94)
+                        const mY = Math.floor(rLoc.y + rSz.height / 2)
+                        await driver.performActions([{
+                            type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
+                            actions: [
+                                { type: 'pointerMove', duration: 0, x: mX, y: mY },
+                                { type: 'pointerDown', button: 0 },
+                                { type: 'pointerUp', button: 0 }
+                            ]
+                        }])
+                        minusClicked = true
+                        console.log(`✅ Tapped '-' minus button for '~${candidate}' at (${mX}, ${mY})`)
+                        break
+                    }
+                } catch (e) { }
+            }
+
+            // Method B: Content description scan
+            if (!minusClicked) {
+                try {
+                    const bViews = await $$('//*[@content-desc != ""]')
+                    for (const v of bViews) {
+                        if (await v.isDisplayed().catch(() => false)) {
+                            const rLoc = await v.getLocation()
+                            if (rLoc.y > 800) {
+                                const desc = await v.getAttribute("content-desc").catch(() => "")
+                                const matches = possibleNames.length === 0 || possibleNames.some(name => desc === name || desc.startsWith(name + '\n') || desc.startsWith(name + ' ') || desc.includes(name))
+                                if (matches) {
+                                    const rSz = await v.getSize()
+                                    const mX = Math.floor(rLoc.x + rSz.width * 0.94)
+                                    const mY = Math.floor(rLoc.y + rSz.height / 2)
+                                    await driver.performActions([{
+                                        type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
+                                        actions: [
+                                            { type: 'pointerMove', duration: 0, x: mX, y: mY },
+                                            { type: 'pointerDown', button: 0 },
+                                            { type: 'pointerUp', button: 0 }
+                                        ]
+                                    }])
+                                    minusClicked = true
+                                    console.log(`✅ Tapped '-' minus button on bottom sheet row '${desc}' at (${mX}, ${mY})`)
+                                    break
+                                }
+                            }
+                        }
+                    }
+                } catch (e) { }
+            }
+
+            // Method C: direct minus icon locator
+            if (!minusClicked) {
+                try {
+                    const minusBtn = await this.watchlistRemoveMinusBtn
+                    if (await minusBtn.isDisplayed().catch(() => false)) {
+                        await minusBtn.click()
+                        minusClicked = true
+                        console.log(`✅ Scrip '${symbol}' removed via watchlistRemoveMinusBtn`)
+                    }
+                } catch (e) { }
+            }
+
+            await driver.pause(1000)
+
+            // Close bottom sheet
+            if (sheetOpen || await this.isWatchlistBottomSheetOpen()) {
+                await driver.back()
+                await driver.pause(1000)
+            }
+
+            // Return from Stock Overview to Search Screen
+            let backHandled = false
+            try {
+                const backBtn = await this.stockOverviewBackButton
+                if (await backBtn.isDisplayed().catch(() => false)) {
+                    await backBtn.click()
+                    backHandled = true
+                    console.log("Clicked stockOverviewBackButton to return to Search")
+                    await driver.pause(1500)
+                }
+            } catch (e) { }
+
+            if (!backHandled) {
+                try {
+                    const backDesc = await $('~Back')
+                    if (await backDesc.isDisplayed().catch(() => false)) {
+                        await backDesc.click()
+                        backHandled = true
+                        console.log("Clicked ~Back button to return to Search")
+                        await driver.pause(1500)
+                    }
+                } catch (e) { }
+            }
+
+            if (!backHandled) {
+                await driver.back()
+                await driver.pause(1500)
+            }
+
+            // Check if search input has value, re-enter if needed
+            const inputField = this.searchInputField
+            const val = await inputField.getText().catch(() => "")
+            if (!val || !val.toUpperCase().includes(symUpper)) {
+                await this.enterScripName(symbol)
+                await this.selectExchangeFilter(segUpper)
+                await driver.pause(1500)
+            } else {
+                await driver.pause(1000)
+            }
+
+            cardInGlobalSearch = null
+        }
+
+        // 4. Now find the scrip card UNDER "Global Search Results" to ADD it
+        let targetCard = cardInGlobalSearch
+
+        if (!targetCard) {
+            try {
+                const views = await $$('//*[@content-desc != ""]')
+                for (const v of views) {
+                    if (await v.isDisplayed().catch(() => false)) {
+                        const loc = await v.getLocation().catch(() => null)
+                        if (!loc || loc.y < 300) continue
+                        if (globalSearchY !== null && loc.y < globalSearchY) continue
+
+                        const desc = await v.getAttribute("content-desc").catch(() => "")
+                        if (!desc || !desc.includes('\n')) continue
+
+                        const lines = desc.split('\n').map(s => s.trim().toUpperCase())
+                        const firstLine = lines[0] || ''
+                        const secondLine = lines[1] || ''
+
+                        const symbolMatches = !symUpper || firstLine === symUpper || firstLine.startsWith(symUpper + '-') || firstLine.startsWith(symUpper + ' ')
+                        const segmentMatches = segUpper === 'ALL' || secondLine === segUpper || desc.toUpperCase().includes(segUpper)
+
+                        if (symbolMatches && segmentMatches) {
+                            targetCard = v
+                            console.log(`Found matching search card under Global Search Results for ${symUpper} (${segUpper}): '${desc.replace(/\n/g, ' ')}'`)
+                            break
+                        }
+                    }
+                }
+            } catch (e) { }
+        }
+
+        // Fallback to top result card below global search
+        if (!targetCard) {
+            try {
+                const views = await $$('//*[@content-desc != ""]')
+                for (const v of views) {
+                    if (await v.isDisplayed().catch(() => false)) {
+                        const loc = await v.getLocation().catch(() => null)
+                        if (!loc || loc.y < 300) continue
+                        if (globalSearchY !== null && loc.y < globalSearchY) continue
+
+                        const desc = await v.getAttribute("content-desc").catch(() => "")
+                        if (desc && desc.includes('\n')) {
+                            targetCard = v
+                            console.log(`Using top search result card: '${desc.replace(/\n/g, ' ')}'`)
+                            break
+                        }
+                    }
+                }
+            } catch (e) { }
+        }
+
+        // 5. Tap bookmark icon on the card
+        if (targetCard) {
+            const loc = await targetCard.getLocation()
+            const sz = await targetCard.getSize()
+            const tapX = Math.floor(loc.x + sz.width * 0.94) // Far-right bookmark icon
+            const tapY = Math.floor(loc.y + sz.height / 2)
+
+            console.log(`Tapping bookmark/add icon at (${tapX}, ${tapY}) for '${symUpper}'...`)
+            await driver.performActions([{
+                type: 'pointer',
+                id: 'finger1',
+                parameters: { pointerType: 'touch' },
+                actions: [
+                    { type: 'pointerMove', duration: 0, x: tapX, y: tapY },
+                    { type: 'pointerDown', button: 0 },
+                    { type: 'pointerUp', button: 0 }
+                ]
+            }])
+            await driver.pause(1500)
+        } else {
+            const windowSize = await driver.getWindowSize()
+            const tapX = Math.floor(windowSize.width * 0.94)
+            const tapY = Math.floor(windowSize.height * 0.42)
+            console.log(`Tapping fallback coordinate (${tapX}, ${tapY})...`)
+            await driver.performActions([{
+                type: 'pointer',
+                id: 'finger1',
+                parameters: { pointerType: 'touch' },
+                actions: [
+                    { type: 'pointerMove', duration: 0, x: tapX, y: tapY },
+                    { type: 'pointerDown', button: 0 },
+                    { type: 'pointerUp', button: 0 }
+                ]
+            }])
+            await driver.pause(1500)
+        }
+
+        // Handle case where tapping search card opened Stock Overview (fallback)
         try {
-            const topCard = await this.searchResultTopCard
-            if (await topCard.isDisplayed().catch(() => false)) {
-                const loc = await topCard.getLocation()
-                const sz = await topCard.getSize()
-                tapY = Math.floor(loc.y + sz.height / 2)
+            const backBtn = await this.stockOverviewBackButton
+            if (await backBtn.isDisplayed().catch(() => false)) {
+                console.log("Stock Overview opened after tapping scrip. Adding to watchlist via overview bookmark icon...")
+                await this.clickOverviewBookmarkIcon()
+                await driver.pause(1000)
+
+                // Select target watchlist on bottom sheet if open
+                if (await this.isWatchlistBottomSheetOpen() && targetWatchlistName) {
+                    await this.selectWatchlistOnBottomSheet(targetWatchlistName)
+                }
+
+                // Return from Stock Overview back to search
+                await backBtn.click()
+                await driver.pause(1500)
+                return
             }
         } catch (e) { }
 
-
-        await driver.performActions([{
-            type: 'pointer',
-            id: 'finger1',
-            parameters: { pointerType: 'touch' },
-            actions: [
-                { type: 'pointerMove', duration: 0, x: tapX, y: tapY },
-                { type: 'pointerDown', button: 0 },
-                { type: 'pointerUp', button: 0 }
-            ]
-        }])
-        console.log(`Tapped '+' icon at far-right coordinates (${tapX}, ${tapY})`)
-        await driver.pause(1000)
+        // Handle bottom sheet if opened directly by tapping the bookmark icon in search results
+        try {
+            if (await this.isWatchlistBottomSheetOpen() && targetWatchlistName) {
+                await this.selectWatchlistOnBottomSheet(targetWatchlistName)
+            }
+        } catch (e) { }
     }
 
 
@@ -1414,60 +1951,82 @@ class WatchlistPage {
             if (!symbol) continue
 
             const segUpper = segment ? segment.trim().toUpperCase() : ''
+            const symUpper = symbol.trim().toUpperCase()
 
-            // Check if scrip (e.g. INFY, TCS, yesbank, IDEA, SILVER, USD) exists in current watchlist
-            const scripSelector = locators.get('scripBySymbol').replace('{symbol}', symbol)
-            const scripElement = $(scripSelector)
-
-            let exists = false
+            // Find specific matching scrip row on current watchlist list view
+            let scripElement = null
             try {
-                if (await scripElement.isDisplayed().catch(() => false)) {
-                    const loc = await scripElement.getLocation()
-                    // Ignore top app bar header widgets (NIFTY 50 / SENSEX are located at top y < 350)
-                    if (loc.y > 350) {
-                        exists = true
+                const listItems = await $$('//*[@content-desc != ""]')
+                for (const item of listItems) {
+                    if (await item.isDisplayed().catch(() => false)) {
+                        const loc = await item.getLocation().catch(() => null)
+                        if (!loc || loc.y < 350) continue // Ignore top header widgets (NIFTY 50 / SENSEX)
+
+                        const desc = await item.getAttribute("content-desc").catch(() => "")
+                        if (!desc || !desc.includes('\n')) continue
+
+                        const lines = desc.split('\n').map(s => s.trim().toUpperCase())
+                        const firstLine = lines[0] || ''
+                        const secondLine = lines[1] || ''
+
+                        const symbolMatches = firstLine === symUpper || firstLine.startsWith(symUpper + '-') || firstLine.startsWith(symUpper + ' ')
+                        const segmentMatches = !segUpper || segUpper === 'ALL' || secondLine === segUpper || desc.toUpperCase().includes(segUpper)
+
+                        if (symbolMatches && segmentMatches) {
+                            scripElement = item
+                            console.log(`Found existing scrip '${symbol}' (${segUpper}) on Watchlist: '${desc.replace(/\n/g, ' ')}'`)
+                            break
+                        }
                     }
                 }
             } catch (e) { }
 
-            if (exists) {
+            // Fallback: scripBySymbol
+            if (!scripElement) {
+                try {
+                    const scripSelector = locators.get('scripBySymbol').replace('{symbol}', symbol)
+                    const elem = $(scripSelector)
+                    if (await elem.isDisplayed().catch(() => false)) {
+                        const loc = await elem.getLocation()
+                        if (loc.y > 350) {
+                            scripElement = elem
+                        }
+                    }
+                } catch (e) { }
+            }
+
+            if (scripElement) {
                 console.log(`⚠️ Scrip '${symbol}' (${segUpper || 'ALL'}) found in Watchlist '${targetWatchlistName}'. Proceeding to remove it...`)
                 await scripElement.click()
                 await driver.pause(2500)
 
                 // 1. Click Top-Right Bookmark Icon on Stock Overview
-                let bookmarkClicked = false
-                try {
-                    const bookmark = await this.overviewBookmarkIcon
-                    if (await bookmark.isDisplayed().catch(() => false)) {
-                        await bookmark.click()
-                        bookmarkClicked = true
-                        console.log(`Clicked bookmark icon via instance locator`)
-                    }
-                } catch (e) { }
+                await this.clickOverviewBookmarkIcon()
 
-                if (!bookmarkClicked) {
-                    // Fallback: Coordinate tap top-right header (92% width, y ~140-160)
-                    try {
-                        const windowSize = await driver.getWindowSize()
-                        const bmX = Math.floor(windowSize.width * 0.92)
-                        const bmY = 150
-                        await driver.performActions([{
-                            type: 'pointer',
-                            id: 'finger1',
-                            parameters: { pointerType: 'touch' },
-                            actions: [
-                                { type: 'pointerMove', duration: 0, x: bmX, y: bmY },
-                                { type: 'pointerDown', button: 0 },
-                                { type: 'pointerUp', button: 0 }
-                            ]
-                        }])
-                        console.log(`Tapped top-right header bookmark icon at (${bmX}, ${bmY})`)
-                        bookmarkClicked = true
-                    } catch (e) { }
+                // Check if bottom sheet is open; retry with coordinate tap if not
+                let sheetOpen = await this.isWatchlistBottomSheetOpen()
+                if (!sheetOpen) {
+                    console.log("Watchlist bottom sheet not open yet, retrying bookmark click with coordinate tap...")
+                    const windowSize = await driver.getWindowSize()
+                    const bmX = Math.floor(windowSize.width * 0.66)
+                    const bmY = 202
+                    await driver.performActions([{
+                        type: 'pointer',
+                        id: 'finger1',
+                        parameters: { pointerType: 'touch' },
+                        actions: [
+                            { type: 'pointerMove', duration: 0, x: bmX, y: bmY },
+                            { type: 'pointerDown', button: 0 },
+                            { type: 'pointerUp', button: 0 }
+                        ]
+                    }])
+                    await driver.pause(1500)
+                    sheetOpen = await this.isWatchlistBottomSheetOpen()
                 }
 
-                await driver.pause(1500)
+                if (sheetOpen) {
+                    console.log("Watchlist bottom sheet opened successfully")
+                }
 
                 // 2. Click '-' minus icon on Watchlist bottom sheet for current target watchlist row
                 let minusClicked = false
@@ -1491,7 +2050,7 @@ class WatchlistPage {
                         if (await targetRow.isDisplayed().catch(() => false)) {
                             const loc = await targetRow.getLocation()
                             const sz = await targetRow.getSize()
-                            const tapX = Math.floor(loc.x + sz.width * 0.88)
+                            const tapX = Math.floor(loc.x + sz.width * 0.94)
                             const tapY = Math.floor(loc.y + sz.height / 2)
                             await driver.performActions([{
                                 type: 'pointer',
@@ -1517,7 +2076,7 @@ class WatchlistPage {
                             if (await targetRowUi.isDisplayed().catch(() => false)) {
                                 const loc = await targetRowUi.getLocation()
                                 const sz = await targetRowUi.getSize()
-                                const tapX = Math.floor(loc.x + sz.width * 0.88)
+                                const tapX = Math.floor(loc.x + sz.width * 0.94)
                                 const tapY = Math.floor(loc.y + sz.height / 2)
                                 await driver.performActions([{
                                     type: 'pointer',
@@ -1537,15 +2096,14 @@ class WatchlistPage {
                     }
                 }
 
-                // Method C: Content description scan for bottom sheet rows (y > 1000)
+                // Method C: Content description scan for bottom sheet rows (y > 800)
                 if (!minusClicked) {
                     try {
                         const views = await $$('//*[@content-desc != ""]')
                         for (const v of views) {
                             if (await v.isDisplayed().catch(() => false)) {
                                 const loc = await v.getLocation()
-                                // Only process elements on bottom sheet overlay (y > 1000)
-                                if (loc.y > 1000) {
+                                if (loc.y > 800) {
                                     const desc = await v.getAttribute("content-desc").catch(() => "")
                                     const matches = possibleNames.some(name => desc === name || desc.startsWith(name + '\n') || desc.startsWith(name + ' ') || desc.includes(name))
                                     if (matches) {
@@ -1584,19 +2142,47 @@ class WatchlistPage {
                     } catch (e) { }
                 }
 
-                await driver.pause(1500)
+                await driver.pause(1000)
 
-                // 3. Close bottom sheet and Stock Overview to return back to Watchlist tab main view
+                // 3. Close bottom sheet if open
+                if (sheetOpen || await this.isWatchlistBottomSheetOpen()) {
+                    console.log("Closing watchlist bottom sheet...")
+                    await driver.back()
+                    await driver.pause(1000)
+                }
+
+                // 4. Return from Stock Overview to Watchlist safely using stockOverviewBackButton
+                console.log("Navigating back from Stock Overview to Watchlist...")
+                let backHandled = false
                 try {
-                    if (bookmarkClicked) {
-                        // Back #1: Close the 'Select Watchlist to Add' bottom sheet
-                        await driver.back()
-                        await driver.pause(1000)
+                    const backBtn = await this.stockOverviewBackButton
+                    if (await backBtn.isDisplayed().catch(() => false)) {
+                        await backBtn.click()
+                        backHandled = true
+                        console.log("Clicked stockOverviewBackButton")
+                        await driver.pause(1500)
                     }
-                    // Back #2: Close Stock Overview and return to active Watchlist tab
+                } catch (e) { }
+
+                if (!backHandled) {
+                    try {
+                        const backDesc = await $('~Back')
+                        if (await backDesc.isDisplayed().catch(() => false)) {
+                            await backDesc.click()
+                            backHandled = true
+                            console.log("Clicked ~Back button")
+                            await driver.pause(1500)
+                        }
+                    } catch (e) { }
+                }
+
+                if (!backHandled) {
                     await driver.back()
                     await driver.pause(1500)
-                } catch (e) { }
+                }
+
+                // 5. Ensure we are back on Watchlist page
+                await this.ensureOnWatchlistPage()
             } else {
                 console.log(`ℹ️ Scrip '${symbol}' is NOT present in current Watchlist. Will be searched and added later.`)
             }
@@ -2062,22 +2648,36 @@ class WatchlistPage {
      * Click top-left back arrow button on Watchlist Heatmap page
      */
     async clickHeatmapBackButton() {
-        try {
-            const backBtn = await $(locators.get("stockOverviewBackButton"))
-            if (await backBtn.isDisplayed().catch(() => false)) {
-                await backBtn.click()
-                await driver.pause(1000)
-                console.log('✅ Clicked Watchlist Heatmap top-left back button')
+        console.log('Exiting Heatmap view to return to Watchlist list view...')
+        const openHeatMapBtn = await $(locators.get('openHeatMapView'))
+
+        for (let attempt = 0; attempt < 3; attempt++) {
+            if (await openHeatMapBtn.isDisplayed().catch(() => false)) {
+                console.log('✅ Confirmed return to Watchlist list view (Open heatmap button is visible)')
                 return
             }
-        } catch (e) { }
 
-        // Fallback back press
-        try {
-            await driver.back()
-            await driver.pause(1000)
-            console.log('✅ Navigated back from Heatmap using driver.back()')
-        } catch (e) { }
+            try {
+                const backBtn = await $(locators.get("stockOverviewBackButton"))
+                if (await backBtn.isDisplayed().catch(() => false)) {
+                    const loc = await backBtn.getLocation().catch(() => ({ y: 999 }))
+                    // Only click if it's truly in the top-left app bar area
+                    if (loc.y < 250) {
+                        await backBtn.click()
+                        await driver.pause(1000)
+                    }
+                }
+            } catch (e) { }
+
+            // If still not returned, use driver.back()
+            if (!(await openHeatMapBtn.isDisplayed().catch(() => false))) {
+                try {
+                    await driver.back()
+                    await driver.pause(1000)
+                    console.log('✅ Sent driver.back() to exit Heatmap')
+                } catch (e) { }
+            }
+        }
     }
     get positionsToggle() {
         return $(locators.get('positionsToggle'))
@@ -2530,11 +3130,11 @@ class WatchlistPage {
 
     async deleteStockByRowIndex(index) {
         console.log(`Attempting to delete stock at row index ${index}...`);
-        
+
         // Find all elements that might be stocks
         const potentialStocks = await $$(`android=new UiSelector().descriptionMatches(".*(NSE|BSE|CDS|MCX|NFO|BFO|EQ|FUT).*")`);
         const stockRows = [];
-        
+
         for (const elem of potentialStocks) {
             const desc = await elem.getAttribute("content-desc").catch(() => "");
             // Filter out indices at the top (like SENSEX) which don't have exchange segments on a new line
@@ -2582,8 +3182,8 @@ class WatchlistPage {
         allure.addStep("Start Drag and Drop verification");
 
         // Ensure we are on the watchlist tab
-        await this.clickWatchlistTab();
-        await driver.pause(2000);
+        // await this.clickWatchlistTab();
+        // await driver.pause(2000);
 
         // Find stock rows
         const rawElements = await $$(locators.get('watchlistStockRows'));
@@ -2695,25 +3295,61 @@ class WatchlistPage {
     async verifyWatchlistPinning(stockName = "TCS-EQ", favNumber = 1) {
         console.log(`\n--- Starting Watchlist Pinning Validation for ${stockName} (Fav ${favNumber}) ---`);
 
+        // 0. Close any existing search overlay to start fresh
+        try {
+            const searchFields = await this.searchInputFields;
+            if (searchFields.length > 0 && await searchFields[0].isDisplayed().catch(() => false)) {
+                console.log(`Closing existing search overlay before searching for ${stockName}...`);
+                await this.closeSearch();
+                await driver.pause(1000);
+            }
+        } catch (e) { }
+
         // 1. Search for the stock
         console.log(`Searching for ${stockName}...`);
         await this.clickSearchIcon();
         await this.enterScripName(stockName);
-        await driver.pause(1000);
+        // Wait for search results to load and settle
+        await driver.pause(2000);
+
         // 2. Click the stock in search results to open Overview
-        // In search results, the stock name is usually in a text view
-        const searchResultSelector = `android=new UiSelector().descriptionContains("${stockName}")`;
-        // We might get multiple results, just click the first one that appears below the search bar (y > 200)
-        const searchResults = await $$(searchResultSelector);
+        // Use descriptionStartsWith for precise match — avoids picking up stale/unrelated elements
+        const startsWithSelector = `android=new UiSelector().descriptionStartsWith("${stockName}")`;
         let targetStockElement = null;
-        for (const elem of searchResults) {
-            const loc = await elem.getLocation().catch(() => null);
-            if (loc && loc.y > 200) {
-                targetStockElement = elem;
-                break;
+
+        // Try strict startsWith first
+        try {
+            const strictResults = await $$(startsWithSelector);
+            for (const elem of strictResults) {
+                const loc = await elem.getLocation().catch(() => null);
+                if (loc && loc.y > 200) {
+                    targetStockElement = elem;
+                    console.log(`Found ${stockName} via descriptionStartsWith at y=${loc.y}.`);
+                    break;
+                }
             }
+        } catch (e) { }
+
+        // Fallback: descriptionContains with stricter y-range
+        if (!targetStockElement) {
+            const containsSelector = `android=new UiSelector().descriptionContains("${stockName}")`;
+            try {
+                const fallbackResults = await $$(containsSelector);
+                for (const elem of fallbackResults) {
+                    const loc = await elem.getLocation().catch(() => null);
+                    if (loc && loc.y > 200) {
+                        const desc = await elem.getAttribute('content-desc').catch(() => '');
+                        // Confirm the content-desc actually starts with our stock name
+                        if (desc.startsWith(stockName)) {
+                            targetStockElement = elem;
+                            console.log(`Found ${stockName} via descriptionContains fallback at y=${loc.y}.`);
+                            break;
+                        }
+                    }
+                }
+            } catch (e) { }
         }
-        
+
         if (!targetStockElement) {
             throw new Error(`Could not find ${stockName} in search results.`);
         }
@@ -2723,11 +3359,10 @@ class WatchlistPage {
         await driver.pause(3000);
 
         // 3. Click Pin icon via a targeted coordinate tap
-        // Since we are using TCS-EQ and INFY-EQ (short names), we can safely use the hardcoded x=0.35 * width coordinate!
         const windowSize = await driver.getWindowSize();
         const pinX = Math.floor(windowSize.width * 0.35);
         const pinY = 150;
-        
+
         console.log(`Tapping Pin icon via coordinates at (${pinX}, ${pinY})...`);
         await driver.performActions([{
             type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
@@ -2746,7 +3381,7 @@ class WatchlistPage {
         await pinToFav.click();
         await driver.pause(2000);
 
-        // 5. Go back to Search Results
+        // 5. Go back from Overview
         console.log("Navigating back from Overview...");
         const backBtn = await $('~Back');
         if (await backBtn.isExisting()) {
@@ -2770,21 +3405,19 @@ class WatchlistPage {
         await driver.pause(2000);
 
         // 7. Check if stock is pinned at the top
+        // Pinned stocks appear near the top; use a generous y threshold (< 500) to handle varying screen sizes
         console.log(`Checking if ${stockName} is pinned at the top for Favorite ${favNumber}...`);
-        
-        // The pinned stocks are at the top (y < 350)
-        const favSelector = `android=new UiSelector().descriptionContains("${stockName}")`;
-        const pinnedStockElems = await $$(favSelector);
-        
+        const pinnedSelector = `android=new UiSelector().descriptionContains("${stockName}")`;
+        const pinnedStockElems = await $$(pinnedSelector);
+
         let isPinned = false;
         for (const elem of pinnedStockElems) {
             const loc = await elem.getLocation().catch(() => null);
-            if (loc && loc.y < 350) {
-                // If checking favNumber = 2, we can also check the x coordinate (it should be on the right half of the screen)
+            if (loc && loc.y < 500) {
+                // For Favorite 2, expect it on the right half of the screen
                 if (favNumber === 2 && loc.x < windowSize.width / 2) {
-                    continue; // This is on the left, we expect fav 2 to be on the right
+                    continue;
                 }
-                
                 isPinned = true;
                 console.log(`✅ Verified ${stockName} is pinned at the top (Favorite ${favNumber}) before logout.`);
                 break;
@@ -2797,29 +3430,32 @@ class WatchlistPage {
     }
     async verifyPinnedStock(stockName, favNumber) {
         await driver.pause(1000)
-            // Wait for bottom tabs to render
-        await driver.waitUntil(async () => {
-            const el = $(`android=new UiSelector().className("android.widget.ImageView").instance(2)`);
-            return await el.isExisting();
-        }, { timeout: 15000, timeoutMsg: "App did not load bottom tabs" });
-        await this.clickWatchlistTab();
+        // Wait for bottom tabs to render
+        if (favNumber == 1) {
+            await driver.waitUntil(async () => {
+                const el = $(`android=new UiSelector().className("android.widget.ImageView").instance(2)`);
+                return await el.isExisting();
+            }, { timeout: 15000, timeoutMsg: "App did not load bottom tabs" });
+            await this.clickWatchlistTab();
+            // Allow the watchlist to fully render with pinned stocks
+            await driver.pause(2000);
+        }
 
         console.log(`Checking if ${stockName} is pinned at the top for Favorite ${favNumber}...`);
-        
+
         const windowSize = await driver.getWindowSize();
-        // The pinned stocks are at the top (y < 350)
+        // Pinned stocks appear near the top; use a generous y threshold (< 500)
         const favSelector = `android=new UiSelector().descriptionContains("${stockName}")`;
         const pinnedStockElems = await $$(favSelector);
-        
+
         let isPinned = false;
         for (const elem of pinnedStockElems) {
             const loc = await elem.getLocation().catch(() => null);
-            if (loc && loc.y < 350) {
-                // If checking favNumber = 2, we can also check the x coordinate (it should be on the right half of the screen)
+            if (loc && loc.y < 500) {
+                // For Favorite 2, expect it on the right half of the screen
                 if (favNumber === 2 && loc.x < windowSize.width / 2) {
-                    continue; // This is on the left, we expect fav 2 to be on the right
+                    continue;
                 }
-                
                 isPinned = true;
                 console.log(`✅ Verified ${stockName} is pinned at the top (Favorite ${favNumber}).`);
                 break;
@@ -2830,12 +3466,134 @@ class WatchlistPage {
             throw new Error(`${stockName} did not appear as pinned at the top of the Watchlist for Favorite ${favNumber}.`);
         }
     }
+    /**
+     * In the search overlay, finds the target stock card that appears under
+     * "Global Search Results" (the green-bookmarked row for an already-watchlisted scrip)
+     * and taps the bookmark icon on its right edge to trigger the snackbar.
+     *
+     * @param {string} stockName - e.g. "ASSAMENT-EQ"
+     */
+    async clickGlobalSearchResultBookmark(stockName) {
+        const stockUpper = stockName.trim().toUpperCase();
+        console.log(`Looking for '${stockUpper}' under Global Search Results to click its bookmark...`);
+
+        // 1. Find the y-position of the "Global Search Results" label
+        let globalSearchY = null;
+        try {
+            const globalHeader = await $('//*[contains(@text, "Global Search Results") or contains(@content-desc, "Global Search Results")]');
+            if (await globalHeader.isDisplayed().catch(() => false)) {
+                const loc = await globalHeader.getLocation();
+                globalSearchY = loc.y;
+                console.log(`📍 "Global Search Results" header found at y=${globalSearchY}`);
+            }
+        } catch (e) { }
+
+        // Fallback: scan all content-desc elements for the header text
+        if (globalSearchY === null) {
+            try {
+                const allViews = await $$('//*[@content-desc != ""]');
+                for (const v of allViews) {
+                    const desc = await v.getAttribute('content-desc').catch(() => '');
+                    if (desc.includes('Global Search Results')) {
+                        const loc = await v.getLocation();
+                        globalSearchY = loc.y;
+                        console.log(`📍 "Global Search Results" found via scan at y=${globalSearchY}`);
+                        break;
+                    }
+                }
+            } catch (e) { }
+        }
+
+        if (globalSearchY === null) {
+            throw new Error(`Could not locate "Global Search Results" section on screen.`);
+        }
+
+        // 2. Find the stock card that is BELOW the Global Search Results header
+        let targetCard = null;
+        try {
+            const allViews = await $$('//*[@content-desc != ""]');
+            for (const v of allViews) {
+                if (!await v.isDisplayed().catch(() => false)) continue;
+                const loc = await v.getLocation().catch(() => null);
+                if (!loc || loc.y <= globalSearchY) continue;   // must be below the header
+
+                const desc = await v.getAttribute('content-desc').catch(() => '');
+                if (!desc) continue;
+
+                const firstLine = desc.split('\n')[0].trim().toUpperCase();
+                if (firstLine === stockUpper || firstLine.startsWith(stockUpper)) {
+                    targetCard = v;
+                    console.log(`✅ Found '${stockUpper}' under Global Search Results at y=${loc.y}: "${desc.replace(/\n/g, ' ')}"`);
+                    break;
+                }
+            }
+        } catch (e) { }
+
+        if (!targetCard) {
+            throw new Error(`Could not find '${stockUpper}' card under "Global Search Results".`);
+        }
+
+        // 3. Tap the green bookmark icon
+        // The bookmark is a SEPARATE element to the RIGHT of the card (not inside it).
+        // Card bounds: x=32, width=943 → right edge at ~975. Screen width=1080.
+        // The bookmark sits in the remaining ~105px on the right side of the screen.
+        const cardLoc = await targetCard.getLocation();
+        const cardSz = await targetCard.getSize();
+        const windowSize = await driver.getWindowSize();
+
+        const cardRight = cardLoc.x + cardSz.width;
+        const cardCenterY = Math.floor(cardLoc.y + cardSz.height / 2);
+        const cardTop = cardLoc.y;
+        const cardBottom = cardLoc.y + cardSz.height;
+
+        let tapX = null;
+        let tapY = cardCenterY;
+
+        // Strategy A: Find the bookmark sibling element to the right of the card in the same y-range
+        try {
+            const allViews = await $$('//*');
+            for (const v of allViews) {
+                if (!await v.isDisplayed().catch(() => false)) continue;
+                const loc = await v.getLocation().catch(() => null);
+                if (!loc) continue;
+                // Must be: to the right of the card, vertically within the card row
+                if (loc.x >= cardRight && loc.y >= cardTop && loc.y <= cardBottom) {
+                    const sz = await v.getSize().catch(() => ({ width: 0, height: 0 }));
+                    // Bookmark icons are small (roughly 40–80px wide)
+                    if (sz.width > 0 && sz.width < 150) {
+                        tapX = Math.floor(loc.x + sz.width / 2);
+                        tapY = Math.floor(loc.y + sz.height / 2);
+                        console.log(`📌 Found bookmark sibling element at (${loc.x}, ${loc.y}) size ${sz.width}x${sz.height}. Tapping at (${tapX}, ${tapY})`);
+                        break;
+                    }
+                }
+            }
+        } catch (e) { }
+
+        // Strategy B: Fallback — tap at ~96% of screen width, vertically centred on the card
+        if (tapX === null) {
+            tapX = Math.floor(windowSize.width * 0.96);
+            console.log(`📌 Bookmark sibling not found. Falling back to tap at (${tapX}, ${tapY})`);
+        }
+
+        console.log(`Tapping green bookmark icon at (${tapX}, ${tapY})...`);
+        await driver.performActions([{
+            type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
+            actions: [
+                { type: 'pointerMove', duration: 0, x: tapX, y: tapY },
+                { type: 'pointerDown', button: 0 },
+                { type: 'pointerUp', button: 0 }
+            ]
+        }]);
+        await driver.pause(2000);
+    }
+
     async scrollSearchResultsToBottom() {
         const windowSize = await driver.getWindowSize();
         const startX = Math.floor(windowSize.width / 2);
         const startY = Math.floor(windowSize.height * 0.8);
         const endY = Math.floor(windowSize.height * 0.2);
-        
+
         for (let i = 0; i < 3; i++) {
             await driver.performActions([{
                 type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },

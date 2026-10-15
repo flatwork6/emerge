@@ -636,173 +636,173 @@ describe('Order Book Verification Flow', () => {
     // });
 
     // it('should run end-to-end flow for executed buy (ADANI)', async () => {
-    //     await executeOrderFlow({ stockName: "ADANI", action: "BUY", productType: "CNC", orderType: "MKT", isPending: false });
+    //     await executeOrderFlow({ stockName: "ADANI", action: "BUY", productType: "MIS", orderType: "MKT", isPending: false });
     // });
 
     // it('should run end-to-end flow for executed sell (TCS-EQ)', async () => {
     //     await executeOrderFlow({ stockName: "TCS-EQ", action: "SELL", productType: "MIS", orderType: "MKT", isPending: false });
     // });
 
-    // it('should verify Search, Download CSV and Filter for Executed Orders', async () => {
-    //     allureReporter.addStep('Verify Search, Download CSV and Filter for Executed Orders');
+    it('should verify Search, Download CSV and Filter for Executed Orders', async () => {
+        allureReporter.addStep('Verify Search, Download CSV and Filter for Executed Orders');
 
-    //     const openOrders = await $$('//*[contains(@content-desc, "OPEN")]');
-    //     const pendingCount = openOrders.length;
-    //     const offset = pendingCount === 0 ? 0 : pendingCount + 6;
+        const openOrders = await $$('//*[contains(@content-desc, "OPEN")]');
+        const pendingCount = openOrders.length;
+        const offset = pendingCount === 0 ? 0 : pendingCount + 6;
 
-    //     const executedOrders = await $$('//*[contains(@content-desc, "COMPLETED") or contains(@content-desc, "REJECTED") or contains(@content-desc, "CANCELLED")]');
-    //     let firstExecutedScrip = "TCS-EQ";
-    //     if (executedOrders.length > 0) {
-    //         const firstExecutedDesc = await executedOrders[1].getAttribute("content-desc");
-    //         firstExecutedScrip = firstExecutedDesc ? firstExecutedDesc.split('\n')[1] : "TCS-EQ";
-    //     }
+        const executedOrders = await $$('//*[contains(@content-desc, "COMPLETED") or contains(@content-desc, "REJECTED") or contains(@content-desc, "CANCELLED")]');
+        let firstExecutedScrip = "TCS-EQ";
+        if (executedOrders.length > 0) {
+            const firstExecutedDesc = await executedOrders[1].getAttribute("content-desc");
+            firstExecutedScrip = firstExecutedDesc ? firstExecutedDesc.split('\n')[1] : "TCS-EQ";
+        }
 
-    //     // 1. SEARCH
-    //     console.log("Checking Executed Orders Search...");
-    //     const searchIcon = await $(`android=new UiSelector().className("android.view.View").instance(${19 + offset})`);
-    //     await searchIcon.waitForDisplayed({ timeout: 5000 });
-    //     await searchIcon.click();
-    //     await driver.pause(1000);
+        // 1. SEARCH
+        console.log("Checking Executed Orders Search...");
+        const searchIcon = await $(`android=new UiSelector().className("android.view.View").instance(${20 + offset})`);
+        await searchIcon.waitForDisplayed({ timeout: 5000 });
+        await searchIcon.click();
+        await driver.pause(1000);
 
-    //     let actualSearchInput = await $(`android=new UiSelector().className("android.widget.EditText")`);
-    //     await actualSearchInput.click();
-    //     await driver.pause(500);
+        let actualSearchInput = await $(`android=new UiSelector().className("android.widget.EditText")`);
+        await actualSearchInput.click();
+        await driver.pause(500);
 
-    //     await actualSearchInput.setValue(firstExecutedScrip);
-    //     await driver.pause(2000);
+        await actualSearchInput.setValue(firstExecutedScrip);
+        await driver.pause(2000);
 
-    //     const existingExecutedResult = await $(`//*[@content-desc and contains(@content-desc, "${firstExecutedScrip}")]`);
-    //     if (await existingExecutedResult.isExisting()) {
-    //         console.log("✅ Existing scrip appeared in search");
-    //     }
+        const existingExecutedResult = await $(`//*[@content-desc and contains(@content-desc, "${firstExecutedScrip}")]`);
+        if (await existingExecutedResult.isExisting()) {
+            console.log("✅ Existing scrip appeared in search");
+        }
 
-    //     const crossBtn = await $(`android=new UiSelector().className("android.widget.Button")`);
-    //     if (await crossBtn.isExisting()) {
-    //         await crossBtn.click();
-    //         await driver.pause(1000);
-    //     }
+        const crossBtn = await $(`android=new UiSelector().className("android.widget.Button")`);
+        if (await crossBtn.isExisting()) {
+            await crossBtn.click();
+            await driver.pause(1000);
+        }
 
-    //     await actualSearchInput.setValue("INVALID_SCRIP_123");
-    //     await driver.pause(2000);
+        await actualSearchInput.setValue("INVALID_SCRIP_123");
+        await driver.pause(2000);
 
-    //     const noMatch = await $(locators.get('orderBookNoMatch'));
-    //     if (await noMatch.isExisting()) {
-    //         console.log("✅ 'No matching orders found' showed for non-existing scrip");
-    //     }
+        const noMatch = await $(locators.get('orderBookNoMatch'));
+        if (await noMatch.isExisting()) {
+            console.log("✅ 'No matching orders found' showed for non-existing scrip");
+        }
 
-    //     const crossBtn1 = await $(`android=new UiSelector().className("android.widget.Button")`);
-    //     if (await crossBtn1.isExisting()) {
-    //         await crossBtn1.click();
-    //         await driver.pause(1000);
-    //     }
-    //     const closeSearchIcon = await $(`android=new UiSelector().className("android.view.View").instance(${19 + offset})`);
+        const crossBtn1 = await $(`android=new UiSelector().className("android.widget.Button")`);
+        if (await crossBtn1.isExisting()) {
+            await crossBtn1.click();
+            await driver.pause(1000);
+        }
+        const closeSearchIcon = await $(`android=new UiSelector().className("android.view.View").instance(${20 + offset})`);
 
-    //     // click search icon to close search
-    //     if (await closeSearchIcon.isExisting()) {
-    //         await closeSearchIcon.click();
-    //     }
+        // click search icon to close search
+        if (await closeSearchIcon.isExisting()) {
+            await closeSearchIcon.click();
+        }
 
 
-    //     // 2. DOWNLOAD CSV
-    //     console.log("Checking Download CSV...");
-    //     const downloadCsvIcon = await $(`android=new UiSelector().className("android.view.View").instance(${20 + offset})`);
-    //     await downloadCsvIcon.click();
-    //     await driver.pause(2000);
+        // 2. DOWNLOAD CSV
+        console.log("Checking Download CSV...");
+        const downloadCsvIcon = await $(`android=new UiSelector().className("android.view.View").instance(${21 + offset})`);
+        await downloadCsvIcon.click();
+        await driver.pause(2000);
 
-    //     const csvName = await $(locators.get('orderBookCsvName'));
-    //     if (await csvName.isExisting()) {
-    //         console.log("✅ CSV download bottom sheet showed up with file name");
-    //     }
+        const csvName = await $(locators.get('orderBookCsvName'));
+        if (await csvName.isExisting()) {
+            console.log("✅ CSV download bottom sheet showed up with file name");
+        }
 
-    //     // click outside to close
-    //     const { width, height } = await driver.getWindowSize();
-    //     await driver.performActions([{
-    //         type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
-    //         actions: [
-    //             { type: 'pointerMove', duration: 0, x: width / 2, y: height * 0.1 },
-    //             { type: 'pointerDown', button: 0 },
-    //             { type: 'pointerUp', button: 0 }
-    //         ]
-    //     }]);
-    //     await driver.pause(2000);
+        // click outside to close
+        const { width, height } = await driver.getWindowSize();
+        await driver.performActions([{
+            type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
+            actions: [
+                { type: 'pointerMove', duration: 0, x: width / 2, y: height * 0.1 },
+                { type: 'pointerDown', button: 0 },
+                { type: 'pointerUp', button: 0 }
+            ]
+        }]);
+        await driver.pause(2000);
 
-    //     // 3. FILTER
-    //     console.log("Checking Filter...");
-    //     let filterIcon = await $(`android=new UiSelector().className("android.view.View").instance(${21 + offset})`);
-    //     if (!(await filterIcon.isExisting())) {
-    //         filterIcon = await $(`android=new UiSelector().className("android.view.View").instance(${22 + offset})`);
-    //     }
-    //     await filterIcon.click();
-    //     await driver.pause(2000);
+        // 3. FILTER
+        console.log("Checking Filter...");
+        let filterIcon = await $(`android=new UiSelector().className("android.view.View").instance(${22 + offset})`);
+        if (!(await filterIcon.isExisting())) {
+            filterIcon = await $(`android=new UiSelector().className("android.view.View").instance(${23 + offset})`);
+        }
+        await filterIcon.click();
+        await driver.pause(2000);
 
-    //     const clickFilterAndSave = async (filterName) => {
-    //         const btn = await $(locators.get('locatorGen5', '${filterName}'));
-    //         const btnFallback = await $(locators.get('orderBookFilterDynamicBtnFallback', filterName));
-    //         if (await btn.isExisting()) await btn.click();
-    //         else if (await btnFallback.isExisting()) await btnFallback.click();
-    //         await driver.pause(500);
+        const clickFilterAndSave = async (filterName) => {
+            const btn = await $(locators.get('locatorGen5', '${filterName}'));
+            const btnFallback = await $(locators.get('orderBookFilterDynamicBtnFallback', filterName));
+            if (await btn.isExisting()) await btn.click();
+            else if (await btnFallback.isExisting()) await btnFallback.click();
+            await driver.pause(500);
 
-    //         const saveBtn = await $(locators.get('locatorGen5', 'SAVE'));
-    //         const saveBtnFallback = await $(locators.get('orderBookSaveBtnFallback'));
-    //         if (await saveBtn.isExisting()) await saveBtn.click();
-    //         else if (await saveBtnFallback.isExisting()) await saveBtnFallback.click();
-    //         await driver.pause(2000);
-    //     };
+            const saveBtn = await $(locators.get('locatorGen5', 'SAVE'));
+            const saveBtnFallback = await $(locators.get('orderBookSaveBtnFallback'));
+            if (await saveBtn.isExisting()) await saveBtn.click();
+            else if (await saveBtnFallback.isExisting()) await saveBtnFallback.click();
+            await driver.pause(2000);
+        };
 
-    //     // Completed
-    //     await clickFilterAndSave("Completed");
-    //     let orders = await $$(locators.get('orderBookCompletedOrders'));
-    //     let allCompleted = true;
-    //     for (const order of orders) {
-    //         const desc = await order.getAttribute("content-desc");
-    //         if (desc && (desc.includes("REJECTED") || desc.includes("CANCELLED"))) allCompleted = false;
-    //     }
-    //     if (allCompleted) console.log("✅ Only Completed orders are showing");
+        // Completed
+        await clickFilterAndSave("Completed");
+        let orders = await $$(locators.get('orderBookCompletedOrders'));
+        let allCompleted = true;
+        for (const order of orders) {
+            const desc = await order.getAttribute("content-desc");
+            if (desc && (desc.includes("REJECTED") || desc.includes("CANCELLED"))) allCompleted = false;
+        }
+        if (allCompleted) console.log("✅ Only Completed orders are showing");
 
-    //     // Rejected
-    //     await filterIcon.click();
-    //     await driver.pause(1000);
-    //     await clickFilterAndSave("Rejected");
-    //     orders = await $$(locators.get('orderBookCompletedOrders'));
-    //     let allRejected = true;
-    //     for (const order of orders) {
-    //         const desc = await order.getAttribute("content-desc");
-    //         if (desc && (desc.includes("COMPLETED") || desc.includes("CANCELLED"))) allRejected = false;
-    //     }
-    //     if (allRejected) console.log("✅ Only Rejected orders are showing");
+        // Rejected
+        await filterIcon.click();
+        await driver.pause(1000);
+        await clickFilterAndSave("Rejected");
+        orders = await $$(locators.get('orderBookCompletedOrders'));
+        let allRejected = true;
+        for (const order of orders) {
+            const desc = await order.getAttribute("content-desc");
+            if (desc && (desc.includes("COMPLETED") || desc.includes("CANCELLED"))) allRejected = false;
+        }
+        if (allRejected) console.log("✅ Only Rejected orders are showing");
 
-    //     // Cancelled
-    //     await filterIcon.click();
-    //     await driver.pause(1000);
-    //     await clickFilterAndSave("Cancelled");
-    //     orders = await $$(locators.get('orderBookCompletedOrders'));
-    //     let noMatchFound = false;
-    //     if (orders.length === 0) {
-    //         const noMatchCancel = await $(locators.get('orderBookNoMatch'));
-    //         if (await noMatchCancel.isExisting()) {
-    //             console.log("✅ 'No matching orders found' showed for Cancelled as there are none");
-    //             noMatchFound = true;
-    //         }
-    //     } else {
-    //         let allCancelled = true;
-    //         for (const order of orders) {
-    //             const desc = await order.getAttribute("content-desc");
-    //             if (desc && (desc.includes("COMPLETED") || desc.includes("REJECTED"))) allCancelled = false;
-    //         }
-    //         if (allCancelled) console.log("✅ Only Cancelled orders are showing");
-    //     }
+        // Cancelled
+        await filterIcon.click();
+        await driver.pause(1000);
+        await clickFilterAndSave("Cancelled");
+        orders = await $$(locators.get('orderBookCompletedOrders'));
+        let noMatchFound = false;
+        if (orders.length === 0) {
+            const noMatchCancel = await $(locators.get('orderBookNoMatch'));
+            if (await noMatchCancel.isExisting()) {
+                console.log("✅ 'No matching orders found' showed for Cancelled as there are none");
+                noMatchFound = true;
+            }
+        } else {
+            let allCancelled = true;
+            for (const order of orders) {
+                const desc = await order.getAttribute("content-desc");
+                if (desc && (desc.includes("COMPLETED") || desc.includes("REJECTED"))) allCancelled = false;
+            }
+            if (allCancelled) console.log("✅ Only Cancelled orders are showing");
+        }
 
-    //     // All
-    //     if (noMatchFound) {
-    //         const filterIconNoMatch = await $(`android=new UiSelector().className("android.view.View").instance(${22 + offset})`);
-    //         await filterIconNoMatch.click();
-    //     } else {
-    //         await filterIcon.click();
-    //     }
-    //     await driver.pause(1000);
-    //     await clickFilterAndSave("All");
-    //     console.log("✅ Restored to All filters");
-    // });
+        // All
+        if (noMatchFound) {
+            const filterIconNoMatch = await $(`android=new UiSelector().className("android.view.View").instance(${23 + offset})`);
+            await filterIconNoMatch.click();
+        } else {
+            await filterIcon.click();
+        }
+        await driver.pause(1000);
+        await clickFilterAndSave("All");
+        console.log("✅ Restored to All filters");
+    });
 
 
 });

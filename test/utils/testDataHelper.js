@@ -4,7 +4,15 @@ import { parse } from 'csv-parse/sync'
 
 class TestDataLoader {
     constructor() {
-        this.testDataPath = path.resolve(process.cwd(), 'testData.csv')
+        this.testDataPath = this.resolveTestDataPath()
+    }
+
+    resolveTestDataPath() {
+        const candidatePaths = [
+            path.resolve(process.cwd(), 'test/data/testData.csv'),
+            path.resolve(process.cwd(), 'testData.csv')
+        ]
+        return candidatePaths.find(p => fs.existsSync(p)) || candidatePaths[0]
     }
 
     /**
@@ -12,12 +20,13 @@ class TestDataLoader {
      * @returns {Array<{segment: string, symbol: string, expectedStatus: string}>}
      */
     getOrderTestData() {
-        if (!fs.existsSync(this.testDataPath)) {
-            console.warn(`Test data file not found at ${this.testDataPath}`)
+        const targetPath = this.resolveTestDataPath()
+        if (!fs.existsSync(targetPath)) {
+            console.warn(`Test data file not found at ${targetPath}`)
             return []
         }
 
-        const fileContent = fs.readFileSync(this.testDataPath, 'utf8')
+        const fileContent = fs.readFileSync(targetPath, 'utf8')
         const records = parse(fileContent, {
             columns: true,
             skip_empty_lines: true,
@@ -37,7 +46,7 @@ class TestDataLoader {
                 segment: normalized.SEGMENT || normalized.segment,
                 resultIndex: normalized.RESULTINDEX || normalized.resultindex || normalized.INDEX || normalized.index || '0'
             }
-        })
+        }).filter(r => r.symbol && r.symbol.trim() !== '')
     }
 
     /**
@@ -45,12 +54,13 @@ class TestDataLoader {
      * @returns {Array<string>}
      */
     getWatchlists() {
-        if (!fs.existsSync(this.testDataPath)) {
-            return ["Watchlist 3", "fivee", "mkk", "one", "onehy"]
+        const targetPath = this.resolveTestDataPath()
+        if (!fs.existsSync(targetPath)) {
+            return ["Watchlist 1", "Watchlist 2", "Watchlist 3", "Watchlist 4", "Watchlist 5"]
         }
 
         try {
-            const fileContent = fs.readFileSync(this.testDataPath, 'utf8')
+            const fileContent = fs.readFileSync(targetPath, 'utf8')
             const records = parse(fileContent, {
                 columns: true,
                 skip_empty_lines: true,
@@ -71,7 +81,7 @@ class TestDataLoader {
             }
         } catch (e) { }
 
-        return ["Watchlist 3", "fivee", "mkk", "one", "onehy"]
+        return ["Watchlist 1", "Watchlist 2", "Watchlist 3", "Watchlist 4", "Watchlist 5"]
     }
 }
 

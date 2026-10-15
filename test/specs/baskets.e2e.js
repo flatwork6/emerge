@@ -637,6 +637,7 @@ describe('Baskets Automation', () => {
       timeoutMsg: 'Expected scrip to be deleted within 10s'
     });
 
+    await driver.pause(1000);
     // Verify count decreases
     const scripsAfter = await $$(locators.get('basketInfyScrip'));
     expect(scripsAfter.length).toBeLessThan(beforeCount);
@@ -1285,7 +1286,7 @@ describe('Baskets Automation', () => {
 
   it('TC-33: Cross icon leaves the basket intact', async () => {
     // Click cross
-    const cross = await $(locators.get('basketCrossIcon'));
+    const cross = await $(locators.get('noBtn'));
     if (await cross.isExisting()) {
       await cross.click();
     } else {
@@ -1299,7 +1300,7 @@ describe('Baskets Automation', () => {
     allure.addStep(`✅ Verified cross icon cancels deletion`);
   });
 
-  it('TC-34: Tick icon removes the basket', async () => {
+  it('TC-34: Yes button removes the basket', async () => {
     // Click Delete(3) again
     const deleteBtn = await $(locators.get('basketDelete3Btn'));
     if (await deleteBtn.isExisting()) {
@@ -1308,16 +1309,16 @@ describe('Baskets Automation', () => {
     }
 
     // Click tick
-    const tickIcon = await $(locators.get('basketTickIcon'));
-    if (await tickIcon.isExisting()) {
-      await tickIcon.click();
+    const yesBtn = await $(locators.get('yesBtn'));
+    if (await yesBtn.isExisting()) {
+      await yesBtn.click();
     }
     await driver.pause(2000);
 
     const popupMsg = await $(locators.get('basketDeleteSurePopup'));
     expect(await popupMsg.isExisting()).toBe(false);
 
-    allure.addStep(`✅ Verified tick icon deletes the basket`);
+    allure.addStep(`✅ Verified YES button deletes the basket`);
   });
 
   it('TC-35: Verify Select All Checkbox Delete Flow', async () => {
@@ -1364,7 +1365,7 @@ describe('Baskets Automation', () => {
     }
 
     // Click cross
-    const cross = await $(locators.get('basketCrossIcon'));
+    const cross = await $(locators.get('noBtn'));
     if (await cross.isExisting()) {
       await cross.click();
     } else {
