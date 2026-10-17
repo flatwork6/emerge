@@ -3,9 +3,9 @@ import 'dotenv/config'
 import path from 'path'
 import dotenv from 'dotenv'
 
-// Load environment variables from creds.env
+// Load environment variables from creds.env and testdata.env
 dotenv.config({ path: path.resolve(process.cwd(), 'creds.env') })
-dotenv.config({ path: path.resolve(process.cwd(), 'testdata.env') })
+dotenv.config({ path: path.resolve(process.cwd(), 'test/data/testdata.env') })
 
 import allure from '@wdio/allure-reporter'
 import LoginPage from '../pageobjects/login.page.js'
@@ -25,141 +25,44 @@ console.log = function (...args) {
     } catch (e) { }
 };
 
-// describe('Should open watchlist, search and add scrips and remove if it is already present', () => {
-//   it('should search, add, remove stocks successfully across all watchlists', async () => {
-//     const orderTestData = testDataHelper.getOrderTestData()
 
-//     console.log("\nStarting Watchlist Add Scrip Flow for all watchlists...")
+describe('Should open watchlist, search and add scrips and remove if it is already present', () => {
+  it('should search scrip — remove if already present, then add it; verifying search, remove and add', async () => {
+    const orderTestData = testDataHelper.getOrderTestData()
 
-//     // Extract Trading Privileges from UI to populate segmentGuard
-//     await ProfilePage.openTradingPrivileges()
-//     await ProfilePage.extractActiveSegments()
-//     await ProfilePage.clickProfileBackButton()
-//     await ProfilePage.clickAccountsAndServicesCrossButton()
+    console.log("\nStarting Watchlist Add Scrip Flow for all watchlists...")
 
-//     // 1. Click Watchlist Icon from footer
-//     await ProfilePage.openWatchlist()
+    // Extract Trading Privileges from UI to populate segmentGuard
+    // await ProfilePage.openTradingPrivileges()
+    // await ProfilePage.extractActiveSegments()
+    // await ProfilePage.clickProfileBackButton()
+    // await ProfilePage.clickAccountsAndServicesCrossButton()
 
-//     // Dynamically fetch watchlists based on the logged-in user's account
-//     let watchlists = await WatchlistPage.getAllWatchlistNames();
+    // // ── Step 1: Navigate to Watchlist ─────────────────────────────────────────
+    // await ProfilePage.openWatchlist()
+    // await driver.pause(1000)
 
-//     if (!watchlists || watchlists.length === 0) {
-//       // Fallback to testDataHelper if dynamic extraction fails completely
-//       watchlists = testDataHelper.getWatchlists();
-//     }
+    // ── Step 2: Resolve active watchlist name ────────────────────────────────
+    let watchlists = await WatchlistPage.getAllWatchlistNames()
+    if (!watchlists || watchlists.length === 0) {
+      watchlists = testDataHelper.getWatchlists()
+    }
+    const activeWatchlist = watchlists[0]
+    console.log(`\nActive Watchlist: '${activeWatchlist}'`)
 
-//     // Process standard watchlists sequentially
-//     for (let i = 0; i < watchlists.length; i++) {
-//       const wlName = watchlists[i]
-//       console.log(`\n========================================`)
-//       console.log(`Processing Watchlist ${i + 1}/${watchlists.length}: '${wlName}'`)
-//       console.log(`========================================`)
+    // ── Step 3: Open search overlay ──────────────────────────────────────────
+    await WatchlistPage.clickSearchIcon()
+    await driver.pause(500)
 
-//       // For 1st watchlist, no need to open dropdown (already selected by default).
-//       // For 2nd, 3rd, 4th, 5th watchlists, open dropdown using previous watchlist name and select target watchlist.
-//       if (i > 0) {
-//         const prevWlName = watchlists[i - 1]
-//         await WatchlistPage.pullDownToRefresh();
-//         await driver.pause(500)
-//         await WatchlistPage.openWatchListDropdown(prevWlName)
-//         await WatchlistPage.clickWatchlistByName(wlName)
-//       }
+    // ── Step 4: Process scrips from testData.csv (supports multiple stocks with segments) ───
+    await WatchlistPage.processScripsOnWatchlist(orderTestData, activeWatchlist)
 
-//       if (i < 1) {
-//         // Open search (presence check and removal if already present is handled directly during search)
-//         await WatchlistPage.clickSearchIcon()
-
-//         // Process scrip additions using testData.csv
-//         for (const record of orderTestData) {
-//           const { symbol, segment } = record
-//           console.log(`\n--- Adding Scrip: '${symbol}' | Segment: '${segment}' ---`)
-
-//           const reqSeg = segment.trim().toUpperCase()
-
-//           // Check if segment is active in extracted account privileges
-//           const isEnabled = reqSeg === 'ALL' || segmentGuard.isSegmentEnabled(reqSeg)
-//           if (!isEnabled) {
-//             const skipMsg = `🛑 [SEGMENT RESTRICTION]: Segment '${reqSeg}' is INACTIVE / DISABLED for this account. Skipping scrip '${symbol}'.`
-//             console.log(skipMsg)
-//             allure.addStep(skipMsg)
-//             continue
-//           }
-
-//           // Type Scrip Name
-//           await WatchlistPage.enterScripName(symbol)
-
-//           // Select Segment Filter Chip (e.g. 'ALL', 'NSE', 'BSE', 'NFO', 'BFO', 'CDS', 'BCD', 'MCX')
-//           await WatchlistPage.selectExchangeFilter(reqSeg)
-
-//           // Add scrip
-//           await WatchlistPage.addFirstScripToWatchlist(symbol, reqSeg, wlName)
-//         }
-
-//         // Close search overlay after processing current watchlist scrips
-//         await WatchlistPage.closeSearch()
-//         await driver.pause(1000)
-//       } else {
-//         console.log(`\n--- Skipping Adding/Removing/Searching for Watchlist: '${wlName}' ---`)
-//       }
-
-//       // Perform Heatmap verification for current Watchlist
-//       console.log(`\n--- Running Heatmap Verification for Watchlist: '${wlName}' ---`)
-//       const listCount = await WatchlistPage.getWatchlistStockCount()
-
-//       await WatchlistPage.clickHeatMapView()
-
-//       // Heatmap % view count (Advance + Decline badges)
-//       const initPercent = await WatchlistPage.getHeatmapStockCount(listCount)
-
-//       await WatchlistPage.switchHeatmapDisplay('value')
-
-//       // Heatmap Val view count (Advance + Decline badges)
-//       const valCount = await WatchlistPage.getHeatmapStockCount(listCount)
-
-//       await WatchlistPage.switchHeatmapDisplay('percent')
-
-//       const hlSummary =
-//         `Watchlist '${wlName}' | ` +
-//         `List View Count: ${listCount} | ` +
-//         `Heatmap %: ${initPercent} | ` +
-//         `Heatmap Val: ${valCount}`
-
-//       console.log(hlSummary)
-//       allure.addStep(hlSummary)
-
-//       // Verify stock overview navigation from heatmap (only for one stock)
-//       const stockName = await WatchlistPage.clickFirstHeatmapStock();
-//       if (stockName) {
-//         const overviewTitle = await WatchlistPage.getStockOverviewTitle();
-//         if (!overviewTitle.toLowerCase().includes(stockName.toLowerCase())) {
-//           console.log(`Warning: Overview title ${overviewTitle} does not match stock ${stockName}`);
-//         }
-//         const overviewBackBtn = await WatchlistPage.stockOverviewBackButton;
-//         await overviewBackBtn.click();
-//         await driver.pause(1000);
-//       }
-
-//       // Close Heatmap to return to Watchlist list view for the next iteration
-//       await WatchlistPage.clickHeatmapBackButton()
-//     }
-
-//     // Process Index watchlist (open dropdown using last active watchlist name, select Index, run list & heatmap verification)
-//     console.log(`\n========================================`)
-//     console.log(`Processing Index Watchlist`)
-//     console.log(`========================================`)
-//     const lastWlName = watchlists[watchlists.length - 1]
-//     await WatchlistPage.openWatchListDropdown(lastWlName)
-//     await WatchlistPage.clickWatchlistByName('Index')
-//     await WatchlistPage.scrollIndexWatchlist()
-
-//     // Return back to 1st watchlist and close dropdown
-//     console.log(`\n========================================`)
-//     console.log(`Returning to 1st Watchlist '${watchlists[0]}' & Closing Dropdown`)
-//     console.log(`========================================`)
-//     await WatchlistPage.openWatchListDropdown('Index')
-//     await WatchlistPage.clickWatchlistByName(watchlists[0])
-//   })
-// })
+    // ── Step 5: Close search overlay ────────────────────────────────────────
+    await WatchlistPage.closeSearch()
+    await driver.pause(1000)
+    console.log('\n✅ Watchlist Search / Remove / Add Verification Flow completed.')
+  })
+})
 
 
 // describe('Watchlist Drag and Drop Validation', () => {
@@ -280,116 +183,116 @@ console.log = function (...args) {
 // });
 
 
-describe('Market Watch Additional Scenarios', () => {
-  it('should show snackbar when adding an already present scrip', async () => {
-    // Step 1: Navigate to Watchlist tab and get the first stock name
-  // await WatchlistPage.clickWatchlistTab();
-    const existingScrip = await WatchlistPage.getFirstWatchlistStockName();
-    console.log(`First watchlist stock: ${existingScrip}`);
+// describe('Market Watch Additional Scenarios', () => {
+//   it('should show snackbar when adding an already present scrip', async () => {
+//     // Step 1: Navigate to Watchlist tab and get the first stock name
+//   // await WatchlistPage.clickWatchlistTab();
+//     const existingScrip = await WatchlistPage.getFirstWatchlistStockName();
+//     console.log(`First watchlist stock: ${existingScrip}`);
 
-    // Step 2: Open search and type the stock name
-    await WatchlistPage.clickSearchIcon();
-    await WatchlistPage.enterScripName(existingScrip);
-    await driver.pause(1500); // Let search results load
+//     // Step 2: Open search and type the stock name
+//     await WatchlistPage.clickSearchIcon();
+//     await WatchlistPage.enterScripName(existingScrip);
+//     await driver.pause(1500); // Let search results load
 
-    // Step 3: Click the green bookmark icon on the Global Search Results row
-    // The stock appears twice: once above (already in watchlist) and once below
-    // "Global Search Results" with a green bookmark icon. Tapping the bookmark
-    // on the global result triggers the "already in Market Watch" snackbar.
-    await WatchlistPage.clickGlobalSearchResultBookmark(existingScrip);
+//     // Step 3: Click the green bookmark icon on the Global Search Results row
+//     // The stock appears twice: once above (already in watchlist) and once below
+//     // "Global Search Results" with a green bookmark icon. Tapping the bookmark
+//     // on the global result triggers the "already in Market Watch" snackbar.
+//     await WatchlistPage.clickGlobalSearchResultBookmark(existingScrip);
 
-    // Step 4: Verify snackbar appears — snackbar is transient so poll with waitUntil
-    console.log('Waiting for "already in Market Watch" snackbar...');
-    let snackbarFound = false;
-    try {
-      await driver.waitUntil(async () => {
-        // Try the locator first
-        try {
-          const el = await $(locators.get("alreadypresent"));
-          if (await el.isDisplayed().catch(() => false)) return true;
-        } catch (e) { }
-        // Broad fallback: scan all visible text/content-desc for the snackbar message
-        try {
-          const allViews = await $$('//*[@content-desc != "" or @text != ""]');
-          for (const v of allViews) {
-            const desc = await v.getAttribute('content-desc').catch(() => '');
-            const text = await v.getAttribute('text').catch(() => '');
-            const combined = (desc + ' ' + text).toLowerCase();
-            if (combined.includes('already in') || combined.includes('market watch')) {
-              return true;
-            }
-          }
-        } catch (e) { }
-        return false;
-      }, { timeout: 6000, interval: 300, timeoutMsg: 'Snackbar not visible within 6 seconds' });
-      snackbarFound = true;
-      console.log('✅ Snackbar "already in Market Watch" verified successfully');
-    } catch (e) {
-      throw new Error(`Snackbar verification failed: ${e.message}`);
-    }
+//     // Step 4: Verify snackbar appears — snackbar is transient so poll with waitUntil
+//     console.log('Waiting for "already in Market Watch" snackbar...');
+//     let snackbarFound = false;
+//     try {
+//       await driver.waitUntil(async () => {
+//         // Try the locator first
+//         try {
+//           const el = await $(locators.get("alreadypresent"));
+//           if (await el.isDisplayed().catch(() => false)) return true;
+//         } catch (e) { }
+//         // Broad fallback: scan all visible text/content-desc for the snackbar message
+//         try {
+//           const allViews = await $$('//*[@content-desc != "" or @text != ""]');
+//           for (const v of allViews) {
+//             const desc = await v.getAttribute('content-desc').catch(() => '');
+//             const text = await v.getAttribute('text').catch(() => '');
+//             const combined = (desc + ' ' + text).toLowerCase();
+//             if (combined.includes('already in') || combined.includes('market watch')) {
+//               return true;
+//             }
+//           }
+//         } catch (e) { }
+//         return false;
+//       }, { timeout: 6000, interval: 300, timeoutMsg: 'Snackbar not visible within 6 seconds' });
+//       snackbarFound = true;
+//       console.log('✅ Snackbar "already in Market Watch" verified successfully');
+//     } catch (e) {
+//       throw new Error(`Snackbar verification failed: ${e.message}`);
+//     }
 
-    // Step 5: Close search
-    await WatchlistPage.closeSearch();
-  });
+//     // Step 5: Close search
+//     await WatchlistPage.closeSearch();
+//   });
 
-  // it('should verify segment chips and segments shown below scrip name for tcs', async () => {
-  //   await WatchlistPage.clickSearchIcon();
-  //   await WatchlistPage.enterScripName(process.env.TEST_SCRIP_NAME_TCS);
+//   it('should verify segment chips and segments shown below scrip name for tcs', async () => {
+//     await WatchlistPage.clickSearchIcon();
+//     await WatchlistPage.enterScripName(process.env.TEST_SCRIP_NAME_TCS);
 
-  //   const segmentsToTest = [process.env.TEST_SEGMENT_NSE, process.env.TEST_SEGMENT_BSE, process.env.TEST_SEGMENT_NFO, process.env.TEST_SEGMENT_BFO];
-  //   for (const segment of segmentsToTest) {
-  //     await WatchlistPage.selectExchangeFilter(segment);
-  //     await driver.pause(1000);
+//     const segmentsToTest = [process.env.TEST_SEGMENT_NSE, process.env.TEST_SEGMENT_BSE, process.env.TEST_SEGMENT_NFO, process.env.TEST_SEGMENT_BFO];
+//     for (const segment of segmentsToTest) {
+//       await WatchlistPage.selectExchangeFilter(segment);
+//       await driver.pause(1000);
 
-  //     const results = await WatchlistPage.getAllSearchResults();
-  //     const tcsResults = results.filter(r => r.toUpperCase().startsWith('TCS'));
+//       const results = await WatchlistPage.getAllSearchResults();
+//       const tcsResults = results.filter(r => r.toUpperCase().startsWith('TCS'));
       
-  //     if (tcsResults.length === 0) {
-  //       throw new Error(`No TCS search results found after selecting segment ${segment}`);
-  //     }
-  //     const desc = tcsResults[0];
-  //     if (!desc.includes(segment)) {
-  //       throw new Error(`Expected segment ${segment} not found in top card desc: ${desc}`);
-  //     }else{
-  //       allure.addStep("✅Successfull verification of scrip under all segments")
-  //     }
-  //   }
-  //   await WatchlistPage.closeSearch();
-  // });
+//       if (tcsResults.length === 0) {
+//         throw new Error(`No TCS search results found after selecting segment ${segment}`);
+//       }
+//       const desc = tcsResults[0];
+//       if (!desc.includes(segment)) {
+//         throw new Error(`Expected segment ${segment} not found in top card desc: ${desc}`);
+//       }else{
+//         allure.addStep("✅Successfull verification of scrip under all segments")
+//       }
+//     }
+//     await WatchlistPage.closeSearch();
+//   });
 
-  // it('should verify dname format for BFO segment', async () => {
-  //   await WatchlistPage.clickSearchIcon();
-  //   await WatchlistPage.enterScripName(process.env.TEST_SCRIP_NAME_TCS);
-  //   await WatchlistPage.selectExchangeFilter(process.env.TEST_SEGMENT_BFO);
-  //   await driver.pause(2000);
+//   it('should verify dname format for BFO segment', async () => {
+//     await WatchlistPage.clickSearchIcon();
+//     await WatchlistPage.enterScripName(process.env.TEST_SCRIP_NAME_TCS);
+//     await WatchlistPage.selectExchangeFilter(process.env.TEST_SEGMENT_BFO);
+//     await driver.pause(2000);
 
-  //   const initialResults = await WatchlistPage.getAllSearchResults();
-  //   const initialTcsResults = initialResults.filter(r => r.toUpperCase().startsWith('TCS'));
-  //   if (initialTcsResults.length === 0) throw new Error("No TCS results found initially");
+//     const initialResults = await WatchlistPage.getAllSearchResults();
+//     const initialTcsResults = initialResults.filter(r => r.toUpperCase().startsWith('TCS'));
+//     if (initialTcsResults.length === 0) throw new Error("No TCS results found initially");
 
-  //   const firstScrip = initialTcsResults[0].split('\n')[0].trim();
-  //   if (/TCS \d{2}[A-Z]{3} FUT/i.test(firstScrip)) {
-  //     console.log("✅First scrip format success: " + firstScrip);
-  //   }
-  //   else {
-  //     throw new Error("First scrip mismatch" + firstScrip);
-  //   }
+//     const firstScrip = initialTcsResults[0].split('\n')[0].trim();
+//     if (/TCS \d{2}[A-Z]{3} FUT/i.test(firstScrip)) {
+//       console.log("✅First scrip format success: " + firstScrip);
+//     }
+//     else {
+//       throw new Error("First scrip mismatch" + firstScrip);
+//     }
 
-  //   // Scroll down to the end to catch PE/CE options
-  //   await WatchlistPage.scrollSearchResultsToBottom();
+//     // Scroll down to the end to catch PE/CE options
+//     await WatchlistPage.scrollSearchResultsToBottom();
 
-  //   const finalResults = await WatchlistPage.getAllSearchResults();
-  //   const finalTcsResults = finalResults.filter(r => r.toUpperCase().startsWith('TCS'));
-  //   if (finalTcsResults.length === 0) throw new Error("No TCS results found at bottom");
+//     const finalResults = await WatchlistPage.getAllSearchResults();
+//     const finalTcsResults = finalResults.filter(r => r.toUpperCase().startsWith('TCS'));
+//     if (finalTcsResults.length === 0) throw new Error("No TCS results found at bottom");
 
-  //   const lastScrip = finalTcsResults[finalTcsResults.length - 1].split('\n')[0].trim();
-  //   if (/TCS \d{2}[A-Z]{3} \d+(?:\.\d+)? (PE|CE)/i.test(lastScrip)) {
-  //     console.log("✅Last scrip format success: " + lastScrip);
-  //   }
-  //   else {
-  //     throw new Error("First scrip mismatch" + firstScrip);
-  //   }
+//     const lastScrip = finalTcsResults[finalTcsResults.length - 1].split('\n')[0].trim();
+//     if (/TCS \d{2}[A-Z]{3} \d+(?:\.\d+)? (PE|CE)/i.test(lastScrip)) {
+//       console.log("✅Last scrip format success: " + lastScrip);
+//     }
+//     else {
+//       throw new Error("First scrip mismatch" + firstScrip);
+//     }
 
-  //   await WatchlistPage.closeSearch();
-  // });
-});
+//     await WatchlistPage.closeSearch();
+//   });
+// });

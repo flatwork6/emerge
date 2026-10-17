@@ -31,7 +31,8 @@ class TestDataLoader {
             columns: true,
             skip_empty_lines: true,
             comment: '#',
-            trim: true
+            trim: true,
+            relax_column_count: true
         })
 
         // Normalize object keys to handle any casing (e.g. SYMBOL, SCRIP, SEGMENT)

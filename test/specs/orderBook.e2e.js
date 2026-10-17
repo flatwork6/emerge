@@ -635,13 +635,13 @@ describe('Order Book Verification Flow', () => {
     //     }
     // });
 
-    // it('should run end-to-end flow for executed buy (ADANI)', async () => {
-    //     await executeOrderFlow({ stockName: "ADANI", action: "BUY", productType: "MIS", orderType: "MKT", isPending: false });
-    // });
+    it('should run end-to-end flow for executed buy (ADANI)', async () => {
+        await executeOrderFlow({ stockName: "ADANI", action: "BUY", productType: "MIS", orderType: "MKT", isPending: false });
+    });
 
-    // it('should run end-to-end flow for executed sell (TCS-EQ)', async () => {
-    //     await executeOrderFlow({ stockName: "TCS-EQ", action: "SELL", productType: "MIS", orderType: "MKT", isPending: false });
-    // });
+    it('should run end-to-end flow for executed sell (TCS-EQ)', async () => {
+        await executeOrderFlow({ stockName: "TCS-EQ", action: "SELL", productType: "MIS", orderType: "MKT", isPending: false });
+    });
 
     it('should verify Search, Download CSV and Filter for Executed Orders', async () => {
         allureReporter.addStep('Verify Search, Download CSV and Filter for Executed Orders');

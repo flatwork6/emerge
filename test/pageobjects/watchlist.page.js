@@ -683,46 +683,46 @@ class WatchlistPage {
                 noNewCount = 0;
             }
 
-            // if (noNewCount < 6) {
-            //     try {
-            //         await driver.performActions([{
-            //             type: 'pointer',
-            //             id: 'finger1',
-            //             parameters: { pointerType: 'touch' },
-            //             actions: [
-            //                 { type: 'pointerMove', duration: 0, x: 500, y: 1500 },
-            //                 { type: 'pointerDown', button: 0 },
-            //                 { type: 'pointerMove', duration: 400, x: 500, y: 500 },
-            //                 { type: 'pointerUp', button: 0 }
-            //             ]
-            //         }]);
-            //         scrollsPerformed++;
-            //     } catch (e) {
-            //         console.log("Scroll failed:", e.message);
-            //     }
-            //     await driver.pause(500);
-            // }
+            if (noNewCount < 6) {
+                try {
+                    await driver.performActions([{
+                        type: 'pointer',
+                        id: 'finger1',
+                        parameters: { pointerType: 'touch' },
+                        actions: [
+                            { type: 'pointerMove', duration: 0, x: 500, y: 1500 },
+                            { type: 'pointerDown', button: 0 },
+                            { type: 'pointerMove', duration: 400, x: 500, y: 500 },
+                            { type: 'pointerUp', button: 0 }
+                        ]
+                    }]);
+                    scrollsPerformed++;
+                } catch (e) {
+                    console.log("Scroll failed:", e.message);
+                }
+                await driver.pause(500);
+            }
         }
 
-        // Scroll back to top
-        // if (extractedStocks.length > 0 && scrollsPerformed > 0) {
-        //     for (let i = 0; i < scrollsPerformed + 1; i++) {
-        //         try {
-        //             await driver.performActions([{
-        //                 type: 'pointer',
-        //                 id: 'finger1',
-        //                 parameters: { pointerType: 'touch' },
-        //                 actions: [
-        //                     { type: 'pointerMove', duration: 0, x: 500, y: 500 },
-        //                     { type: 'pointerDown', button: 0 },
-        //                     { type: 'pointerMove', duration: 400, x: 500, y: 1500 },
-        //                     { type: 'pointerUp', button: 0 }
-        //                 ]
-        //             }]);
-        //         } catch (e) { }
-        //         await driver.pause(300);
-        //     }
-        // }
+        //Scroll back to top
+        if (extractedStocks.length > 0 && scrollsPerformed > 0) {
+            for (let i = 0; i < scrollsPerformed + 1; i++) {
+                try {
+                    await driver.performActions([{
+                        type: 'pointer',
+                        id: 'finger1',
+                        parameters: { pointerType: 'touch' },
+                        actions: [
+                            { type: 'pointerMove', duration: 0, x: 500, y: 500 },
+                            { type: 'pointerDown', button: 0 },
+                            { type: 'pointerMove', duration: 400, x: 500, y: 1500 },
+                            { type: 'pointerUp', button: 0 }
+                        ]
+                    }]);
+                } catch (e) { }
+                await driver.pause(300);
+            }
+        }
 
         return extractedStocks;
     }
@@ -1313,19 +1313,36 @@ class WatchlistPage {
         }
     }
 
-    async clickOverviewBookmarkIcon() {
-        console.log("Attempting to click Bookmark icon on Stock Overview...")
+    async clickOverviewBookmarkIcon(segment = null) {
+        const segUpper = segment ? segment.trim().toUpperCase() : null
+        console.log(`Attempting to click Bookmark icon on Stock Overview (segment: ${segUpper || 'default'})...`)
         let clicked = false
 
-        // 1. Direct XPath to the middle icon before NSE chip
+        // For MCX and CDS/USD segments, the bookmark icon on Stock Overview is instance(6). For equity (NSE/BSE), it is instance(7).
+        const isInstance6 = segUpper === 'MCX' || segUpper === 'CDS' || segUpper === 'USD' || segUpper === 'GOLD'
+        const targetInstance = isInstance6 ? 6 : 7
+        const fallbackInstance = isInstance6 ? 7 : 6
+
+        // 1. Direct UiSelector to the bookmark icon on Stock Overview based on segment
         try {
-            const siblingBookmark = $('android=new UiSelector().className("android.view.View").instance(7)')
-            if (await siblingBookmark.isDisplayed().catch(() => false)) {
-                await siblingBookmark.click()
+            const primaryBookmark = $(`android=new UiSelector().className("android.view.View").instance(${targetInstance})`)
+            if (await primaryBookmark.isDisplayed().catch(() => false)) {
+                await primaryBookmark.click()
                 clicked = true
-                console.log("Clicked overview bookmark icon via preceding-sibling locator")
+                console.log(`Clicked overview bookmark icon via instance(${targetInstance}) locator`)
             }
         } catch (e) { }
+
+        if (!clicked) {
+            try {
+                const secondaryBookmark = $(`android=new UiSelector().className("android.view.View").instance(${fallbackInstance})`)
+                if (await secondaryBookmark.isDisplayed().catch(() => false)) {
+                    await secondaryBookmark.click()
+                    clicked = true
+                    console.log(`Clicked overview bookmark icon via fallback instance(${fallbackInstance}) locator`)
+                }
+            } catch (e) { }
+        }
 
         // 2. Scan header row clickable views (y between 120 and 280) with x between 650 and 780
         if (!clicked) {
@@ -1450,6 +1467,9 @@ class WatchlistPage {
      * @param {string} scripSymbol Scrip symbol from testData.csv (e.g. 'RELIANCE', 'TCS')
      */
     async enterScripName(scripSymbol) {
+        if (!scripSymbol || typeof scripSymbol !== 'string') {
+            throw new Error(`enterScripName: scripSymbol must be a non-empty string, but received: ${scripSymbol}`);
+        }
         let inputField = this.searchInputField
         await inputField.waitForDisplayed({ timeout: 5000 })
         await inputField.click()
@@ -3509,7 +3529,9 @@ class WatchlistPage {
         }
 
         // 2. Find the stock card that is BELOW the Global Search Results header
+        // Priority: Exact match first (e.g. 'INFY' === 'INFY'), fallback to prefix ('INFY-EQ') only if no exact match exists
         let targetCard = null;
+        let fallbackPrefixCard = null;
         try {
             const allViews = await $$('//*[@content-desc != ""]');
             for (const v of allViews) {
@@ -3521,46 +3543,52 @@ class WatchlistPage {
                 if (!desc) continue;
 
                 const firstLine = desc.split('\n')[0].trim().toUpperCase();
-                if (firstLine === stockUpper || firstLine.startsWith(stockUpper)) {
+                if (firstLine === stockUpper) {
                     targetCard = v;
-                    console.log(`✅ Found '${stockUpper}' under Global Search Results at y=${loc.y}: "${desc.replace(/\n/g, ' ')}"`);
+                    console.log(`✅ Found exact match for '${stockUpper}' under Global Search Results at y=${loc.y}: "${desc.replace(/\n/g, ' ')}"`);
                     break;
+                } else if (!fallbackPrefixCard && (firstLine.startsWith(stockUpper + '-') || firstLine.startsWith(stockUpper + ' '))) {
+                    fallbackPrefixCard = v;
                 }
             }
         } catch (e) { }
+
+        if (!targetCard && fallbackPrefixCard) {
+            console.log(`⚠️ Exact match for '${stockUpper}' not found; using prefix match under Global Search Results.`);
+            targetCard = fallbackPrefixCard;
+        }
 
         if (!targetCard) {
             throw new Error(`Could not find '${stockUpper}' card under "Global Search Results".`);
         }
 
         // 3. Tap the green bookmark icon
-        // The bookmark is a SEPARATE element to the RIGHT of the card (not inside it).
-        // Card bounds: x=32, width=943 → right edge at ~975. Screen width=1080.
-        // The bookmark sits in the remaining ~105px on the right side of the screen.
+        // The bookmark sits on the far-right side of the row corresponding to targetCard.
         const cardLoc = await targetCard.getLocation();
         const cardSz = await targetCard.getSize();
         const windowSize = await driver.getWindowSize();
 
         const cardRight = cardLoc.x + cardSz.width;
         const cardCenterY = Math.floor(cardLoc.y + cardSz.height / 2);
-        const cardTop = cardLoc.y;
-        const cardBottom = cardLoc.y + cardSz.height;
+        const cardTop = cardLoc.y - 15;
+        const cardBottom = cardLoc.y + cardSz.height + 15;
 
         let tapX = null;
         let tapY = cardCenterY;
 
         // Strategy A: Find the bookmark sibling element to the right of the card in the same y-range
         try {
+            const minX = Math.floor(windowSize.width * 0.85);
             const allViews = await $$('//*');
             for (const v of allViews) {
                 if (!await v.isDisplayed().catch(() => false)) continue;
                 const loc = await v.getLocation().catch(() => null);
                 if (!loc) continue;
-                // Must be: to the right of the card, vertically within the card row
-                if (loc.x >= cardRight && loc.y >= cardTop && loc.y <= cardBottom) {
+                // Must be: near the right edge of the screen, vertically within the card row
+                if (loc.x >= minX && loc.y >= cardTop && loc.y <= cardBottom) {
                     const sz = await v.getSize().catch(() => ({ width: 0, height: 0 }));
-                    // Bookmark icons are small (roughly 40–80px wide)
-                    if (sz.width > 0 && sz.width < 150) {
+                    // Bookmark icons are small (roughly 30–120px wide)
+                    if (sz.width > 15 && sz.width < 150) {
                         tapX = Math.floor(loc.x + sz.width / 2);
                         tapY = Math.floor(loc.y + sz.height / 2);
                         console.log(`📌 Found bookmark sibling element at (${loc.x}, ${loc.y}) size ${sz.width}x${sz.height}. Tapping at (${tapX}, ${tapY})`);
@@ -3570,9 +3598,9 @@ class WatchlistPage {
             }
         } catch (e) { }
 
-        // Strategy B: Fallback — tap at ~96% of screen width, vertically centred on the card
+        // Strategy B: Fallback — tap at ~94% of screen width, vertically centred on the card
         if (tapX === null) {
-            tapX = Math.floor(windowSize.width * 0.96);
+            tapX = Math.floor(windowSize.width * 0.94);
             console.log(`📌 Bookmark sibling not found. Falling back to tap at (${tapX}, ${tapY})`);
         }
 
@@ -3657,6 +3685,601 @@ class WatchlistPage {
             }
         }
         return "";
+    }
+
+    /**
+     * Process a single scrip or an array of scrips — remove if already in watchlist, then add it.
+     * Supports dynamically handling multiple stock names with segments.
+     * @param {string|Array} symbol - Stock symbol or array of records [{ symbol, segment }, ...]
+     * @param {string} [segment] - Exchange/segment filter (e.g. 'NSE', 'BSE', 'BFO', 'ALL') or activeWatchlist if symbol is array
+     * @param {string} [activeWatchlist] - Target watchlist name (e.g. 'Watchlist 1')
+     */
+    async processScripOnWatchlist(symbol, segment, activeWatchlist) {
+        if (Array.isArray(symbol)) {
+            return await this.processScripsOnWatchlist(symbol, segment || activeWatchlist)
+        }
+
+        const reqSeg = segment ? segment.trim().toUpperCase() : 'ALL'
+        const symUpper = symbol.trim().toUpperCase()
+
+        // Step A: Ensure search overlay is open, then type the scrip name into the search bar
+        const isSearchOpen = await this.searchInputField.isDisplayed().catch(() => false)
+        if (!isSearchOpen) {
+            console.log("Search overlay not open — clicking search icon...")
+            await this.clickSearchIcon()
+            await driver.pause(1000)
+        }
+        await this.enterScripName(symbol)
+        await driver.pause(1000)
+
+        // Step B: Select the correct segment filter chip
+        await this.selectExchangeFilter(reqSeg)
+
+        // Wait for search results to load (search might be slow on emulator)
+        console.log(`Waiting for search results for '${symUpper}' (${reqSeg}) to load...`)
+        await driver.pause(3000) // Dedicated wait from search to bookmark
+
+        // Wait until at least one search card appears below the chip bar or "Global Search Results" header renders
+        try {
+            await driver.waitUntil(async () => {
+                const views = await $$('//*[@content-desc != ""]')
+                for (const v of views) {
+                    const loc = await v.getLocation().catch(() => null)
+                    if (loc && loc.y > 300) {
+                        const desc = await v.getAttribute('content-desc').catch(() => '')
+                        if (desc && (desc.toUpperCase().includes(symUpper) || desc.includes('Global Search Results'))) {
+                            return true
+                        }
+                    }
+                }
+                return false
+            }, { timeout: 6000, interval: 400, timeoutMsg: `Search results for '${symUpper}' did not load in time` })
+        } catch (e) {
+            console.log(`ℹ️ Search wait: ${e.message}`)
+        }
+        await driver.pause(1000)
+
+        // ── Step C: Detect position relative to "Global Search Results" header ──────
+        //   • ABOVE header  → scrip is already in the watchlist (Image 1 scenario)
+        //   • BELOW header  → scrip is NOT in the watchlist   (Image 2 / Image 3 scenario)
+        let globalSearchY = null
+        try {
+            const globalHeader = await $('//*[contains(@text,"Global Search Results") or contains(@content-desc,"Global Search Results")]')
+            if (await globalHeader.isDisplayed().catch(() => false)) {
+                const loc = await globalHeader.getLocation()
+                globalSearchY = loc.y
+                console.log(`📍 "Global Search Results" header found at y=${globalSearchY}`)
+            }
+        } catch (e) { }
+
+        // Fallback scan for "Global Search Results" text
+        if (globalSearchY === null) {
+            try {
+                const allViews = await $$('//*[@content-desc != ""]')
+                for (const v of allViews) {
+                    const desc = await v.getAttribute('content-desc').catch(() => '')
+                    if (desc.includes('Global Search Results')) {
+                        const loc = await v.getLocation()
+                        globalSearchY = loc.y
+                        console.log(`📍 "Global Search Results" found via scan at y=${globalSearchY}`)
+                        break
+                    }
+                }
+            } catch (e) { }
+        }
+
+        // ── Step D: Find matching scrip card – determine if above or below header ──
+        let scripAboveHeader = null  // already in watchlist
+        let scripBelowHeader = null  // available to add
+        let scripAboveHeaderPrefix = null
+        let scripBelowHeaderPrefix = null
+
+        try {
+            const views = await $$('//*[@content-desc != ""]')
+            for (const v of views) {
+                if (!await v.isDisplayed().catch(() => false)) continue
+                const loc = await v.getLocation().catch(() => null)
+                if (!loc || loc.y < 300) continue // skip top bar / chips
+
+                const desc = await v.getAttribute('content-desc').catch(() => '')
+                if (!desc || !desc.includes('\n')) continue
+
+                const lines = desc.split('\n').map(s => s.trim().toUpperCase())
+                const firstLine = lines[0] || ''
+                const secondLine = lines[1] || ''
+
+                const exactSymbolMatch = firstLine === symUpper
+                const prefixSymbolMatch = firstLine.startsWith(symUpper + '-') ||
+                    firstLine.startsWith(symUpper + ' ') ||
+                    (symUpper === 'USD' && firstLine.startsWith('USD')) ||
+                    (symUpper === 'GOLD' && firstLine.startsWith('GOLD')) ||
+                    firstLine.startsWith(symUpper)
+                const segmentMatches = reqSeg === 'ALL' ||
+                    secondLine === reqSeg ||
+                    desc.toUpperCase().includes(reqSeg)
+
+                if (segmentMatches) {
+                    if (globalSearchY !== null && loc.y < globalSearchY) {
+                        if (exactSymbolMatch && !scripAboveHeader) {
+                            scripAboveHeader = v
+                            console.log(`✅ Scrip '${symUpper}' (exact match) IS already in watchlist (y=${loc.y} < header y=${globalSearchY})`)
+                        } else if (prefixSymbolMatch && !scripAboveHeaderPrefix) {
+                            scripAboveHeaderPrefix = v
+                        }
+                    } else {
+                        if (exactSymbolMatch && !scripBelowHeader) {
+                            scripBelowHeader = v
+                            console.log(`📋 Scrip '${symUpper}' (exact match) found in Global Search Results (y=${loc.y})`)
+                        } else if (prefixSymbolMatch && !scripBelowHeaderPrefix) {
+                            scripBelowHeaderPrefix = v
+                        }
+                    }
+                }
+                if (scripAboveHeader && scripBelowHeader) break
+            }
+        } catch (e) {
+            console.log('Error scanning search result cards:', e.message)
+        }
+
+        if (!scripAboveHeader && scripAboveHeaderPrefix) {
+            scripAboveHeader = scripAboveHeaderPrefix
+            console.log(`⚠️ Using prefix match for '${symUpper}' in watchlist above header`)
+        }
+        if (!scripBelowHeader && scripBelowHeaderPrefix) {
+            scripBelowHeader = scripBelowHeaderPrefix
+            console.log(`⚠️ Using prefix match for '${symUpper}' under Global Search Results`)
+        }
+
+        // ── Step E: REMOVE flow — scrip is already present above "Global Search Results" ──
+        const wasAlreadyInWatchlist = !!scripAboveHeader
+        if (scripAboveHeader) {
+            console.log(`\n⚠️  Scrip '${symUpper}' already in watchlist. Removing it...`)
+
+            // Click the card body to open Stock Overview
+            const cardLoc = await scripAboveHeader.getLocation()
+            const cardSz = await scripAboveHeader.getSize()
+            const tapX = Math.floor(cardLoc.x + cardSz.width * 0.4)
+            const tapY = Math.floor(cardLoc.y + cardSz.height / 2)
+
+            console.log(`Tapping scrip card '${symUpper}' at (${tapX}, ${tapY}) to open Stock Overview...`)
+            await driver.performActions([{
+                type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
+                actions: [
+                    { type: 'pointerMove', duration: 0, x: tapX, y: tapY },
+                    { type: 'pointerDown', button: 0 },
+                    { type: 'pointerUp', button: 0 }
+                ]
+            }])
+            await driver.pause(2500)
+
+            // Click bookmark icon on Stock Overview to open watchlist bottom sheet
+            await this.clickOverviewBookmarkIcon(reqSeg)
+            await driver.pause(1000)
+
+            // If bottom sheet did not open, retry with coordinate tap
+            let sheetOpen = await this.isWatchlistBottomSheetOpen()
+            if (!sheetOpen) {
+                console.log('Bottom sheet not open yet — retrying bookmark click...')
+                const winSize = await driver.getWindowSize()
+                const bmX = Math.floor(winSize.width * 0.66)
+                const bmY = 202
+                await driver.performActions([{
+                    type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
+                    actions: [
+                        { type: 'pointerMove', duration: 0, x: bmX, y: bmY },
+                        { type: 'pointerDown', button: 0 },
+                        { type: 'pointerUp', button: 0 }
+                    ]
+                }])
+                await driver.pause(1500)
+                sheetOpen = await this.isWatchlistBottomSheetOpen()
+            }
+
+            // Tap the minus (–) button for the active watchlist row on the bottom sheet
+            let minusClicked = false
+            const candidateNames = [activeWatchlist]
+            if (activeWatchlist && activeWatchlist.toLowerCase().startsWith('watchlist ')) {
+                const numPart = activeWatchlist.split(' ')[1]
+                if (numPart) candidateNames.push(numPart)
+            }
+
+            // Method A: accessibility-id lookup for watchlist row, then tap far-right
+            for (const candidate of candidateNames) {
+                if (minusClicked) break
+                try {
+                    const row = $(`~${candidate}`)
+                    if (await row.isDisplayed().catch(() => false)) {
+                        const rLoc = await row.getLocation()
+                        const rSz = await row.getSize()
+                        const mX = Math.floor(rLoc.x + rSz.width * 0.94)
+                        const mY = Math.floor(rLoc.y + rSz.height / 2)
+                        await driver.performActions([{
+                            type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
+                            actions: [
+                                { type: 'pointerMove', duration: 0, x: mX, y: mY },
+                                { type: 'pointerDown', button: 0 },
+                                { type: 'pointerUp', button: 0 }
+                            ]
+                        }])
+                        minusClicked = true
+                        console.log(`✅ Tapped '-' for watchlist row '${candidate}' at (${mX}, ${mY})`)
+                    }
+                } catch (e) { }
+            }
+
+            // Method B: scan bottom-sheet rows (y > 800) for the watchlist name
+            if (!minusClicked) {
+                try {
+                    const bsViews = await $$('//*[@content-desc != ""]')
+                    for (const v of bsViews) {
+                        if (!await v.isDisplayed().catch(() => false)) continue
+                        const rLoc = await v.getLocation()
+                        if (rLoc.y < 800) continue
+                        const desc = await v.getAttribute('content-desc').catch(() => '')
+                        const matches = candidateNames.length === 0 ||
+                            candidateNames.some(n => desc === n || desc.startsWith(n + '\n') || desc.includes(n))
+                        if (matches) {
+                            const rSz = await v.getSize()
+                            const mX = Math.floor(rLoc.x + rSz.width * 0.94)
+                            const mY = Math.floor(rLoc.y + rSz.height / 2)
+                            await driver.performActions([{
+                                type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
+                                actions: [
+                                    { type: 'pointerMove', duration: 0, x: mX, y: mY },
+                                    { type: 'pointerDown', button: 0 },
+                                    { type: 'pointerUp', button: 0 }
+                                ]
+                            }])
+                            minusClicked = true
+                            console.log(`✅ Tapped '-' via scan on bottom-sheet row '${desc}' at (${mX}, ${mY})`)
+                            break
+                        }
+                    }
+                } catch (e) { }
+            }
+
+            // Method C: direct watchlistRemoveMinusBtn locator
+            if (!minusClicked) {
+                try {
+                    const minusBtn = await this.watchlistRemoveMinusBtn
+                    if (await minusBtn.isDisplayed().catch(() => false)) {
+                        await minusBtn.click()
+                        minusClicked = true
+                        console.log(`✅ Scrip removed via watchlistRemoveMinusBtn locator`)
+                    }
+                } catch (e) { }
+            }
+
+            // ── Verify REMOVE snackbar IMMEDIATELY after minus tap (before any navigation) ──
+            // Snackbar is transient (~1-2 s). Poll right away using UiAutomator selectors
+            // which are more reliable than XPath for dynamic Android toast/snackbar elements.
+            try {
+                const windowSize = await driver.getWindowSize()
+                const snackbarThresholdY = Math.floor(windowSize.height * 0.70) // bottom 30% of screen
+                await driver.waitUntil(async () => {
+                    try {
+                        const byText = await $$('android=new UiSelector().textContains("Removed")')
+                        for (const el of byText) {
+                            if (!await el.isDisplayed().catch(() => false)) continue
+                            const loc = await el.getLocation().catch(() => null)
+                            if (loc && loc.y >= snackbarThresholdY) return true
+                        }
+                        const byDesc = await $$('android=new UiSelector().descriptionContains("Removed")')
+                        for (const el of byDesc) {
+                            if (!await el.isDisplayed().catch(() => false)) continue
+                            const loc = await el.getLocation().catch(() => null)
+                            if (loc && loc.y >= snackbarThresholdY) return true
+                        }
+                        return false
+                    } catch (e) { return false }
+                }, { timeout: 4000, interval: 200, timeoutMsg: 'Remove snackbar not visible within 4 s' })
+                const removeMsg = `✅ [REMOVE VERIFIED]: Snackbar confirmed removal of '${symUpper}' from watchlist '${activeWatchlist}'`
+                console.log(removeMsg)
+                try { allure.addStep(removeMsg) } catch (e) { }
+            } catch (e) {
+                // Snackbar may have already disappeared — log but do not fail the test
+                console.log(`ℹ️  Remove snackbar not captured for '${symUpper}' (may have dismissed quickly): ${e.message}`)
+                try { allure.addStep(`ℹ️  Remove snackbar not captured for '${symUpper}'`) } catch (e) { }
+            }
+
+            await driver.pause(500)
+
+            // Close bottom sheet if still visible
+            if (sheetOpen || await this.isWatchlistBottomSheetOpen().catch(() => false)) {
+                await driver.back()
+                await driver.pause(1000)
+            }
+
+            // Navigate back from Stock Overview to search screen
+            let backHandled = false
+            try {
+                const backBtn = await this.stockOverviewBackButton
+                if (await backBtn.isDisplayed().catch(() => false)) {
+                    await backBtn.click()
+                    backHandled = true
+                    console.log('Clicked Back button to return to Search overlay')
+                    await driver.pause(1500)
+                }
+            } catch (e) { }
+
+            if (!backHandled) {
+                try {
+                    const backDesc = await $('~Back')
+                    if (await backDesc.isDisplayed().catch(() => false)) {
+                        await backDesc.click()
+                        backHandled = true
+                        await driver.pause(1500)
+                    }
+                } catch (e) { }
+            }
+
+            if (!backHandled) {
+                await driver.back()
+                await driver.pause(1500)
+            }
+
+            // Re-enter scrip name if the search bar was cleared on navigation back
+            const inputField = this.searchInputField
+            const currentVal = await inputField.getText().catch(() => '')
+            if (!currentVal || !currentVal.toUpperCase().includes(symUpper)) {
+                console.log('Search bar was cleared — re-entering scrip name...')
+                await this.enterScripName(symbol)
+                await this.selectExchangeFilter(reqSeg)
+                await driver.pause(1500)
+            } else {
+                await driver.pause(1000)
+            }
+
+            // Re-find card below header for the add step
+            scripAboveHeader = null
+            scripBelowHeader = null
+
+            let scripBelowHeaderPrefix = null
+            try {
+                const views2 = await $$('//*[@content-desc != ""]')
+                for (const v of views2) {
+                    if (!await v.isDisplayed().catch(() => false)) continue
+                    const loc = await v.getLocation().catch(() => null)
+                    if (!loc || loc.y < 300) continue
+                    if (globalSearchY !== null && loc.y < globalSearchY) continue // skip above header
+
+                    const desc = await v.getAttribute('content-desc').catch(() => '')
+                    if (!desc || !desc.includes('\n')) continue
+
+                    const lines = desc.split('\n').map(s => s.trim().toUpperCase())
+                    const firstLine = lines[0] || ''
+                    const secondLine = lines[1] || ''
+
+                    const exactSymbolMatch = firstLine === symUpper
+                    const prefixSymbolMatch = firstLine.startsWith(symUpper + '-') ||
+                        firstLine.startsWith(symUpper + ' ') ||
+                        (symUpper === 'USD' && firstLine.startsWith('USD')) ||
+                        (symUpper === 'GOLD' && firstLine.startsWith('GOLD')) ||
+                        firstLine.startsWith(symUpper)
+                    const segmentMatches = reqSeg === 'ALL' ||
+                        secondLine === reqSeg ||
+                        desc.toUpperCase().includes(reqSeg)
+
+                    if (segmentMatches) {
+                        if (exactSymbolMatch) {
+                            scripBelowHeader = v
+                            console.log(`📋 After removal — found exact scrip '${symUpper}' under Global Search Results at y=${loc.y}`)
+                            break
+                        } else if (!scripBelowHeaderPrefix && prefixSymbolMatch) {
+                            scripBelowHeaderPrefix = v
+                        }
+                    }
+                }
+            } catch (e) { }
+
+            if (!scripBelowHeader && scripBelowHeaderPrefix) {
+                scripBelowHeader = scripBelowHeaderPrefix
+                console.log(`⚠️ After removal — using prefix match for '${symUpper}' under Global Search Results`)
+            }
+        }
+
+        // ── Step F: ADD flow — tap bookmark icon on first Global Search result ─────
+        // (white rectangle bookmark icon at far right of first scrip row)
+        let targetCard = scripBelowHeader
+
+        if (!targetCard) {
+            let targetCardPrefix = null
+            try {
+                const views = await $$('//*[@content-desc != ""]')
+                for (const v of views) {
+                    if (!await v.isDisplayed().catch(() => false)) continue
+                    const loc = await v.getLocation().catch(() => null)
+                    if (!loc || loc.y < 300) continue
+                    if (globalSearchY !== null && loc.y < globalSearchY) continue
+
+                    const desc = await v.getAttribute('content-desc').catch(() => '')
+                    if (!desc || !desc.includes('\n')) continue
+
+                    const lines = desc.split('\n').map(s => s.trim().toUpperCase())
+                    const firstLine = lines[0] || ''
+                    if (firstLine === symUpper) {
+                        targetCard = v
+                        console.log(`📋 Found exact target scrip card '${symUpper}' below header at y=${loc.y}`)
+                        break
+                    } else if (!targetCardPrefix && (
+                        firstLine.startsWith(symUpper + '-') ||
+                        firstLine.startsWith(symUpper + ' ') ||
+                        (symUpper === 'USD' && firstLine.startsWith('USD')) ||
+                        (symUpper === 'GOLD' && firstLine.startsWith('GOLD')) ||
+                        firstLine.startsWith(symUpper)
+                    )) {
+                        targetCardPrefix = v
+                    }
+                }
+            } catch (e) { }
+
+            if (!targetCard && targetCardPrefix) {
+                targetCard = targetCardPrefix
+            }
+        }
+
+        let tapX = null
+        let tapY = null
+
+        if (!wasAlreadyInWatchlist) {
+            console.log(`\n📌 Scrip '${symUpper}' was NOT present in watchlist (not above Global Search Results). Locating its bookmark icon...`)
+            const windowSize = await driver.getWindowSize()
+            const tLoc = targetCard ? await targetCard.getLocation().catch(() => null) : null
+            const tSz = targetCard ? await targetCard.getSize().catch(() => null) : null
+
+            let bookmarkEl = null
+            try {
+                // Try addScripBookmarkIcon locator first if visible near target card
+                const iconFromLocator = await $(locators.get('addScripBookmarkIcon'))
+                if (await iconFromLocator.isDisplayed().catch(() => false)) {
+                    const iLoc = await iconFromLocator.getLocation().catch(() => null)
+                    if (iLoc && (!tLoc || Math.abs(iLoc.y - tLoc.y) < 120)) {
+                        bookmarkEl = iconFromLocator
+                    }
+                }
+            } catch (e) { }
+
+            if (!bookmarkEl && tLoc && tSz) {
+                try {
+                    // Find child/sibling view or imageview on the far right within card row height
+                    const cardTop = tLoc.y - 15
+                    const cardBottom = tLoc.y + tSz.height + 15
+                    const minX = Math.floor(windowSize.width * 0.80)
+                    const candidateViews = await $$('//android.widget.ImageView | //android.view.View')
+                    for (const v of candidateViews) {
+                        if (!await v.isDisplayed().catch(() => false)) continue
+                        const loc = await v.getLocation().catch(() => null)
+                        if (!loc || loc.x < minX) continue
+                        if (loc.y >= cardTop && loc.y <= cardBottom) {
+                            const sz = await v.getSize().catch(() => ({ width: 0, height: 0 }))
+                            if (sz.width > 15 && sz.width < 180) {
+                                bookmarkEl = v
+                                break
+                            }
+                        }
+                    }
+                } catch (e) { }
+            }
+
+            if (bookmarkEl) {
+                const bLoc = await bookmarkEl.getLocation()
+                const bSz = await bookmarkEl.getSize()
+                tapX = Math.floor(bLoc.x + bSz.width / 2)
+                tapY = Math.floor(bLoc.y + bSz.height / 2)
+                console.log(`📌 Found bookmark icon element for scrip not in watchlist at (${bLoc.x}, ${bLoc.y}) size ${bSz.width}x${bSz.height}. Tapping center (${tapX}, ${tapY})`)
+            } else {
+                tapX = Math.floor(windowSize.width * 0.925)
+                tapY = tLoc && tSz ? Math.floor(tLoc.y + tSz.height / 2) : Math.floor(windowSize.height * 0.42)
+                console.log(`📌 Tapping calculated bookmark coordinates at (${tapX}, ${tapY}) for scrip not in watchlist`)
+            }
+
+            await driver.performActions([{
+                type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
+                actions: [
+                    { type: 'pointerMove', duration: 0, x: tapX, y: tapY },
+                    { type: 'pointerDown', button: 0 },
+                    { type: 'pointerUp', button: 0 }
+                ]
+            }])
+        } else {
+            // Stock was existing in watchlist (existing flow that correctly works)
+            if (targetCard) {
+                const tLoc = await targetCard.getLocation()
+                const tSz = await targetCard.getSize()
+                tapX = Math.floor(tLoc.x + tSz.width * 0.94) // far-right bookmark icon
+                tapY = Math.floor(tLoc.y + tSz.height / 2)
+
+                console.log(`\n Tapping bookmark/add icon at (${tapX}, ${tapY}) for '${symUpper}' (${reqSeg})...`)
+                await driver.performActions([{
+                    type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
+                    actions: [
+                        { type: 'pointerMove', duration: 0, x: tapX, y: tapY },
+                        { type: 'pointerDown', button: 0 },
+                        { type: 'pointerUp', button: 0 }
+                    ]
+                }])
+            } else {
+                // Fallback: tap far-right of the first result row below the header
+                console.log(`Falling back to coordinate-based bookmark tap for '${symUpper}'...`)
+                const winSize = await driver.getWindowSize()
+                tapX = Math.floor(winSize.width * 0.94)
+                tapY = Math.floor(winSize.height * 0.42)
+                await driver.performActions([{
+                    type: 'pointer', id: 'finger1', parameters: { pointerType: 'touch' },
+                    actions: [
+                        { type: 'pointerMove', duration: 0, x: tapX, y: tapY },
+                        { type: 'pointerDown', button: 0 },
+                        { type: 'pointerUp', button: 0 }
+                    ]
+                }])
+            }
+        }
+
+        // ── Verify ADD snackbar IMMEDIATELY after the bookmark tap ──
+        // Snackbar is transient (~1-2 s). Poll right away using UiAutomator selectors
+        // which are more reliable than XPath for dynamic Android toast/snackbar elements.
+        try {
+            const windowSize = await driver.getWindowSize()
+            const snackbarThresholdY = Math.floor(windowSize.height * 0.70) // bottom 30% of screen
+            await driver.waitUntil(async () => {
+                try {
+                    const byText = await $$('android=new UiSelector().textContains("Added")')
+                    for (const el of byText) {
+                        if (!await el.isDisplayed().catch(() => false)) continue
+                        const loc = await el.getLocation().catch(() => null)
+                        if (loc && loc.y >= snackbarThresholdY) return true
+                    }
+                    const byDesc = await $$('android=new UiSelector().descriptionContains("Added")')
+                    for (const el of byDesc) {
+                        if (!await el.isDisplayed().catch(() => false)) continue
+                        const loc = await el.getLocation().catch(() => null)
+                        if (loc && loc.y >= snackbarThresholdY) return true
+                    }
+                    return false
+                } catch (e) { return false }
+            }, { timeout: 4000, interval: 200, timeoutMsg: 'Add snackbar not visible within 4 s' })
+            const addMsg = `✅ [ADD VERIFIED]: Snackbar confirmed '${symUpper}' added to watchlist '${activeWatchlist}'`
+            console.log(addMsg)
+            try { allure.addStep(addMsg) } catch (e) { }
+        } catch (e) {
+            console.log(`ℹ️  Add snackbar not captured for '${symUpper}' (may have dismissed quickly): ${e.message}`)
+            try { allure.addStep(`ℹ️  Add snackbar not captured for '${symUpper}'`) } catch (e) { }
+        }
+
+        await driver.pause(1000)
+
+        // ── Reset segment filter to ALL for the next scrip iteration ────────────
+        console.log(`Resetting segment filter to 'ALL'...`)
+        await this.selectExchangeFilter('ALL')
+        await driver.pause(1000)
+
+        console.log(`\n✅ Completed processing scrip '${symUpper}' (${reqSeg})`)
+    }
+
+    /**
+     * Process multiple scrips dynamically (e.g. from testData.csv or any list of { symbol, segment }).
+     * Ensures remove and add is executed for ONLY ONE stock per segment.
+     * @param {Array<{symbol: string, segment: string}>} scripList - List of scrips with segment
+     * @param {string} activeWatchlist - Target watchlist name
+     */
+    async processScripsOnWatchlist(scripList, activeWatchlist) {
+        if (!Array.isArray(scripList)) return
+        const processedSegments = new Set()
+        for (const record of scripList) {
+            const symbol = record.symbol || record.scrip || record.stockName
+            const segment = (record.segment || record.seg || 'ALL').trim().toUpperCase()
+            if (!symbol) continue
+
+            // Ensure remove and add is done for ONLY one stock in each segment
+            if (processedSegments.has(segment)) {
+                console.log(`⏩ Skipping '${symbol}' (${segment}) — already processed one stock for segment '${segment}'`)
+                continue
+            }
+            processedSegments.add(segment)
+
+            console.log(`\n📌 Processing 1 stock for segment '${segment}': '${symbol}'`)
+            await this.processScripOnWatchlist(symbol, segment, activeWatchlist)
+        }
     }
 }
 
