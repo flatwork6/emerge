@@ -3,6 +3,10 @@ logs/
 allure-results/
 allure-report/
 .DS_Store/
-TEST.js
+TEST.js/
+Load_Testing_POC.md/
+creds.env
+
+
 
 
