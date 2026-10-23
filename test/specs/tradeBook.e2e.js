@@ -1,5 +1,5 @@
 import allureReporter from '@wdio/allure-reporter';
-import locators from '../utils/locatorHelper.js';
+import locators from '../locators/tradeBookLocators.js';
 import TradeBookPage from '../pageobjects/tradeBook.page.js';
 
 const originalLog = console.log;

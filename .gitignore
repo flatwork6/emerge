@@ -3,10 +3,15 @@ logs/
 allure-results/
 allure-report/
 .DS_Store/
-TEST.js/
-Load_Testing_POC.md/
-creds.env
+TEST.js
 
+# Markdown files
+*.md
 
+# Environment files
+*.env
+*.env.*
+.env*
 
-
+# CSV files
+*.csv

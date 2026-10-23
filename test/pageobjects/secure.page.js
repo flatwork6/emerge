@@ -1,4 +1,4 @@
-import locators from '../utils/locatorHelper.js'
+import locators from '../locators/commonLocators.js'
 const { $ } = require('@wdio/globals')
 const Page = require('./page');
 

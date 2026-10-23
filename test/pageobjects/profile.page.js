@@ -1,4 +1,5 @@
-import locators from '../utils/locatorHelper.js'
+import profileLocators from '../locators/profileLocators.js'
+const locators = profileLocators
 import segmentGuard from '../utils/segmentGuard.js'
 
 class ProfilePage {

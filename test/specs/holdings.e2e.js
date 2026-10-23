@@ -5,7 +5,7 @@ import dotenv from 'dotenv'
 // Load environment variables from creds.env
 dotenv.config({ path: path.resolve(process.cwd(), 'creds.env') })
 import HoldingsPage from '../pageobjects/holdings.page.js'
-import locators from '../utils/locatorHelper.js'
+import locators from '../locators/holdingsLocators.js'
 import allureReporter from '@wdio/allure-reporter';
 
 const originalLog = console.log;

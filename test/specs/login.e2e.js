@@ -139,7 +139,7 @@ describe('Emerge Login & Segment Guard Validation', () => {
 })
 
 describe('Trading previliges validation', () => {
-  it('should extract trading previliges successfully', async () => {
+  it('TC-01 should extract trading previliges successfully', async () => {
     // Extract Trading Privileges from UI
     await ProfilePage.openTradingPrivileges()
     await ProfilePage.extractActiveSegments()

@@ -2,7 +2,7 @@ import WatchlistPage from '../pageobjects/watchlist.page.js';
 import OverviewPage from '../pageobjects/overview.page.js';
 import OrderWindowPage from '../pageobjects/orderWindow.page.js';
 import OrdersPage from '../pageobjects/orders.page.js';
-import locators from '../utils/locatorHelper.js';
+import locators from '../locators/orderBookLocators.js';
 import allureReporter from '@wdio/allure-reporter';
 
 const originalLog = console.log;
@@ -100,7 +100,7 @@ describe('Order Book Verification Flow', () => {
         console.log("Waiting for redirection to Order Book...");
         await driver.pause(6000);
 
-        
+
         console.log("Verifying Order Book entry...");
         const orderEntry = await $(locators.get('orderBookEntryDynamic').replace('{stockName}', stockName));
         await orderEntry.waitForDisplayed({ timeout: 10000 }).catch(() => console.log("Order entry not visible immediately"));
@@ -510,14 +510,17 @@ describe('Order Book Verification Flow', () => {
         }
     }
 
-    it('Should verify Pending Orders section only appears when an Open order exists', async () => {
+    it('TC-01: Verify Pending Orders section only appears when an Open order exists', async () => {
+        console.log(`\n========================================`);
+        console.log(`TC-01: Verify Pending Orders Section Visibility`);
+        console.log(`========================================`);
         allureReporter.addStep('Verify Pending Orders section visibility based on Open orders');
 
         let pendingHeader = await $(locators.get('orderBookPendingOrdersHeader'));
         if (await pendingHeader.isExisting()) {
             console.log("✅ There is a pending order");
             allureReporter.addStep("✅ There is a pending order");
-            
+
             const openOrders = await $$(locators.get('orderBookOpenOrders'));
             if (openOrders.length > 0) {
                 console.log("✅ Verified there is at least one order in OPEN status");
@@ -533,15 +536,24 @@ describe('Order Book Verification Flow', () => {
     });
 
 
-    // it('should run end-to-end flow for pending buy (COMCL)', async () => {
+    // it('TC-02: End-to-end order flow for pending buy (COMCL)', async () => {
+    //     console.log(`\n========================================`);
+    //     console.log(`TC-02: Pending Order Flow - BUY (COMCL)`);
+    //     console.log(`========================================`);
     //     await executeOrderFlow({ stockName: "INFY-EQ", action: "BUY", productType: "CNC", orderType: "MKT", isPending: true });
     // });
 
-    // it('should run end-to-end flow for pending sell (WIPRO-EQ)', async () => {
+    // it('TC-03: End-to-end order flow for pending sell (WIPRO-EQ)', async () => {
+    //     console.log(`\n========================================`);
+    //     console.log(`TC-03: Pending Order Flow - SELL (WIPRO-EQ)`);
+    //     console.log(`========================================`);
     //     await executeOrderFlow({ stockName: "INFY-EQ", action: "SELL", productType: "MIS", orderType: "MKT", isPending: true });
     // });
 
-    // it('should verify Search and Download CSV for Pending Orders', async () => {
+    // it('TC-04: Verify Search and Download CSV for Pending Orders', async () => {
+    //     console.log(`\n========================================`);
+    //     console.log(`TC-04: Search and Download CSV for Pending Orders`);
+    //     console.log(`========================================`);
     //     allureReporter.addStep('Verify Search and Download CSV for Pending Orders');
 
     //     const openOrders = await $$('//*[contains(@content-desc, "OPEN")]');
@@ -614,16 +626,16 @@ describe('Order Book Verification Flow', () => {
     //         if (await selectAllCheckbox.isExisting()) {
     //             await selectAllCheckbox.click();
     //             await driver.pause(1000);
-                
+
     //             let cancelAllBtn = await $(`android=new UiSelector().className("android.widget.Button").textContains("Cancel All")`);
     //             if (!(await cancelAllBtn.isExisting())) {
     //                 cancelAllBtn = await $(`//android.widget.Button[contains(@content-desc, "Cancel All") or contains(@text, "Cancel All")]`);
     //             }
-                
+
     //             if (await cancelAllBtn.isExisting()) {
     //                 await cancelAllBtn.click();
     //                 await driver.pause(1000);
-                    
+
     //                 console.log("Clicking NO on cancel confirmation popup...");
     //                 const noBtn = await $(locators.get('orderBookNoBtn'));
     //                 if (await noBtn.isExisting()) {
@@ -635,15 +647,24 @@ describe('Order Book Verification Flow', () => {
     //     }
     // });
 
-    it('should run end-to-end flow for executed buy (ADANI)', async () => {
+    it('TC-05: End-to-end order flow for executed buy (ADANI)', async () => {
+        console.log(`\n========================================`);
+        console.log(`TC-05: Executed Order Flow - BUY (ADANI)`);
+        console.log(`========================================`);
         await executeOrderFlow({ stockName: "ADANI", action: "BUY", productType: "MIS", orderType: "MKT", isPending: false });
     });
 
-    it('should run end-to-end flow for executed sell (TCS-EQ)', async () => {
+    it('TC-06: End-to-end order flow for executed sell (TCS-EQ)', async () => {
+        console.log(`\n========================================`);
+        console.log(`TC-06: Executed Order Flow - SELL (TCS-EQ)`);
+        console.log(`========================================`);
         await executeOrderFlow({ stockName: "TCS-EQ", action: "SELL", productType: "MIS", orderType: "MKT", isPending: false });
     });
 
-    it('should verify Search, Download CSV and Filter for Executed Orders', async () => {
+    it('TC-07: Verify Search, Download CSV and Filter for Executed Orders', async () => {
+        console.log(`\n========================================`);
+        console.log(`TC-07: Search, Download CSV and Filter for Executed Orders`);
+        console.log(`========================================`);
         allureReporter.addStep('Verify Search, Download CSV and Filter for Executed Orders');
 
         const openOrders = await $$('//*[contains(@content-desc, "OPEN")]');

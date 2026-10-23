@@ -1,5 +1,6 @@
 import allure from '@wdio/allure-reporter'
-import locators from '../utils/locatorHelper.js'
+import fundsLocators from '../locators/fundsLocators.js'
+const locators = fundsLocators
 
 
 class FundsPage {

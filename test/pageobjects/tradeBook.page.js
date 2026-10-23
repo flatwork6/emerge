@@ -1,4 +1,5 @@
-import locators from '../utils/locatorHelper.js'
+import tradeBookLocators from '../locators/tradeBookLocators.js'
+const locators = tradeBookLocators
 
 class TradeBookPage {
     get tradeBookTab() { return $('~Tradebook'); }

@@ -1,9 +1,10 @@
 import allure from '@wdio/allure-reporter'
-import locators from '../utils/locatorHelper.js'
+import stockOverviewLocators from '../locators/stockOverviewLocators.js'
+const locators = stockOverviewLocators
 
 class OverviewPage {
     get optionChainIcon() {
-        return $(locators.get("fundsTabIcon")); 
+        return $(locators.get("overviewOptionChainIcon")); 
     }
 
     async getStockDetails(expectedStockName) {
@@ -33,7 +34,7 @@ class OverviewPage {
     }
 
     get alertsIcon() {
-        return $(locators.get("profileMenuBtn"));
+        return $(locators.get("overviewAlertsIcon"));
     }
 
     async clickAlerts() {
@@ -51,7 +52,7 @@ class OverviewPage {
             await this.optionChainIcon.waitForDisplayed({ timeout: 5000 });
             await this.optionChainIcon.click();
         } catch (e) {
-            console.error("Could not find Option Chain icon using locators.get(fundsTabIcon)");
+            console.error("Could not find Option Chain icon using locators.get(overviewOptionChainIcon)");
             throw new Error("Could not find Option Chain icon.");
         }
     }

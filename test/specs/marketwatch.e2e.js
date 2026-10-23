@@ -1,4 +1,4 @@
-import locators from '../utils/locatorHelper.js'
+import locators from '../locators/marketwatchLocators.js'
 import 'dotenv/config'
 import path from 'path'
 import dotenv from 'dotenv'
@@ -7,7 +7,7 @@ import dotenv from 'dotenv'
 dotenv.config({ path: path.resolve(process.cwd(), 'creds.env') })
 dotenv.config({ path: path.resolve(process.cwd(), 'test/data/testdata.env') })
 
-import allure from '@wdio/allure-reporter'
+import allureReporter from '@wdio/allure-reporter'
 import LoginPage from '../pageobjects/login.page.js'
 import SetBiometric from '../pageobjects/biometric.js'
 import ProfilePage from '../pageobjects/profile.page.js'
@@ -16,6 +16,7 @@ import { parse } from 'csv-parse/sync'
 import WatchlistPage from '../pageobjects/watchlist.page.js'
 import segmentGuard from '../utils/segmentGuard.js'
 import testDataHelper from '../utils/testDataHelper.js'
+
 const originalLog = console.log;
 console.log = function (...args) {
   originalLog.apply(console, args);
@@ -25,18 +26,28 @@ console.log = function (...args) {
   } catch (e) { }
 };
 
+describe('Market Watch Automation', () => {
+  let stocksToPin = [];
 
-describe('Should open watchlist, search and add scrips and remove if it is already present', () => {
-  it('should search scrip — remove if already present, then add it; verifying search, remove and add', async () => {
+  before(async () => {
+    const csvPath = path.resolve(process.cwd(), 'test/data/stockOverviewStocks.csv');
+    if (fs.existsSync(csvPath)) {
+      const fileContent = fs.readFileSync(csvPath, 'utf8');
+      const records = parse(fileContent, { columns: true, skip_empty_lines: true });
+      stocksToPin = records.map(r => r.STOCKNAME);
+    } else {
+      stocksToPin = ['TCS-EQ', 'INFY-EQ'];
+    }
+  });
+
+  it('TC-01: Search scrip, remove if present, add scrip, and verify heatmap counts', async () => {
+    console.log(`\n========================================`)
+    console.log(`TC-01: Search Scrip, Remove If Present, Add Scrip & Verify Heatmap`)
+    console.log(`========================================`)
+
     const orderTestData = testDataHelper.getOrderTestData()
 
     console.log("\nStarting Watchlist Add Scrip Flow for all watchlists...")
-
-    // Extract Trading Privileges from UI to populate segmentGuard
-    // await ProfilePage.openTradingPrivileges()
-    // await ProfilePage.extractActiveSegments()
-    // await ProfilePage.clickProfileBackButton()
-    // await ProfilePage.clickAccountsAndServicesCrossButton()
 
     // ── Step 1: Navigate to Watchlist ─────────────────────────────────────────
     await ProfilePage.openWatchlist()
@@ -78,22 +89,19 @@ describe('Should open watchlist, search and add scrips and remove if it is alrea
 
     console.log('\n✅ Watchlist Search / Remove / Add & Heatmap Verification Flow completed.')
   })
-})
 
+  it('TC-02: Watchlist drag and drop scrip reordering', async () => {
+    console.log(`\n========================================`)
+    console.log(`TC-02: Watchlist Drag and Drop Reordering`)
+    console.log(`========================================`)
 
-describe('Watchlist Drag and Drop Validation', () => {
-  it('Should drag and drop a scrip, save the manual ordering popup, and drag again', async () => {
     console.log('\n--- Validating Drag and Drop Ordering ---')
     await WatchlistPage.verifyDragAndDrop()
   })
-})
 
-
-
-describe('Market Watch Settings Validation', () => {
-  it('should open and close the market watch settings bottom sheet and verify sorting', async () => {
+  it('TC-03: Market Watch settings sorting, price toggle, format options, and show direction toggle', async () => {
     console.log(`\n========================================`)
-    console.log(`Validating Market Watch Settings Sorting`)
+    console.log(`TC-03: Market Watch Settings Validation`)
     console.log(`========================================`)
 
     const sortOptions = [
@@ -126,25 +134,13 @@ describe('Market Watch Settings Validation', () => {
     console.log(`Validating Show Direction Toggle`)
     console.log(`========================================`)
     await WatchlistPage.verifyShowDirectionToggle();
-
   })
-})
 
-describe('Watchlist Pinning Validation', () => {
-  let stocksToPin = [];
+  it('TC-04: Watchlist stock pinning and persistence after relogin', async () => {
+    console.log(`\n========================================`)
+    console.log(`TC-04: Watchlist Pinning Validation`)
+    console.log(`========================================`)
 
-  before(async () => {
-    const csvPath = path.resolve(process.cwd(), 'test/data/optionChainStocks.csv');
-    if (fs.existsSync(csvPath)) {
-      const fileContent = fs.readFileSync(csvPath, 'utf8');
-      const records = parse(fileContent, { columns: true, skip_empty_lines: true });
-      stocksToPin = records.map(r => r.STOCKNAME);
-    } else {
-      stocksToPin = ['TCS-EQ', 'INFY-EQ'];
-    }
-  });
-
-  it('should pin a stock, verify it is pinned, logout, login, and verify it is still pinned', async () => {
     console.log('\n--- Validating Watchlist Pinning ---')
     // 1. Pin TCS-EQ to Favorite 1
     await WatchlistPage.verifyWatchlistPinning(stocksToPin[0], 1)
@@ -152,7 +148,7 @@ describe('Watchlist Pinning Validation', () => {
     // 2. Pin INFY-EQ to Favorite 2
     await WatchlistPage.verifyWatchlistPinning(stocksToPin[1], 2)
 
-    // // 3. Logout
+    // 3. Logout
     console.log('\n--- Logging out to verify persistence ---')
     await ProfilePage.logout()
 
@@ -168,12 +164,10 @@ describe('Watchlist Pinning Validation', () => {
     if (stocksToPin[0]) await WatchlistPage.verifyPinnedStock(stocksToPin[0], 1)
     if (stocksToPin[1]) await WatchlistPage.verifyPinnedStock(stocksToPin[1], 2)
   })
-})
 
-describe('Edit Watchlist Validation', () => {
-  it('should navigate watchlists and remove a stock', async () => {
+  it('TC-05: Edit Watchlist tabs and remove stocks', async () => {
     console.log(`\n========================================`)
-    console.log(`Validating Edit Watchlist`)
+    console.log(`TC-05: Edit Watchlist Validation`)
     console.log(`========================================`)
 
     // Step 2: Extract watchlist names from the dropdown
@@ -195,14 +189,14 @@ describe('Edit Watchlist Validation', () => {
     await WatchlistPage.deleteStockByRowIndex(0);
     await driver.back();
     await driver.pause(1500);
-  });
-});
+  })
 
+  it('TC-06: Verify snackbar appears when adding an already present scrip', async () => {
+    console.log(`\n========================================`)
+    console.log(`TC-06: Already Present Scrip Snackbar Validation`)
+    console.log(`========================================`)
 
-describe('Market Watch Additional Scenarios', () => {
-  it('should show snackbar when adding an already present scrip', async () => {
     // Step 1: Navigate to Watchlist tab and get the first stock name
-    // await WatchlistPage.clickWatchlistTab();
     const existingScrip = await WatchlistPage.getFirstWatchlistStockName();
     console.log(`First watchlist stock: ${existingScrip}`);
 
@@ -249,9 +243,13 @@ describe('Market Watch Additional Scenarios', () => {
 
     // Step 5: Close search
     await WatchlistPage.closeSearch();
-  });
+  })
 
-  it('should verify segment chips and segments shown below scrip name for tcs', async () => {
+  it('TC-07: Verify segment filter chips and segment matching for scrip search', async () => {
+    console.log(`\n========================================`)
+    console.log(`TC-07: Verify Segment Filter Chips and Scrip Search`)
+    console.log(`========================================`)
+
     await WatchlistPage.clickSearchIcon();
     await WatchlistPage.enterScripName(process.env.TEST_SCRIP_NAME_TCS);
 
@@ -295,45 +293,45 @@ describe('Market Watch Additional Scenarios', () => {
         throw new Error(`Expected segment ${segment} (TCS-EQ for NSE, TCS for BSE) not found in top card desc: ${card}`);
       } else {
         console.log(`✅ [${segment} VERIFIED]: Top card '${firstLine}' correctly matches segment '${segment}'`);
-        allure.addStep(`✅ Successful verification of scrip under segment ${segment}: ${firstLine}`);
+        allureReporter.addStep(`✅ Successful verification of scrip under segment ${segment}: ${firstLine}`);
       }
     }
     await WatchlistPage.closeSearch();
-  });
+  })
 
-  //   it('should verify dname format for BFO segment', async () => {
-  //     await WatchlistPage.clickSearchIcon();
-  //     await WatchlistPage.enterScripName(process.env.TEST_SCRIP_NAME_TCS);
-  //     await WatchlistPage.selectExchangeFilter(process.env.TEST_SEGMENT_BFO);
-  //     await driver.pause(2000);
+  // it('TC-08: Verify dname format for BFO segment', async () => {
+  //   await WatchlistPage.clickSearchIcon();
+  //   await WatchlistPage.enterScripName(process.env.TEST_SCRIP_NAME_TCS);
+  //   await WatchlistPage.selectExchangeFilter(process.env.TEST_SEGMENT_BFO);
+  //   await driver.pause(2000);
 
-  //     const initialResults = await WatchlistPage.getAllSearchResults();
-  //     const initialTcsResults = initialResults.filter(r => r.toUpperCase().startsWith('TCS'));
-  //     if (initialTcsResults.length === 0) throw new Error("No TCS results found initially");
+  //   const initialResults = await WatchlistPage.getAllSearchResults();
+  //   const initialTcsResults = initialResults.filter(r => r.toUpperCase().startsWith('TCS'));
+  //   if (initialTcsResults.length === 0) throw new Error("No TCS results found initially");
 
-  //     const firstScrip = initialTcsResults[0].split('\n')[0].trim();
-  //     if (/TCS \d{2}[A-Z]{3} FUT/i.test(firstScrip)) {
-  //       console.log("✅First scrip format success: " + firstScrip);
-  //     }
-  //     else {
-  //       throw new Error("First scrip mismatch" + firstScrip);
-  //     }
+  //   const firstScrip = initialTcsResults[0].split('\n')[0].trim();
+  //   if (/TCS \d{2}[A-Z]{3} FUT/i.test(firstScrip)) {
+  //     console.log("✅First scrip format success: " + firstScrip);
+  //   }
+  //   else {
+  //     throw new Error("First scrip mismatch" + firstScrip);
+  //   }
 
-  //     // Scroll down to the end to catch PE/CE options
-  //     await WatchlistPage.scrollSearchResultsToBottom();
+  //   // Scroll down to the end to catch PE/CE options
+  //   await WatchlistPage.scrollSearchResultsToBottom();
 
-  //     const finalResults = await WatchlistPage.getAllSearchResults();
-  //     const finalTcsResults = finalResults.filter(r => r.toUpperCase().startsWith('TCS'));
-  //     if (finalTcsResults.length === 0) throw new Error("No TCS results found at bottom");
+  //   const finalResults = await WatchlistPage.getAllSearchResults();
+  //   const finalTcsResults = finalResults.filter(r => r.toUpperCase().startsWith('TCS'));
+  //   if (finalTcsResults.length === 0) throw new Error("No TCS results found at bottom");
 
-  //     const lastScrip = finalTcsResults[finalTcsResults.length - 1].split('\n')[0].trim();
-  //     if (/TCS \d{2}[A-Z]{3} \d+(?:\.\d+)? (PE|CE)/i.test(lastScrip)) {
-  //       console.log("✅Last scrip format success: " + lastScrip);
-  //     }
-  //     else {
-  //       throw new Error("First scrip mismatch" + firstScrip);
-  //     }
+  //   const lastScrip = finalTcsResults[finalTcsResults.length - 1].split('\n')[0].trim();
+  //   if (/TCS \d{2}[A-Z]{3} \d+(?:\.\d+)? (PE|CE)/i.test(lastScrip)) {
+  //     console.log("✅Last scrip format success: " + lastScrip);
+  //   }
+  //   else {
+  //     throw new Error("First scrip mismatch" + firstScrip);
+  //   }
 
-  //     await WatchlistPage.closeSearch();
-  //   });
-});
+  //   await WatchlistPage.closeSearch();
+  // })
+})

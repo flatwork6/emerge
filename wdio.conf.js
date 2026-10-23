@@ -22,8 +22,35 @@ exports.config = {
     // of the config file unless it's absolute.
     //
     specs: [
-        './test/specs/**/*.js'
+        './test/specs/login.e2e.js',
+        './test/specs/marketwatch.e2e.js',
+        './test/specs/stockOverview.e2e.js',
+        './test/specs/orderBook.e2e.js',
+        './test/specs/tradeBook.e2e.js',
+        './test/specs/holdings.e2e.js',
+        './test/specs/baskets.e2e.js',
+        './test/specs/fundsAndMargins.e2e.js'
     ],
+    suites: {
+        e2eFlow: [
+            './test/specs/login.e2e.js',
+            './test/specs/marketwatch.e2e.js',
+            './test/specs/stockOverview.e2e.js',
+            './test/specs/orderBook.e2e.js',
+            './test/specs/tradeBook.e2e.js',
+            './test/specs/holdings.e2e.js',
+            './test/specs/baskets.e2e.js',
+            './test/specs/fundsAndMargins.e2e.js'
+        ],
+        login: ['./test/specs/login.e2e.js'],
+        marketwatch: ['./test/specs/marketwatch.e2e.js'],
+        stockOverview: ['./test/specs/stockOverview.e2e.js'],
+        orderBook: ['./test/specs/orderBook.e2e.js'],
+        tradeBook: ['./test/specs/tradeBook.e2e.js'],
+        holdings: ['./test/specs/holdings.e2e.js'],
+        baskets: ['./test/specs/baskets.e2e.js'],
+        fundsAndMargins: ['./test/specs/fundsAndMargins.e2e.js']
+    },
     // Patterns to exclude.
     exclude: [
         // 'path/to/excluded/files'

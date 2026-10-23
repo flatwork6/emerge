@@ -1,4 +1,5 @@
-import locators from '../utils/locatorHelper.js'
+import loginLocators from '../locators/loginLocators.js'
+const locators = loginLocators
 
 class LoginPage {
 

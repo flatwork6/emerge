@@ -1,4 +1,5 @@
-import locators from '../utils/locatorHelper.js'
+import basketsLocators from '../locators/basketsLocators.js'
+const locators = basketsLocators
 
 class BasketsPage {
     get basketTab() { return $(locators.get('basketsTab')); }

@@ -1,4 +1,5 @@
-import locators from '../utils/locatorHelper.js';
+import orderBookLocators from '../locators/orderBookLocators.js';
+const locators = orderBookLocators;
 
 class OrderWindowPage {
     constructor() {

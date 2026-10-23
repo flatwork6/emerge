@@ -1,4 +1,5 @@
-import locators from '../utils/locatorHelper.js'
+import holdingsLocators from '../locators/holdingsLocators.js'
+const locators = holdingsLocators
 
 class PortfolioPage {
 

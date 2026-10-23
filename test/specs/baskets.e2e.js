@@ -1,6 +1,6 @@
 import 'dotenv/config'
 import allure from '@wdio/allure-reporter'
-import locators from '../utils/locatorHelper.js';
+import locators from '../locators/basketsLocators.js';
 import BasketsPage from '../pageobjects/baskets.page.js'
 import PortfolioPage from '../pageobjects/portfolio.page.js'
 describe('Baskets Automation', () => {

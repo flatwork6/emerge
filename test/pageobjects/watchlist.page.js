@@ -1,5 +1,6 @@
 import allure from '@wdio/allure-reporter'
-import locators from '../utils/locatorHelper.js'
+import marketwatchLocators from '../locators/marketwatchLocators.js'
+const locators = marketwatchLocators
 
 class WatchlistPage {
     async getFirstWatchlistStockName() {

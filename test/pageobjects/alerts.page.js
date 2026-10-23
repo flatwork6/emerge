@@ -1,5 +1,6 @@
 import allure from '@wdio/allure-reporter'
-import locators from '../utils/locatorHelper.js'
+import stockOverviewLocators from '../locators/stockOverviewLocators.js'
+const locators = stockOverviewLocators
 
 class AlertsPage {
     get targetValueInput() {

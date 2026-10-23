@@ -1,4 +1,4 @@
-import locators from '../utils/locatorHelper.js'
+import locators from '../locators/commonLocators.js'
 const WatchlistPage = require('../pageobjects/watchlist.page.js').default || require('../pageobjects/watchlist.page.js');
 const OrdersPage = require('../pageobjects/orders.page.js').default;
 const fs = require('fs');
